@@ -1,0 +1,232 @@
+/* This file is part of QTextPad.
+ *
+ * QTextPad is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * QTextPad is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include "settingspopup.h"
+
+#include <QIcon>
+#include <QApplication>
+#include <QPainter>
+#include <QLineEdit>
+#include <QTreeWidget>
+#include <QHeaderView>
+#include <QScrollBar>
+#include <QVBoxLayout>
+#include <QTextCodec>
+
+#include <KSyntaxHighlighting/Repository>
+#include <KCharsets>
+
+#include "syntaxtextedit.h"
+
+class DecoratedFilterEdit : public QLineEdit
+{
+public:
+    DecoratedFilterEdit(QWidget *parent = Q_NULLPTR)
+        : QLineEdit(parent)
+    {
+        m_searchIcon = QIcon(":/icons/syntax-filter.png");
+        setClearButtonEnabled(true);
+        resizeEvent(Q_NULLPTR);
+    }
+
+    QSize sizeHint() const Q_DECL_OVERRIDE
+    {
+        QSize hint = QLineEdit::sizeHint();
+        hint.setHeight(qMin(hint.height(), 18));
+        return hint;
+    }
+
+protected:
+    void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE
+    {
+        QLineEdit::paintEvent(event);
+
+        QPainter painter(this);
+        QRect iconRect(m_iconPosition.x(), m_iconPosition.y(), 16, 16);
+        if (event->region().intersects(iconRect))
+            m_searchIcon.paint(&painter, iconRect);
+    }
+
+    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE
+    {
+        if (event)
+            QLineEdit::resizeEvent(event);
+
+        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+        setStyleSheet(QStringLiteral("QLineEdit { padding-left: %1px; }")
+                      .arg(frameWidth + 18));
+
+        m_iconPosition = QPoint(rect().left() + frameWidth + 1,
+                                (rect().bottom() - 16) / 2);
+    }
+
+private:
+    QIcon m_searchIcon;
+    QPoint m_iconPosition;
+};
+
+
+FilteredTreePopup::FilteredTreePopup(QWidget *parent)
+    : QWidget(parent)
+{
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->setMargin(0);
+    layout->setSpacing(0);
+
+    m_filter = new DecoratedFilterEdit(this);
+    connect(m_filter, &QLineEdit::textChanged, this, &FilteredTreePopup::filterItems);
+    layout->addWidget(m_filter);
+
+    m_tree = new QTreeWidget(this);
+    m_tree->header()->hide();
+    layout->addWidget(m_tree);
+}
+
+QSize FilteredTreePopup::sizeHint() const
+{
+    QSize hint;
+    const int viewWidth = 5 + m_tree->columnWidth(0)
+            + m_tree->style()->pixelMetric(QStyle::PM_DefaultFrameWidth)
+            + m_tree->style()->pixelMetric(QStyle::PM_ScrollBarExtent);
+    hint.setWidth(qMax(viewWidth, m_tree->sizeHint().width()));
+    const QFontMetrics fm = m_tree->fontMetrics();
+    hint.setHeight(m_filter->sizeHint().height() + (fm.height() * 16));
+    return hint;
+}
+
+template <typename FilterProc>
+bool applyFilter(QTreeWidgetItem *parent, FilterProc proc)
+{
+    bool showParent = false;
+    for (int i = 0; i < parent->childCount(); ++i) {
+        QTreeWidgetItem *item = parent->child(i);
+        if (applyFilter(item, proc)) {
+            item->setHidden(false);
+            showParent = true;
+            continue;
+        }
+
+        if (proc(item)) {
+            item->setHidden(false);
+            showParent = true;
+        } else {
+            item->setHidden(true);
+        }
+    }
+    return showParent;
+}
+
+void FilteredTreePopup::filterItems(const QString &text)
+{
+    if (text.isEmpty()) {
+        applyFilter(m_tree->invisibleRootItem(),
+                    [](QTreeWidgetItem *) { return true; });
+    } else {
+        applyFilter(m_tree->invisibleRootItem(),
+                    [text](QTreeWidgetItem *item) {
+            return item->text(0).contains(text, Qt::CaseInsensitive);
+        });
+    }
+}
+
+void FilteredTreePopup::showEvent(QShowEvent *e)
+{
+    m_filter->setFocus();
+    QWidget::showEvent(e);
+}
+
+
+SyntaxPopup::SyntaxPopup(QWidget *parent)
+    : FilteredTreePopup(parent)
+{
+    connect(tree(), &QTreeWidget::currentItemChanged,
+            this, &SyntaxPopup::syntaxItemChanged);
+
+    // Default unformatted option
+    m_plainTextItem = new QTreeWidgetItem(tree(), QStringList() << tr("Plain Text"));
+
+    // Load the syntax definitions (these are already sorted)
+    KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
+    const auto syntaxDefs = syntaxRepo->definitions();
+    QMap<QString, QTreeWidgetItem *> groupItems;
+    for (const auto def : syntaxDefs) {
+        if (def.isHidden())
+            continue;
+
+        QTreeWidgetItem *parent = groupItems.value(def.translatedSection(), Q_NULLPTR);
+        if (!parent) {
+            parent = new QTreeWidgetItem(tree(), QStringList() << def.translatedSection());
+            groupItems[def.translatedSection()] = parent;
+        }
+        auto item = new QTreeWidgetItem(parent, QStringList() << def.translatedName());
+        item->setData(0, Qt::UserRole, QVariant::fromValue(def));
+    }
+    tree()->expandAll();
+    tree()->resizeColumnToContents(0);
+}
+
+void SyntaxPopup::syntaxItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *)
+{
+    if (!current)
+        return;
+
+    if (current == m_plainTextItem) {
+        emit syntaxSelected(SyntaxTextEdit::nullSyntax());
+        return;
+    }
+
+    QVariant itemData = current->data(0, Qt::UserRole);
+    if (itemData.canConvert<KSyntaxHighlighting::Definition>())
+        emit syntaxSelected(itemData.value<KSyntaxHighlighting::Definition>());
+}
+
+
+EncodingPopup::EncodingPopup(QWidget *parent)
+    : FilteredTreePopup(parent)
+{
+    connect(tree(), &QTreeWidget::currentItemChanged,
+            this, &EncodingPopup::encodingItemChanged);
+
+    // Load the available character sets by script
+    auto charsets = KCharsets::charsets();
+    auto encodingScripts = charsets->encodingsByScript();
+    std::sort(encodingScripts.begin(), encodingScripts.end(),
+              [](const QStringList &left, const QStringList &right)
+    {
+        return left.first() < right.first();
+    });
+
+    for (const auto encodingList : encodingScripts) {
+        auto *parent = new QTreeWidgetItem(tree(), QStringList() << encodingList.first());
+        for (int i = 1; i < encodingList.size(); ++i) {
+            QString codecName = encodingList.at(i);
+            auto item = new QTreeWidgetItem(parent, QStringList() << codecName);
+            item->setData(0, Qt::UserRole, codecName);
+        }
+    }
+    tree()->expandAll();
+    tree()->resizeColumnToContents(0);
+}
+
+void EncodingPopup::encodingItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *)
+{
+    if (!current)
+        return;
+
+    QVariant codecName = current->data(0, Qt::UserRole);
+    if (codecName.isValid())
+        emit encodingSelected(codecName.toString());
+}
