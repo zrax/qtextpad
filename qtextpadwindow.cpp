@@ -26,9 +26,9 @@
 #include <QClipboard>
 #include <QTextCodec>
 
-#include <KSyntaxHighlighting/Repository>
-#include <KSyntaxHighlighting/Definition>
-#include <KSyntaxHighlighting/Theme>
+#include <Repository>
+#include <Definition>
+#include <Theme>
 #include <KCharsets>
 
 #include "activationlabel.h"

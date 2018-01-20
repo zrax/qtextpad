@@ -21,10 +21,12 @@
 #include <QPainter>
 #include <QRegularExpression>
 #include <QStack>
-#include <KSyntaxHighlighting/Theme>
-#include <KSyntaxHighlighting/Definition>
-#include <KSyntaxHighlighting/Repository>
-#include <KSyntaxHighlighting/SyntaxHighlighter>
+
+#include <Theme>
+#include <Definition>
+#include <Repository>
+#include <SyntaxHighlighter>
+
 #include <cmath>
 
 enum SyntaxTextEdit_Config
