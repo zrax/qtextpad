@@ -193,10 +193,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(crlfAction, &QAction::triggered, [this]() { setLineEndingMode(CRLF); });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
-    auto aboutAction = helpMenu->addAction(tr("&About..."));
+    auto aboutAction = helpMenu->addAction(ICON("help-about"), tr("&About..."));
     aboutAction->setShortcut(QKeySequence::HelpContents);
 
     auto toolBar = addToolBar(tr("Toolbar"));
+    toolBar->setIconSize(QSize(22, 22));
     toolBar->addAction(newAction);
     toolBar->addAction(openAction);
     toolBar->addAction(saveAction);

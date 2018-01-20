@@ -15,12 +15,31 @@
  */
 
 #include <QApplication>
+#include <QIcon>
 
 #include "qtextpadwindow.h"
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+    // Determine if the default icon theme includes the necessary icons for
+    // our toolbar.  If not, we need to use our own theme.
+    const QString iconNames[] = {
+        "document-new", "document-open", "document-save",
+        "edit-undo", "edit-redo",
+        "edit-cut", "edit-copy", "edit-paste",
+    };
+    bool defaultThemeOk = true;
+    for (const auto name : iconNames) {
+        if (!QIcon::hasThemeIcon(name)) {
+            defaultThemeOk = false;
+            break;
+        }
+    }
+    if (!defaultThemeOk)
+        QIcon::setThemeName(QStringLiteral("qtextpad"));
+
     QTextPadWindow win;
     win.show();
 
