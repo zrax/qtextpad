@@ -25,6 +25,7 @@
 #include <QWidgetAction>
 #include <QClipboard>
 #include <QTextCodec>
+#include <QTimer>
 
 #include <Repository>
 #include <Definition>
@@ -52,9 +53,11 @@ protected:
                 [this](const QString &codecName) {
             qobject_cast<QTextPadWindow *>(parent())->setEncoding(codecName);
 
-            // TODO: Close the popup cleanly, without blocking other menus
-            // temporarily as Qt seems to insist upon.
-            //QApplication::activePopupWidget()->close();
+            // Don't close the popup right after clicking, so the user can
+            // briefly see the visual feedback for the item they selected.
+            QTimer::singleShot(100, []() {
+                QApplication::activePopupWidget()->close();
+            });
         });
         return popup;
     }
@@ -74,9 +77,11 @@ protected:
                 [this](const KSyntaxHighlighting::Definition &syntax) {
             qobject_cast<QTextPadWindow *>(parent())->setSyntax(syntax);
 
-            // TODO: Close the popup cleanly, without blocking other menus
-            // temporarily as Qt seems to insist upon.
-            //QApplication::activePopupWidget()->close();
+            // Don't close the popup right after clicking, so the user can
+            // briefly see the visual feedback for the item they selected.
+            QTimer::singleShot(100, []() {
+                QApplication::activePopupWidget()->close();
+            });
         });
         return popup;
     }
