@@ -46,6 +46,16 @@ int main(int argc, char *argv[])
 
     setDefaultIconTheme();
 
+    // TODO: Make a unique icon for QTextPad?
+    // This one is borrowed from Oxygen
+    QIcon appIcon;
+    appIcon.addFile(":/icons/qtextpad-64.png", QSize(64, 64));
+    appIcon.addFile(":/icons/qtextpad-48.png", QSize(48, 48));
+    appIcon.addFile(":/icons/qtextpad-32.png", QSize(32, 32));
+    appIcon.addFile(":/icons/qtextpad-16.png", QSize(16, 16));
+    appIcon.addFile(":/icons/qtextpad-128.png", QSize(128, 128));
+    app.setWindowIcon(appIcon);
+
     QTextPadWindow win;
     win.show();
 

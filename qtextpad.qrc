@@ -1,6 +1,13 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource>
+        <!-- Application icon (Oxygen/accessories-text-editor) -->
+        <file>icons/qtextpad-16.png</file>
+        <file>icons/qtextpad-32.png</file>
+        <file>icons/qtextpad-48.png</file>
+        <file>icons/qtextpad-64.png</file>
+        <file>icons/qtextpad-128.png</file>
+
         <!-- Used by the filter widget in the toolbar popups -->
         <file>icons/syntax-filter.png</file>
 
@@ -22,6 +29,9 @@
         <file>icons/qtextpad/16x16/actions/edit-undo.png</file>
         <file>icons/qtextpad/16x16/actions/help-about.png</file>
         <file>icons/qtextpad/16x16/actions/view-refresh.png</file>
+        <file>icons/qtextpad/16x16/actions/zoom-in.png</file>
+        <file>icons/qtextpad/16x16/actions/zoom-original.png</file>
+        <file>icons/qtextpad/16x16/actions/zoom-out.png</file>
         <file>icons/qtextpad/22x22/actions/document-new.png</file>
         <file>icons/qtextpad/22x22/actions/document-open.png</file>
         <file>icons/qtextpad/22x22/actions/document-preview.png</file>
@@ -38,5 +48,8 @@
         <file>icons/qtextpad/22x22/actions/edit-undo.png</file>
         <file>icons/qtextpad/22x22/actions/help-about.png</file>
         <file>icons/qtextpad/22x22/actions/view-refresh.png</file>
+        <file>icons/qtextpad/22x22/actions/zoom-in.png</file>
+        <file>icons/qtextpad/22x22/actions/zoom-original.png</file>
+        <file>icons/qtextpad/22x22/actions/zoom-out.png</file>
     </qresource>
 </RCC>
