@@ -177,6 +177,31 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
     m_themeMenu = viewMenu->addMenu(tr("&Theme"));
     populateThemeMenu();
+    (void) viewMenu->addSeparator();
+    auto wordWrapAction = viewMenu->addAction(tr("&Word Wrap"));
+    wordWrapAction->setShortcut(Qt::CTRL | Qt::Key_W);
+    wordWrapAction->setCheckable(true);
+    auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
+    showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_N);
+    showLineNumbersAction->setCheckable(true);
+    auto showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
+    showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
+    showWhitespaceAction->setCheckable(true);
+    (void) viewMenu->addSeparator();
+    auto showCurrentLineAction = viewMenu->addAction(tr("Highlight &Current Line"));
+    showCurrentLineAction->setCheckable(true);
+    auto showMatchingBraces = viewMenu->addAction(tr("Match &Braces"));
+    showMatchingBraces->setCheckable(true);
+
+    connect(wordWrapAction, &QAction::toggled, m_editor, &SyntaxTextEdit::setWordWrap);
+    connect(showLineNumbersAction, &QAction::toggled,
+            m_editor, &SyntaxTextEdit::setShowLineNumbers);
+    connect(showWhitespaceAction, &QAction::toggled,
+            m_editor, &SyntaxTextEdit::setShowWhitespace);
+    connect(showCurrentLineAction, &QAction::toggled,
+            m_editor, &SyntaxTextEdit::setHighlightCurrentLine);
+    connect(showMatchingBraces, &QAction::toggled,
+            m_editor, &SyntaxTextEdit::setMatchBraces);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
     m_syntaxMenu = settingsMenu->addMenu(tr("&Syntax"));
@@ -187,10 +212,13 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto crOnlyAction = lineEndingMenu->addAction(tr("Classic Mac (CR)"));
     auto lfOnlyAction = lineEndingMenu->addAction(tr("UNIX (LF)"));
     auto crlfAction = lineEndingMenu->addAction(tr("Windows/DOS (CRLF)"));
+    (void) settingsMenu->addSeparator();
+    auto tabSettingsAction = settingsMenu->addAction(tr("&Tab Settings..."));
 
     connect(crOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(CROnly); });
     connect(lfOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(LFOnly); });
     connect(crlfAction, &QAction::triggered, [this]() { setLineEndingMode(CRLF); });
+    //connect(tabSettingsAction, &QAction::triggered, ...);
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     auto aboutAction = helpMenu->addAction(ICON("help-about"), tr("&About..."));
@@ -198,6 +226,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     auto toolBar = addToolBar(tr("Toolbar"));
     toolBar->setIconSize(QSize(22, 22));
+    toolBar->setMovable(false);
     toolBar->addAction(newAction);
     toolBar->addAction(openAction);
     toolBar->addAction(saveAction);
@@ -208,9 +237,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     toolBar->addAction(cutAction);
     toolBar->addAction(copyAction);
     toolBar->addAction(pasteAction);
-    toolBar->setMovable(false);
 
-    m_positionLabel = new QLabel(this);
+    m_positionLabel = new ActivationLabel(this);
     m_positionLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     statusBar()->addWidget(m_positionLabel);
     m_insertLabel = new ActivationLabel(this);
@@ -245,18 +273,17 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     defaultFont.setPointSize(10);
     m_editor->setFont(defaultFont);
 
-    // Enable all features for testing...
-    m_editor->setWordWrapMode(QTextOption::NoWrap);
-    m_editor->setTabWidth(8);
-    m_editor->setAutoIndent(true);
-    m_editor->setMatchParentheses(true);
-    m_editor->setLongLineMarker(80);
-    m_editor->setShowLineNumbers(true);
+    wordWrapAction->setChecked(m_editor->wordWrap());
+    showLineNumbersAction->setChecked(m_editor->showLineNumbers());
+    showWhitespaceAction->setChecked(m_editor->showWhitespace());
+    showCurrentLineAction->setChecked(m_editor->highlightCurrentLine());
+    showMatchingBraces->setChecked(m_editor->matchBraces());
 
-    QTextOption opt = m_editor->document()->defaultTextOption();
-    opt.setFlags(opt.flags() | QTextOption::ShowTabsAndSpaces);
-    opt.setFlags(opt.flags() | QTextOption::AddSpaceForLineAndParagraphSeparators);
-    m_editor->document()->setDefaultTextOption(opt);
+    // Enable some features for testing...
+    m_editor->setTabWidth(8);
+    m_editor->setExpandTabs(false);
+    m_editor->setAutoIndent(true);
+    m_editor->setLongLineMarker(80);
 
     // This feature, counter-intuitively, scrolls the document such that the
     // cursor is in the center ONLY when moving the cursor -- it does NOT

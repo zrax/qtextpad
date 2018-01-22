@@ -22,7 +22,6 @@
 class SyntaxTextEdit;
 class ActivationLabel;
 
-class QLabel;
 class QToolButton;
 class QMenu;
 
@@ -68,7 +67,7 @@ private:
     QMenu *m_encodingMenu;
     QAction *m_overwiteModeAction;
 
-    QLabel *m_positionLabel;
+    ActivationLabel *m_positionLabel;
     ActivationLabel *m_crlfLabel;
     ActivationLabel *m_insertLabel;
     QToolButton *m_encodingButton;

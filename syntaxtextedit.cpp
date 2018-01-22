@@ -34,7 +34,8 @@ enum SyntaxTextEdit_Config
     Config_ShowLineNumbers = (1U<<0),
     Config_ExpandTabs = (1U<<1),
     Config_AutoIndent = (1U<<2),
-    Config_MatchParens = (1U<<3),
+    Config_MatchBraces = (1U<<3),
+    Config_HighlightCurLine = (1U<<4),
 };
 
 class LineNumberMargin : public QWidget
@@ -69,7 +70,7 @@ public:
     {
         KSyntaxHighlighting::SyntaxHighlighter::highlightBlock(text);
 
-        const QRegularExpression ws_regex("\\s+");
+        static const QRegularExpression ws_regex("\\s+");
         auto iter = ws_regex.globalMatch(text);
         QTextCharFormat ws_format;
         const QBrush ws_brush(theme().editorColor(KSyntaxHighlighting::Theme::TabMarker));
@@ -94,7 +95,8 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 }
 
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
-    : QPlainTextEdit(parent), m_tabCharSize(8), m_longLineMarker(), m_config()
+    : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
+      m_longLineMarker(), m_config()
 {
     m_lineMargin = new LineNumberMargin(this);
     m_highlighter = new WhitespaceSyntaxHighlighter(document());
@@ -105,6 +107,14 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
             this, &SyntaxTextEdit::updateLineNumbers);
     connect(this, &QPlainTextEdit::cursorPositionChanged,
             this, &SyntaxTextEdit::updateCursor);
+
+    // Default editor configuration flags
+    m_config = Config_MatchBraces | Config_HighlightCurLine;
+    setWordWrap(false);
+
+    QTextOption opt = document()->defaultTextOption();
+    opt.setFlags(opt.flags() | QTextOption::AddSpaceForLineAndParagraphSeparators);
+    document()->setDefaultTextOption(opt);
 
     updateMargins();
 }
@@ -149,6 +159,7 @@ void SyntaxTextEdit::paintLineNumbers(QPaintEvent *paintEvent)
     const int offset = fontMetrics().width(QLatin1Char('0')) / 2;
     QTextCursor cursor = textCursor();
 
+    // TODO: Word-wrapped lines are not updated correctly yet
     while (block.isValid() && top <= paintEvent->rect().bottom()) {
         if (block.isVisible() && bottom >= paintEvent->rect().top()) {
             const QString lineNum = QString::number(block.blockNumber() + 1);
@@ -179,20 +190,53 @@ void SyntaxTextEdit::setShowLineNumbers(bool show)
 
 bool SyntaxTextEdit::showLineNumbers() const
 {
-    return (m_config & Config_ShowLineNumbers) != 0;
+    return !!(m_config & Config_ShowLineNumbers);
+}
+
+void SyntaxTextEdit::setShowWhitespace(bool show)
+{
+    QTextOption opt = document()->defaultTextOption();
+    if (show)
+        opt.setFlags(opt.flags() | QTextOption::ShowTabsAndSpaces);
+    else
+        opt.setFlags(opt.flags() & ~QTextOption::ShowTabsAndSpaces);
+    document()->setDefaultTextOption(opt);
+}
+
+bool SyntaxTextEdit::showWhitespace() const
+{
+    const QTextOption opt = document()->defaultTextOption();
+    return !!(opt.flags() & QTextOption::ShowTabsAndSpaces);
+}
+
+void SyntaxTextEdit::setHighlightCurrentLine(bool show)
+{
+    if (show)
+        m_config |= Config_HighlightCurLine;
+    else
+        m_config &= ~Config_HighlightCurLine;
+    viewport()->update();
+}
+
+bool SyntaxTextEdit::highlightCurrentLine() const
+{
+    return !!(m_config & Config_HighlightCurLine);
 }
 
 void SyntaxTextEdit::setTabWidth(int width)
 {
     m_tabCharSize = width;
-    const qreal tabWidth = QFontMetricsF(font()).width(QString(width, ' '));
-    setTabStopWidth(static_cast<int>(std::ceil(tabWidth)));
+    updateTabMetrics();
+}
 
-    // Ensure characters line up evenly so tab stop calculation is correct
-    QFont editFont = font();
-    const qreal letterSpacing = (std::ceil(tabWidth) - tabWidth) / width;
-    editFont.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
-    setFont(editFont);
+void SyntaxTextEdit::updateTabMetrics()
+{
+    // setTabStopWidth only allows int widths, which doesn't line up correctly
+    // on many fonts.  Hack from QtCreator: Set it in the text option instead
+    const qreal tabWidth = QFontMetricsF(font()).width(QString(m_tabCharSize, ' '));
+    QTextOption opt = document()->defaultTextOption();
+    opt.setTabStop(tabWidth);
+    document()->setDefaultTextOption(opt);
 }
 
 void SyntaxTextEdit::setExpandTabs(bool expand)
@@ -205,7 +249,7 @@ void SyntaxTextEdit::setExpandTabs(bool expand)
 
 bool SyntaxTextEdit::expandTabs() const
 {
-    return (m_config & Config_ExpandTabs) != 0;
+    return !!(m_config & Config_ExpandTabs);
 }
 
 int SyntaxTextEdit::textColumn(const QString &block, int positionInBlock) const
@@ -230,7 +274,7 @@ void SyntaxTextEdit::setAutoIndent(bool ai)
 
 bool SyntaxTextEdit::autoIndent() const
 {
-    return (m_config & Config_AutoIndent) != 0;
+    return !!(m_config & Config_AutoIndent);
 }
 
 void SyntaxTextEdit::setLongLineMarker(int pos)
@@ -239,17 +283,35 @@ void SyntaxTextEdit::setLongLineMarker(int pos)
     viewport()->update();
 }
 
-void SyntaxTextEdit::setMatchParentheses(bool match)
+void SyntaxTextEdit::setWordWrap(bool wrap)
 {
-    if (match)
-        m_config |= Config_MatchParens;
-    else
-        m_config &= ~Config_MatchParens;
+    setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere
+                         : QTextOption::NoWrap);
 }
 
-bool SyntaxTextEdit::matchParentheses() const
+bool SyntaxTextEdit::wordWrap() const
 {
-    return (m_config & Config_MatchParens) != 0;
+    return wordWrapMode() != QTextOption::NoWrap;
+}
+
+void SyntaxTextEdit::setMatchBraces(bool match)
+{
+    if (match)
+        m_config |= Config_MatchBraces;
+    else
+        m_config &= ~Config_MatchBraces;
+    updateCursor();
+}
+
+bool SyntaxTextEdit::matchBraces() const
+{
+    return !!(m_config & Config_MatchBraces);
+}
+
+void SyntaxTextEdit::setFont(const QFont &font)
+{
+    QPlainTextEdit::setFont(font);
+    updateTabMetrics();
 }
 
 void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
@@ -270,7 +332,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     m_longLineBg = theme.editorColor(KSyntaxHighlighting::Theme::WordWrapMarker);
     m_longLineEdge = darkTheme ? m_longLineBg.lighter(120) : m_longLineBg.darker(120);
     m_longLineCursorBg = darkTheme ? m_cursorLineBg.lighter(110) : m_cursorLineBg.darker(110);
-    m_parenMatchBg = theme.editorColor(KSyntaxHighlighting::Theme::BracketMatching);
+    m_braceMatchBg = theme.editorColor(KSyntaxHighlighting::Theme::BracketMatching);
     m_errorBg = theme.editorColor(KSyntaxHighlighting::Theme::MarkError);
 
     m_highlighter->setTheme(theme);
@@ -302,7 +364,7 @@ static bool isQuote(const QChar &ch)
     return ch == QLatin1Char('"') || ch == QLatin1Char('\'');
 }
 
-static bool parenMatch(const QChar &left, const QChar &right)
+static bool braceMatch(const QChar &left, const QChar &right)
 {
     switch (left.unicode()) {
     case '{':
@@ -322,16 +384,16 @@ static bool parenMatch(const QChar &left, const QChar &right)
     }
 }
 
-struct ParenMatchResult
+struct BraceMatchResult
 {
-    ParenMatchResult() : position(-1), validMatch(false) { }
-    ParenMatchResult(int pos, bool valid) : position(pos), validMatch(valid) { }
+    BraceMatchResult() : position(-1), validMatch(false) { }
+    BraceMatchResult(int pos, bool valid) : position(pos), validMatch(valid) { }
 
     int position;
     bool validMatch;
 };
 
-static ParenMatchResult findNextParen(QTextBlock block, int position)
+static BraceMatchResult findNextBrace(QTextBlock block, int position)
 {
     QStack<QChar> balance;
     do {
@@ -344,15 +406,15 @@ static ParenMatchResult findNextParen(QTextBlock block, int position)
                 else
                     balance.push(ch);
             } else if (!balance.isEmpty() && isQuote(balance.top())) {
-                /* Don't look for matching parens until we exit the quote */
+                /* Don't look for matching braces until we exit the quote */
             } else if (ch == '(' || ch == '[' || ch == '{') {
                 balance.push(ch);
             } else if (ch == ')' || ch == ']' || ch == '}') {
                 if (balance.isEmpty())
-                    return ParenMatchResult();
+                    return BraceMatchResult();
                 const QChar match = balance.pop();
                 if (balance.isEmpty())
-                    return ParenMatchResult(block.position() + position, parenMatch(match, ch));
+                    return BraceMatchResult(block.position() + position, braceMatch(match, ch));
             }
             ++position;
         }
@@ -362,10 +424,10 @@ static ParenMatchResult findNextParen(QTextBlock block, int position)
     } while (block.isValid());
 
     // No match found in the document
-    return ParenMatchResult();
+    return BraceMatchResult();
 }
 
-static ParenMatchResult findPrevParen(QTextBlock block, int position)
+static BraceMatchResult findPrevBrace(QTextBlock block, int position)
 {
     QStack<QChar> balance;
     do {
@@ -379,15 +441,15 @@ static ParenMatchResult findPrevParen(QTextBlock block, int position)
                 else
                     balance.push(ch);
             } else if (!balance.isEmpty() && isQuote(balance.top())) {
-                /* Don't look for matching parens until we exit the quote */
+                /* Don't look for matching braces until we exit the quote */
             } else if (ch == ')' || ch == ']' || ch == '}') {
                 balance.push(ch);
             } else if (ch == '(' || ch == '[' || ch == '{') {
                 if (balance.isEmpty())
-                    return ParenMatchResult();
+                    return BraceMatchResult();
                 const QChar match = balance.pop();
                 if (balance.isEmpty())
-                    return ParenMatchResult(block.position() + position, parenMatch(match, ch));
+                    return BraceMatchResult(block.position() + position, braceMatch(match, ch));
             }
         }
 
@@ -396,14 +458,14 @@ static ParenMatchResult findPrevParen(QTextBlock block, int position)
     } while (block.isValid());
 
     // No match found in the document
-    return ParenMatchResult();
+    return BraceMatchResult();
 }
 
 void SyntaxTextEdit::updateCursor()
 {
     QList<QTextEdit::ExtraSelection> selections;
 
-    if (matchParentheses()) {
+    if (matchBraces()) {
         QTextCursor cursor = textCursor();
         cursor.clearSelection();
         const QString blockText = cursor.block().text();
@@ -414,17 +476,17 @@ void SyntaxTextEdit::updateCursor()
         const QChar chNext = (blockPos < blockText.size())
                              ? blockText[cursor.positionInBlock()]
                              : QLatin1Char(0);
-        ParenMatchResult match;
+        BraceMatchResult match;
         if (chNext == '(' || chNext == '[' || chNext == '{') {
-            match = findNextParen(cursor.block(), blockPos);
+            match = findNextBrace(cursor.block(), blockPos);
         } else if (chPrev == ')' || chPrev == ']' || chPrev == '}') {
-            match = findPrevParen(cursor.block(), blockPos);
+            match = findPrevBrace(cursor.block(), blockPos);
             cursor.movePosition(QTextCursor::PreviousCharacter);
         }
 
         if (match.position >= 0) {
             QTextEdit::ExtraSelection selection;
-            selection.format.setBackground(match.validMatch ? m_parenMatchBg : m_errorBg);
+            selection.format.setBackground(match.validMatch ? m_braceMatchBg : m_errorBg);
             selection.cursor = cursor;
             selection.cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
             selections.append(selection);
@@ -632,22 +694,39 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
     updateCursor();
 }
 
+void SyntaxTextEdit::wheelEvent(QWheelEvent *e)
+{
+    if (e->modifiers() & Qt::ControlModifier) {
+        // NOTE: This actually changes the font size
+        if (e->angleDelta().y() > 0)
+            zoomIn();
+        else if (e->angleDelta().y() < 0)
+            zoomOut();
+        updateTabMetrics();
+    } else {
+        QPlainTextEdit::wheelEvent(e);
+    }
+}
+
 void SyntaxTextEdit::paintEvent(QPaintEvent *e)
 {
     const QRect eventRect = e->rect();
     const QRect viewRect = viewport()->rect();
-
-    // Highlight current line first, so the long line marker will draw over it
-    // Unlike setExtraSelections(), we paint the entire line past even the
-    // document margins.
     QPainter p(viewport());
-    QTextCursor cursor = textCursor();
-    QRectF cursorBlockRect = blockBoundingGeometry(cursor.block());
-    cursorBlockRect.translate(contentOffset());
-    cursorBlockRect.setLeft(eventRect.left());
-    cursorBlockRect.setWidth(eventRect.width());
-    if (eventRect.intersects(cursorBlockRect.toAlignedRect()))
-        p.fillRect(cursorBlockRect, m_cursorLineBg);
+    QRectF cursorBlockRect;
+
+    if (highlightCurrentLine()) {
+        // Highlight current line first, so the long line marker will draw over it
+        // Unlike setExtraSelections(), we paint the entire line past even the
+        // document margins.
+        QTextCursor cursor = textCursor();
+        cursorBlockRect = blockBoundingGeometry(cursor.block());
+        cursorBlockRect.translate(contentOffset());
+        cursorBlockRect.setLeft(eventRect.left());
+        cursorBlockRect.setWidth(eventRect.width());
+        if (eventRect.intersects(cursorBlockRect.toAlignedRect()))
+            p.fillRect(cursorBlockRect, m_cursorLineBg);
+    }
 
     if (m_longLineMarker > 0) {
         QFontMetricsF fm(font());

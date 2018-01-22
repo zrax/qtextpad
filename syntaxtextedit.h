@@ -41,11 +41,19 @@ public:
 
     int lineMarginWidth();
     void paintLineNumbers(QPaintEvent *e);
-    bool showLineNumbers() const;
     void setShowLineNumbers(bool show);
+    bool showLineNumbers() const;
+
+    void setShowWhitespace(bool show);
+    bool showWhitespace() const;
+
+    void setHighlightCurrentLine(bool show);
+    bool highlightCurrentLine() const;
 
     void setTabWidth(int width);
     int tabWidth() const { return m_tabCharSize; }
+    void setIndentWidth(int width) { m_indentWidth = width; }
+    int indentWidth() const { return m_indentWidth; }
     void setExpandTabs(bool expand);
     bool expandTabs() const;
 
@@ -56,19 +64,23 @@ public:
 
     void setLongLineMarker(int pos);
     int longLineMarker() const { return m_longLineMarker; }
+    void setWordWrap(bool wrap);
+    bool wordWrap() const;
 
-    void setMatchParentheses(bool match);
-    bool matchParentheses() const;
+    void setMatchBraces(bool match);
+    bool matchBraces() const;
 
     static KSyntaxHighlighting::Repository *syntaxRepo();
     static const KSyntaxHighlighting::Definition &nullSyntax();
 
+    void setFont(const QFont &font);    // Hides QPlainTextEdit::setFont
     void setTheme(const KSyntaxHighlighting::Theme &theme);
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
 
 protected:
     void resizeEvent(QResizeEvent *e) Q_DECL_OVERRIDE;
     void keyPressEvent(QKeyEvent *e) Q_DECL_OVERRIDE;
+    void wheelEvent(QWheelEvent *e) Q_DECL_OVERRIDE;
     void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
 
 public slots:
@@ -79,6 +91,7 @@ private slots:
     void updateMargins();
     void updateLineNumbers(const QRect &rect, int dy);
     void updateCursor();
+    void updateTabMetrics();
 
 private:
     QWidget *m_lineMargin;
@@ -86,9 +99,9 @@ private:
     QColor m_lineMarginBg, m_lineMarginFg;
     QColor m_cursorLineBg, m_cursorLineNum;
     QColor m_longLineBg, m_longLineEdge, m_longLineCursorBg;
-    QColor m_parenMatchBg;
+    QColor m_braceMatchBg;
     QColor m_errorBg;
-    int m_tabCharSize;
+    int m_tabCharSize, m_indentWidth;
     int m_longLineMarker;
     unsigned int m_config;
 };
