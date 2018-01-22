@@ -162,7 +162,7 @@ SyntaxPopup::SyntaxPopup(QWidget *parent)
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
     const auto syntaxDefs = syntaxRepo->definitions();
     QMap<QString, QTreeWidgetItem *> groupItems;
-    for (const auto def : syntaxDefs) {
+    for (const auto &def : syntaxDefs) {
         if (def.isHidden())
             continue;
 

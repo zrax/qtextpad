@@ -24,6 +24,7 @@ class ActivationLabel;
 
 class QToolButton;
 class QMenu;
+class QActionGroup;
 
 namespace KSyntaxHighlighting
 {
@@ -65,7 +66,13 @@ private:
     QMenu *m_themeMenu;
     QMenu *m_syntaxMenu;
     QMenu *m_encodingMenu;
+
+    // QAction caches
     QAction *m_overwiteModeAction;
+    QActionGroup *m_themeActions;
+    QActionGroup *m_syntaxActions;
+    QActionGroup *m_encodingActions;
+    QActionGroup *m_lineEndingActions;
 
     ActivationLabel *m_positionLabel;
     ActivationLabel *m_crlfLabel;

@@ -96,7 +96,7 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
-      m_longLineMarker(), m_config()
+      m_longLineMarker(), m_config(), m_originalFontSize()
 {
     m_lineMargin = new LineNumberMargin(this);
     m_highlighter = new WhitespaceSyntaxHighlighter(document());
@@ -310,7 +310,9 @@ bool SyntaxTextEdit::matchBraces() const
 
 void SyntaxTextEdit::setFont(const QFont &font)
 {
+    // Note:  This will reset the zoom factor to 100%
     QPlainTextEdit::setFont(font);
+    m_originalFontSize = font.pointSize();
     updateTabMetrics();
 }
 
@@ -594,6 +596,26 @@ void SyntaxTextEdit::outdentSelection()
     cursor.endEditBlock();
 }
 
+void SyntaxTextEdit::zoomIn()
+{
+    QPlainTextEdit::zoomIn(1);
+    updateTabMetrics();
+}
+
+void SyntaxTextEdit::zoomOut()
+{
+    QPlainTextEdit::zoomOut(1);
+    updateTabMetrics();
+}
+
+void SyntaxTextEdit::zoomReset()
+{
+    QFont originFont = font();
+    originFont.setPointSize(m_originalFontSize);
+    QPlainTextEdit::setFont(originFont);
+    updateTabMetrics();
+}
+
 void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 {
     switch (e->key()) {
@@ -702,7 +724,6 @@ void SyntaxTextEdit::wheelEvent(QWheelEvent *e)
             zoomIn();
         else if (e->angleDelta().y() < 0)
             zoomOut();
-        updateTabMetrics();
     } else {
         QPlainTextEdit::wheelEvent(e);
     }

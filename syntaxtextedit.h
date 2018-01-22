@@ -18,13 +18,12 @@
 #define _SYNTAXTEXTEDIT_H
 
 #include <QPlainTextEdit>
-#include <SyntaxHighlighter>
 
 namespace KSyntaxHighlighting
 {
-    class Theme;
-    class Definition;
     class Repository;
+    class Definition;
+    class Theme;
 }
 
 class WhitespaceSyntaxHighlighter;
@@ -86,6 +85,9 @@ protected:
 public slots:
     void indentSelection();
     void outdentSelection();
+    void zoomIn();      // Hides QPlainTextEdit::zoomIn(int = 1)
+    void zoomOut();     // Hides QPlainTextEdit::zoomOut(int = 1)
+    void zoomReset();
 
 private slots:
     void updateMargins();
@@ -104,6 +106,7 @@ private:
     int m_tabCharSize, m_indentWidth;
     int m_longLineMarker;
     unsigned int m_config;
+    int m_originalFontSize;
 };
 
 #endif // _SYNTAXTEXTEDIT_H

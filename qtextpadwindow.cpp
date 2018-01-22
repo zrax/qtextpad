@@ -24,6 +24,7 @@
 #include <QApplication>
 #include <QWidgetAction>
 #include <QClipboard>
+#include <QTextBlock>
 #include <QTextCodec>
 #include <QTimer>
 
@@ -115,7 +116,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     printAction->setShortcut(QKeySequence::Print);
     auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Previe&w"));
     (void) fileMenu->addSeparator();
-    auto quitAction = fileMenu->addAction(ICON("application-exit"), tr("&Quit"));
+    auto quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
 
     //connect(newAction, &QAction::triggered, ...);
@@ -143,12 +144,21 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto clearAction = editMenu->addAction(ICON("edit-delete"), tr("&Delete"));
     clearAction->setShortcut(QKeySequence::Delete);
     (void) editMenu->addSeparator();
-    auto selectAllAction = editMenu->addAction(ICON("edit-select-all"), tr("Select &All"));
+    auto selectAllAction = editMenu->addAction(tr("Select &All"));
     selectAllAction->setShortcut(QKeySequence::SelectAll);
     (void) editMenu->addSeparator();
     m_overwiteModeAction = editMenu->addAction(tr("&Overwrite Mode"));
     m_overwiteModeAction->setShortcut(Qt::Key_Insert);
     m_overwiteModeAction->setCheckable(true);
+    (void) editMenu->addSeparator();
+    auto findAction = editMenu->addAction(ICON("edit-find"), tr("&Find..."));
+    findAction->setShortcut(QKeySequence::Find);
+    auto findNextAction = editMenu->addAction(tr("Find &Next"));
+    findNextAction->setShortcut(QKeySequence::FindNext);
+    auto findPrevAction = editMenu->addAction(tr("Find &Previous"));
+    findPrevAction->setShortcut(QKeySequence::FindPrevious);
+    auto replaceAction = editMenu->addAction(ICON("edit-find-replace"), tr("&Replace..."));
+    replaceAction->setShortcut(QKeySequence::Replace);
 
     connect(undoAction, &QAction::triggered, m_editor, &QPlainTextEdit::undo);
     connect(redoAction, &QAction::triggered, m_editor, &QPlainTextEdit::redo);
@@ -159,6 +169,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(selectAllAction, &QAction::triggered, m_editor, &QPlainTextEdit::selectAll);
     connect(m_overwiteModeAction, &QAction::toggled,
             this, &QTextPadWindow::setOverwriteMode);
+    //connect(findAction, &QAction::triggered, ...);
+    //connect(findNextAction, &QAction::triggered, ...);
+    //connect(findPrevAction, &QAction::triggered, ...);
+    //connect(replaceAction, &QAction::triggered, ...);
 
     connect(m_editor, &QPlainTextEdit::undoAvailable, undoAction, &QAction::setEnabled);
     undoAction->setEnabled(false);
@@ -175,6 +189,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     pasteAction->setEnabled(m_editor->canPaste());
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
+    auto fontAction = viewMenu->addAction(tr("Default &Font..."));
     m_themeMenu = viewMenu->addMenu(tr("&Theme"));
     populateThemeMenu();
     (void) viewMenu->addSeparator();
@@ -192,7 +207,15 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showCurrentLineAction->setCheckable(true);
     auto showMatchingBraces = viewMenu->addAction(tr("Match &Braces"));
     showMatchingBraces->setCheckable(true);
+    (void) viewMenu->addSeparator();
+    auto zoomInAction = viewMenu->addAction(ICON("zoom-in"), tr("Zoom &In"));
+    zoomInAction->setShortcut(QKeySequence::ZoomIn);
+    auto zoomOutAction = viewMenu->addAction(ICON("zoom-out"), tr("Zoom &Out"));
+    zoomOutAction->setShortcut(QKeySequence::ZoomOut);
+    auto zoomResetAction = viewMenu->addAction(ICON("zoom-original"), tr("Reset &Zoom"));
+    zoomResetAction->setShortcut(Qt::CTRL | Qt::Key_0);
 
+    //connect(fontAction, &QAction::triggered, ...);
     connect(wordWrapAction, &QAction::toggled, m_editor, &SyntaxTextEdit::setWordWrap);
     connect(showLineNumbersAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setShowLineNumbers);
@@ -202,6 +225,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
             m_editor, &SyntaxTextEdit::setHighlightCurrentLine);
     connect(showMatchingBraces, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setMatchBraces);
+    connect(zoomInAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomIn);
+    connect(zoomOutAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomOut);
+    connect(zoomResetAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomReset);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
     m_syntaxMenu = settingsMenu->addMenu(tr("&Syntax"));
@@ -209,9 +235,19 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_encodingMenu = settingsMenu->addMenu(tr("&Encoding"));
     populateEncodingMenu();
     auto lineEndingMenu = settingsMenu->addMenu(tr("&Line Endings"));
+    m_lineEndingActions = new QActionGroup(this);
     auto crOnlyAction = lineEndingMenu->addAction(tr("Classic Mac (CR)"));
+    crOnlyAction->setCheckable(true);
+    crOnlyAction->setActionGroup(m_lineEndingActions);
+    crOnlyAction->setData(static_cast<int>(CROnly));
     auto lfOnlyAction = lineEndingMenu->addAction(tr("UNIX (LF)"));
+    lfOnlyAction->setCheckable(true);
+    lfOnlyAction->setActionGroup(m_lineEndingActions);
+    lfOnlyAction->setData(static_cast<int>(LFOnly));
     auto crlfAction = lineEndingMenu->addAction(tr("Windows/DOS (CRLF)"));
+    crlfAction->setCheckable(true);
+    crlfAction->setActionGroup(m_lineEndingActions);
+    crlfAction->setData(static_cast<int>(CRLF));
     (void) settingsMenu->addSeparator();
     auto tabSettingsAction = settingsMenu->addAction(tr("&Tab Settings..."));
 
@@ -237,6 +273,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     toolBar->addAction(cutAction);
     toolBar->addAction(copyAction);
     toolBar->addAction(pasteAction);
+    (void) toolBar->addSeparator();
+    toolBar->addAction(findAction);
+    toolBar->addAction(replaceAction);
 
     m_positionLabel = new ActivationLabel(this);
     m_positionLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -327,18 +366,37 @@ void QTextPadWindow::setSyntax(const KSyntaxHighlighting::Definition &syntax)
     else
         m_syntaxButton->setText(tr("Plain Text"));
 
-    // TODO: Mark current syntax in the syntax menu
+    // Update the menus when this is triggered via other callers
+    for (const auto &action : m_syntaxActions->actions()) {
+        const auto actionDef = action->data().value<KSyntaxHighlighting::Definition>();
+        if (actionDef == syntax) {
+            action->setChecked(true);
+            break;
+        }
+    }
 }
 
 void QTextPadWindow::setTheme(const KSyntaxHighlighting::Theme &theme)
 {
     m_editor->setTheme(theme);
 
-    // TODO: Mark current theme in the theme menu
+    // Update the menus when this is triggered via other callers
+    for (const auto &action : m_themeActions->actions()) {
+        const auto actionTheme = action->data().value<KSyntaxHighlighting::Theme>();
+        if (actionTheme.filePath() == theme.filePath()) {
+            action->setChecked(true);
+            break;
+        }
+    }
 }
 
 void QTextPadWindow::setEncoding(const QString &codecName)
 {
+    // We may not directly match the passed encoding, so don't show a
+    // radio check at all if we can't find the encoding.
+    if (m_encodingActions->checkedAction())
+        m_encodingActions->checkedAction()->setChecked(false);
+
     QTextCodec *codec = KCharsets::charsets()->codecForName(codecName);
     if (!codec) {
         qWarning("Invalid codec selected");
@@ -348,7 +406,14 @@ void QTextPadWindow::setEncoding(const QString &codecName)
         m_encodingButton->setText(codecName);
     }
 
-    // TODO: Mark current encoding in the encoding menu
+    // Update the menus when this is triggered via other callers
+    for (const auto &action : m_encodingActions->actions()) {
+        const auto actionCodec = action->data().toString();
+        if (actionCodec == codecName) {
+            action->setChecked(true);
+            break;
+        }
+    }
 }
 
 void QTextPadWindow::setOverwriteMode(bool overwrite)
@@ -372,6 +437,14 @@ void QTextPadWindow::setLineEndingMode(LineEndingMode mode)
     case CRLF:
         m_crlfLabel->setText(QStringLiteral("CRLF"));
         break;
+    }
+
+    // Update the menus when this is triggered via other callers
+    for (const auto &action : m_lineEndingActions->actions()) {
+        if (action->data().toInt() == static_cast<int>(mode)) {
+            action->setChecked(true);
+            break;
+        }
     }
 }
 
@@ -432,7 +505,12 @@ void QTextPadWindow::populateRecentFiles()
 
 void QTextPadWindow::populateSyntaxMenu()
 {
+    m_syntaxActions = new QActionGroup(this);
+
     auto plainText = m_syntaxMenu->addAction(tr("Plain Text"));
+    plainText->setCheckable(true);
+    plainText->setActionGroup(m_syntaxActions);
+    plainText->setData(QVariant::fromValue(SyntaxTextEdit::nullSyntax()));
     connect(plainText, &QAction::triggered, [this]() {
         setSyntax(SyntaxTextEdit::nullSyntax());
     });
@@ -450,22 +528,31 @@ void QTextPadWindow::populateSyntaxMenu()
             groupMenus[def.translatedSection()] = parentMenu;
         }
         auto item = parentMenu->addAction(def.translatedName());
+        item->setCheckable(true);
+        item->setActionGroup(m_syntaxActions);
+        item->setData(QVariant::fromValue(def));
         connect(item, &QAction::triggered, [this, def]() { setSyntax(def); });
     }
 }
 
 void QTextPadWindow::populateThemeMenu()
 {
+    m_themeActions = new QActionGroup(this);
+
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
     const auto themeDefs = syntaxRepo->themes();
     for (const auto theme : themeDefs) {
         auto item = m_themeMenu->addAction(theme.translatedName());
+        item->setCheckable(true);
+        item->setActionGroup(m_themeActions);
+        item->setData(QVariant::fromValue(theme));
         connect(item, &QAction::triggered, [this, theme]() { setTheme(theme); });
     }
 }
 
 void QTextPadWindow::populateEncodingMenu()
 {
+    m_encodingActions = new QActionGroup(this);
     auto charsets = KCharsets::charsets();
     auto encodingScripts = charsets->encodingsByScript();
 
@@ -481,6 +568,9 @@ void QTextPadWindow::populateEncodingMenu()
         for (int i = 1; i < encodingList.size(); ++i) {
             QString codecName = encodingList.at(i);
             auto item = parentMenu->addAction(codecName);
+            item->setCheckable(true);
+            item->setActionGroup(m_encodingActions);
+            item->setData(codecName);
             connect(item, &QAction::triggered, [this, codecName]() {
                 setEncoding(codecName);
             });
