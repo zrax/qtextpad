@@ -63,6 +63,8 @@ public:
 
     void setLongLineMarker(int pos);
     int longLineMarker() const { return m_longLineMarker; }
+    void setShowIndentGuides(bool show);
+    bool showIndentGuides() const;
     void setWordWrap(bool wrap);
     bool wordWrap() const;
 

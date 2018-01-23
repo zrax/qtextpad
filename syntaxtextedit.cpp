@@ -36,6 +36,7 @@ enum SyntaxTextEdit_Config
     Config_AutoIndent = (1U<<2),
     Config_MatchBraces = (1U<<3),
     Config_HighlightCurLine = (1U<<4),
+    Config_IndentGuides = (1U<<5),
 };
 
 class LineNumberMargin : public QWidget
@@ -281,6 +282,20 @@ void SyntaxTextEdit::setLongLineMarker(int pos)
 {
     m_longLineMarker = pos;
     viewport()->update();
+}
+
+void SyntaxTextEdit::setShowIndentGuides(bool show)
+{
+    if (show)
+        m_config |= Config_IndentGuides;
+    else
+        m_config &= ~Config_IndentGuides;
+    viewport()->update();
+}
+
+bool SyntaxTextEdit::showIndentGuides() const
+{
+    return !!(m_config & Config_IndentGuides);
 }
 
 void SyntaxTextEdit::setWordWrap(bool wrap)
@@ -737,7 +752,6 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
 {
     const QRect eventRect = e->rect();
     const QRect viewRect = viewport()->rect();
-    QPainter p(viewport());
     QRectF cursorBlockRect;
 
     if (highlightCurrentLine()) {
@@ -749,8 +763,10 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         cursorBlockRect.translate(contentOffset());
         cursorBlockRect.setLeft(eventRect.left());
         cursorBlockRect.setWidth(eventRect.width());
-        if (eventRect.intersects(cursorBlockRect.toAlignedRect()))
+        if (eventRect.intersects(cursorBlockRect.toAlignedRect())) {
+            QPainter p(viewport());
             p.fillRect(cursorBlockRect, m_cursorLineBg);
+        }
     }
 
     if (m_longLineMarker > 0) {
@@ -761,6 +777,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         const qreal longLinePos = fm.width(QString(m_longLineMarker, 'x'))
                                   + contentOffset().x() + document()->documentMargin();
         if (longLinePos < viewRect.width()) {
+            QPainter p(viewport());
             QRectF longLineRect(longLinePos, eventRect.top(),
                                 viewRect.width() - longLinePos, eventRect.height());
             p.fillRect(longLineRect, m_longLineBg);
@@ -772,4 +789,44 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     }
 
     QPlainTextEdit::paintEvent(e);
+
+    // Overlay indentation guides after rendering the text
+    if (showIndentGuides()) {
+        QPainter p(viewport());
+        p.setPen(QPen(m_longLineEdge, 1, Qt::DotLine));
+        QTextBlock block = firstVisibleBlock();
+        const QFontMetricsF fm(font());
+        const qreal indentLine = fm.width(QString(m_indentWidth, 'x'));
+        const qreal lineOffset = contentOffset().x() + document()->documentMargin();
+        while (block.isValid()) {
+            QString blockText = block.text();
+            int wsColumn = 0;
+            bool onlySpaces = true;
+            for (int i = 0; i < blockText.size(); ++i) {
+                const QChar ch = blockText.at(i);
+                if (ch == QLatin1Char('\t')) {
+                    wsColumn = wsColumn - (wsColumn % m_tabCharSize) + m_tabCharSize;
+                } else if (ch.isSpace()) {
+                    ++wsColumn;
+                } else {
+                    onlySpaces = false;
+                    break;
+                }
+            }
+            if (onlySpaces) {
+                // Pretend we have one more column so whitespace-only lines
+                // show the indent guideline when applicable
+                wsColumn += 1;
+            }
+            QRectF blockRect = blockBoundingGeometry(block);
+            blockRect.translate(contentOffset());
+            wsColumn = (wsColumn + m_indentWidth - 1) / m_indentWidth;
+            for (int i = 1; i < wsColumn; ++i) {
+                const qreal lineX = (indentLine * i) + lineOffset;
+                p.drawLine(QPointF(lineX, blockRect.top()),
+                           QPointF(lineX, blockRect.bottom()));
+            }
+            block = block.next();
+        }
+    }
 }

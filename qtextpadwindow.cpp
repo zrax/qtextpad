@@ -323,6 +323,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_editor->setExpandTabs(false);
     m_editor->setAutoIndent(true);
     m_editor->setLongLineMarker(80);
+    m_editor->setShowIndentGuides(true);
 
     // This feature, counter-intuitively, scrolls the document such that the
     // cursor is in the center ONLY when moving the cursor -- it does NOT
