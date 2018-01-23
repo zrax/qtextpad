@@ -494,7 +494,7 @@ void QTextPadWindow::nextLineEndingMode()
 
 void QTextPadWindow::populateRecentFiles()
 {
-    // TODO
+    // TODO: Save and retrieve recent files list
     (void) m_recentFiles->addSeparator();
     auto clearListAction = m_recentFiles->addAction(tr("Clear List"));
     connect(clearListAction, &QAction::triggered, [this]() {

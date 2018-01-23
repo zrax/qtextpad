@@ -156,10 +156,10 @@ void SyntaxTextEdit::paintLineNumbers(QPaintEvent *paintEvent)
     QTextBlock block = firstVisibleBlock();
     qreal top = blockBoundingGeometry(block).translated(contentOffset()).top();
     qreal bottom = top + blockBoundingRect(block).height();
-    const int offset = fontMetrics().width(QLatin1Char('0')) / 2;
+    const QFontMetricsF metrics(font());
+    const qreal offset = metrics.width(QLatin1Char('0')) / 2.0;
     QTextCursor cursor = textCursor();
 
-    // TODO: Word-wrapped lines are not updated correctly yet
     while (block.isValid() && top <= paintEvent->rect().bottom()) {
         if (block.isVisible() && bottom >= paintEvent->rect().top()) {
             const QString lineNum = QString::number(block.blockNumber() + 1);
@@ -167,9 +167,9 @@ void SyntaxTextEdit::paintLineNumbers(QPaintEvent *paintEvent)
                 painter.setPen(m_cursorLineNum);
             else
                 painter.setPen(m_lineMarginFg);
-            painter.drawText(0, static_cast<int>(std::floor(top)),
-                             m_lineMargin->width() - offset,
-                             fontMetrics().height(), Qt::AlignRight, lineNum);
+            const QRectF numberRect(0, top, m_lineMargin->width() - offset,
+                                    metrics.height());
+            painter.drawText(numberRect, Qt::AlignRight, lineNum);
         }
 
         block = block.next();
@@ -504,6 +504,10 @@ void SyntaxTextEdit::updateCursor()
     // Ensure the entire viewport gets repainted to account for the
     // "current line" highlight change
     viewport()->update();
+
+    // Also update the entire line number margin; otherwise word-wrapped lines
+    // may not get the correct block updated
+    m_lineMargin->update();
 }
 
 void SyntaxTextEdit::resizeEvent(QResizeEvent *e)
