@@ -37,6 +37,7 @@ enum SyntaxTextEdit_Config
     Config_MatchBraces = (1U<<3),
     Config_HighlightCurLine = (1U<<4),
     Config_IndentGuides = (1U<<5),
+    Config_LongLineEdge = (1U<<6),
 };
 
 class LineNumberMargin : public QWidget
@@ -97,7 +98,7 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
-      m_longLineMarker(), m_config(), m_originalFontSize()
+      m_longLineMarker(80), m_config(), m_originalFontSize()
 {
     m_lineMargin = new LineNumberMargin(this);
     m_highlighter = new WhitespaceSyntaxHighlighter(document());
@@ -278,7 +279,21 @@ bool SyntaxTextEdit::autoIndent() const
     return !!(m_config & Config_AutoIndent);
 }
 
-void SyntaxTextEdit::setLongLineMarker(int pos)
+void SyntaxTextEdit::setShowLongLineEdge(bool show)
+{
+    if (show)
+        m_config |= Config_LongLineEdge;
+    else
+        m_config &= ~Config_LongLineEdge;
+    viewport()->update();
+}
+
+bool SyntaxTextEdit::showLongLineEdge() const
+{
+    return !!(m_config & Config_LongLineEdge);
+}
+
+void SyntaxTextEdit::setLongLineWidth(int pos)
 {
     m_longLineMarker = pos;
     viewport()->update();
@@ -769,7 +784,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         }
     }
 
-    if (m_longLineMarker > 0) {
+    if (showLongLineEdge() && m_longLineMarker > 0) {
         QFontMetricsF fm(font());
         // averageCharWidth() and width('x') don't seem to give an accurate
         // enough position.  I'm sure I'm missing something, but this works
@@ -802,8 +817,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
             QString blockText = block.text();
             int wsColumn = 0;
             bool onlySpaces = true;
-            for (int i = 0; i < blockText.size(); ++i) {
-                const QChar ch = blockText.at(i);
+            for (const QChar &ch : blockText) {
                 if (ch == QLatin1Char('\t')) {
                     wsColumn = wsColumn - (wsColumn % m_tabCharSize) + m_tabCharSize;
                 } else if (ch.isSpace()) {

@@ -61,8 +61,10 @@ public:
     void setAutoIndent(bool ai);
     bool autoIndent() const;
 
-    void setLongLineMarker(int pos);
-    int longLineMarker() const { return m_longLineMarker; }
+    void setShowLongLineEdge(bool show);
+    bool showLongLineEdge() const;
+    void setLongLineWidth(int pos);
+    int longLineWidth() const { return m_longLineMarker; }
     void setShowIndentGuides(bool show);
     bool showIndentGuides() const;
     void setWordWrap(bool wrap);

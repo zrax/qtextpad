@@ -196,6 +196,14 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto wordWrapAction = viewMenu->addAction(tr("&Word Wrap"));
     wordWrapAction->setShortcut(Qt::CTRL | Qt::Key_W);
     wordWrapAction->setCheckable(true);
+    auto longLineAction = viewMenu->addAction(tr("Long Line &Margin"));
+    longLineAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_M);
+    longLineAction->setCheckable(true);
+    auto longLineSettingsAction = viewMenu->addAction(tr("Long Line Se&ttings..."));
+    auto indentGuidesAction = viewMenu->addAction(tr("&Indentation Guides"));
+    indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
+    indentGuidesAction->setCheckable(true);
+    (void) viewMenu->addSeparator();
     auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
     showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_N);
     showLineNumbersAction->setCheckable(true);
@@ -217,6 +225,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     //connect(fontAction, &QAction::triggered, ...);
     connect(wordWrapAction, &QAction::toggled, m_editor, &SyntaxTextEdit::setWordWrap);
+    connect(longLineAction, &QAction::toggled,
+            m_editor, &SyntaxTextEdit::setShowLongLineEdge);
+    //connect(longLineSettingsAction, &QAction::triggered, ...);
+    connect(indentGuidesAction, &QAction::toggled,
+            m_editor, &SyntaxTextEdit::setShowIndentGuides);
     connect(showLineNumbersAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setShowLineNumbers);
     connect(showWhitespaceAction, &QAction::toggled,
@@ -278,8 +291,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     toolBar->addAction(replaceAction);
 
     m_positionLabel = new ActivationLabel(this);
-    m_positionLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    statusBar()->addWidget(m_positionLabel);
+    statusBar()->addWidget(m_positionLabel, 1);
     m_insertLabel = new ActivationLabel(this);
     statusBar()->addPermanentWidget(m_insertLabel);
     m_crlfLabel = new ActivationLabel(this);
@@ -296,6 +308,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     statusBar()->addPermanentWidget(m_syntaxButton);
     updateCursorPosition();
 
+    //connect(m_positionLabel, &ActivationLabel::activated, ...);
     connect(m_insertLabel, &ActivationLabel::activated,
             this, &QTextPadWindow::nextInsertMode);
     connect(m_crlfLabel, &ActivationLabel::activated,
@@ -313,6 +326,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_editor->setFont(defaultFont);
 
     wordWrapAction->setChecked(m_editor->wordWrap());
+    longLineAction->setChecked(m_editor->showLongLineEdge());
+    indentGuidesAction->setChecked(m_editor->showIndentGuides());
     showLineNumbersAction->setChecked(m_editor->showLineNumbers());
     showWhitespaceAction->setChecked(m_editor->showWhitespace());
     showCurrentLineAction->setChecked(m_editor->highlightCurrentLine());
@@ -322,8 +337,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_editor->setTabWidth(8);
     m_editor->setExpandTabs(false);
     m_editor->setAutoIndent(true);
-    m_editor->setLongLineMarker(80);
-    m_editor->setShowIndentGuides(true);
 
     // This feature, counter-intuitively, scrolls the document such that the
     // cursor is in the center ONLY when moving the cursor -- it does NOT
