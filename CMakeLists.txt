@@ -32,7 +32,7 @@ set(qtextpad_RESOURCES
     qtextpad.qrc
 )
 
-add_executable(qtextpad ${qtextpad_SOURCES} ${qtextpad_HEADERS}
-                        ${qtextpad_RESOURCES})
+add_executable(qtextpad WIN32 MACOSX_BUNDLE
+               ${qtextpad_SOURCES} ${qtextpad_HEADERS} ${qtextpad_RESOURCES})
 target_link_libraries(qtextpad Qt5::Core Qt5::Widgets
                                KF5::SyntaxHighlighting KF5::Codecs)

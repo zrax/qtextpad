@@ -98,7 +98,8 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
-      m_longLineMarker(80), m_config(), m_originalFontSize()
+      m_longLineMarker(80), m_config(), m_indentationMode(IndentSpaces),
+      m_originalFontSize()
 {
     m_lineMargin = new LineNumberMargin(this);
     m_highlighter = new WhitespaceSyntaxHighlighter(document());
@@ -111,7 +112,7 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
             this, &SyntaxTextEdit::updateCursor);
 
     // Default editor configuration flags
-    m_config = Config_MatchBraces | Config_HighlightCurLine;
+    m_config = Config_MatchBraces | Config_HighlightCurLine | Config_AutoIndent;
     setWordWrap(false);
 
     QTextOption opt = document()->defaultTextOption();
@@ -241,19 +242,6 @@ void SyntaxTextEdit::updateTabMetrics()
     document()->setDefaultTextOption(opt);
 }
 
-void SyntaxTextEdit::setExpandTabs(bool expand)
-{
-    if (expand)
-        m_config |= Config_ExpandTabs;
-    else
-        m_config &= ~Config_ExpandTabs;
-}
-
-bool SyntaxTextEdit::expandTabs() const
-{
-    return !!(m_config & Config_ExpandTabs);
-}
-
 int SyntaxTextEdit::textColumn(const QString &block, int positionInBlock) const
 {
     int column = 0;
@@ -364,6 +352,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     m_longLineBg = theme.editorColor(KSyntaxHighlighting::Theme::WordWrapMarker);
     m_longLineEdge = darkTheme ? m_longLineBg.lighter(120) : m_longLineBg.darker(120);
     m_longLineCursorBg = darkTheme ? m_cursorLineBg.lighter(110) : m_cursorLineBg.darker(110);
+    m_indentGuideFg = theme.editorColor(KSyntaxHighlighting::Theme::IndentationLine);
     m_braceMatchBg = theme.editorColor(KSyntaxHighlighting::Theme::BracketMatching);
     m_errorBg = theme.editorColor(KSyntaxHighlighting::Theme::MarkError);
 
@@ -574,11 +563,16 @@ void SyntaxTextEdit::indentSelection()
             }
         }
 
-        const int spaces = m_tabCharSize - (leadingIndent % m_tabCharSize);
+        const int spaces = m_indentWidth - (leadingIndent % m_indentWidth);
         cursor.movePosition(QTextCursor::StartOfLine);
         cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor,
                             startOfLine);
-        cursor.insertText(QString(spaces, ' '));
+        if (m_indentationMode == IndentSpaces) {
+            cursor.insertText(QString(spaces, ' '));
+        } else {
+            // TODO: Handle mixed
+            cursor.insertText(QString(spaces / m_tabCharSize, '\t'));
+        }
 
         cursor.movePosition(QTextCursor::NextBlock);
     } while (cursor.blockNumber() <= endBlock);
@@ -619,10 +613,12 @@ void SyntaxTextEdit::outdentSelection()
         cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor,
                             startOfLine);
         cursor.removeSelectedText();
-        if (expandTabs())
+        if (m_indentationMode == IndentSpaces) {
             cursor.insertText(QString(leadingIndent, ' '));
-        else
+        } else {
+            // TODO: Handle mixed
             cursor.insertText(QString(leadingIndent / m_tabCharSize, '\t'));
+        }
 
         cursor.movePosition(QTextCursor::NextBlock);
     } while (cursor.blockNumber() <= endBlock);
@@ -656,7 +652,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
     case Qt::Key_Tab:
         if (haveSelection()) {
             indentSelection();
-        } else if (expandTabs()) {
+        } else if (m_indentationMode == IndentSpaces) {
             QTextCursor cursor = textCursor();
             const QString blockText = cursor.block().text();
             const QStringRef cursorText = blockText.leftRef(cursor.positionInBlock());
@@ -667,9 +663,10 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
                 else
                     vpos += 1;
             }
-            const int spaces = m_tabCharSize - (vpos % m_tabCharSize);
+            const int spaces = m_indentWidth - (vpos % m_indentWidth);
             cursor.insertText(QString(spaces, ' '));
         } else {
+            // TODO: Handle mixed
             textCursor().insertText(QStringLiteral("\t"));
         }
         e->accept();
@@ -808,7 +805,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     // Overlay indentation guides after rendering the text
     if (showIndentGuides()) {
         QPainter p(viewport());
-        p.setPen(QPen(m_longLineEdge, 1, Qt::DotLine));
+        p.setPen(m_indentGuideFg);
         QTextBlock block = firstVisibleBlock();
         const QFontMetricsF fm(font());
         const qreal indentLine = fm.width(QString(m_indentWidth, 'x'));

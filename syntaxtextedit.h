@@ -53,8 +53,15 @@ public:
     int tabWidth() const { return m_tabCharSize; }
     void setIndentWidth(int width) { m_indentWidth = width; }
     int indentWidth() const { return m_indentWidth; }
-    void setExpandTabs(bool expand);
-    bool expandTabs() const;
+
+    enum IndentationMode
+    {
+        IndentSpaces,
+        IndentTabs,
+        IndentMixed,
+    };
+    void setIndentationMode(IndentationMode mode) { m_indentationMode = mode; }
+    IndentationMode indentationMode() const { return m_indentationMode; }
 
     int textColumn(const QString &block, int positionInBlock) const;
 
@@ -105,11 +112,13 @@ private:
     QColor m_lineMarginBg, m_lineMarginFg;
     QColor m_cursorLineBg, m_cursorLineNum;
     QColor m_longLineBg, m_longLineEdge, m_longLineCursorBg;
+    QColor m_indentGuideFg;
     QColor m_braceMatchBg;
     QColor m_errorBg;
     int m_tabCharSize, m_indentWidth;
     int m_longLineMarker;
     unsigned int m_config;
+    IndentationMode m_indentationMode;
     int m_originalFontSize;
 };
 

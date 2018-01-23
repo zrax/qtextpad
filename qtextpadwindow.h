@@ -44,6 +44,7 @@ public:
     void setEncoding(const QString &codecName);
 
     void setOverwriteMode(bool overwrite);
+    void setAutoIndent(bool ai);
 
     enum LineEndingMode
     {
@@ -58,6 +59,7 @@ public slots:
     void modificationStatusChanged(bool modified);
     void nextInsertMode();
     void nextLineEndingMode();
+    void updateIndentStatus();
 
 private:
     SyntaxTextEdit *m_editor;
@@ -69,14 +71,19 @@ private:
 
     // QAction caches
     QAction *m_overwiteModeAction;
+    QAction *m_autoIndentAction;
     QActionGroup *m_themeActions;
     QActionGroup *m_syntaxActions;
     QActionGroup *m_encodingActions;
     QActionGroup *m_lineEndingActions;
+    QActionGroup *m_tabWidthActions;
+    QActionGroup *m_indentWidthActions;
+    QActionGroup *m_indentModeActions;
 
     ActivationLabel *m_positionLabel;
     ActivationLabel *m_crlfLabel;
     ActivationLabel *m_insertLabel;
+    QToolButton *m_indentButton;
     QToolButton *m_encodingButton;
     QToolButton *m_syntaxButton;
     LineEndingMode m_lineEndingMode;
@@ -89,6 +96,7 @@ private:
     void populateThemeMenu();
     void populateSyntaxMenu();
     void populateEncodingMenu();
+    void populateIndentButtonMenu();
 };
 
 #endif // _QTEXTPADWINDOW_H

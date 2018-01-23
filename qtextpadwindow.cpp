@@ -201,7 +201,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     longLineAction->setCheckable(true);
     auto longLineSettingsAction = viewMenu->addAction(tr("Long Line Se&ttings..."));
     auto indentGuidesAction = viewMenu->addAction(tr("&Indentation Guides"));
-    indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
+    indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_T);
     indentGuidesAction->setCheckable(true);
     (void) viewMenu->addSeparator();
     auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
@@ -263,11 +263,15 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     crlfAction->setData(static_cast<int>(CRLF));
     (void) settingsMenu->addSeparator();
     auto tabSettingsAction = settingsMenu->addAction(tr("&Tab Settings..."));
+    m_autoIndentAction = settingsMenu->addAction(tr("&Auto Indent"));
+    m_autoIndentAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
+    m_autoIndentAction->setCheckable(true);
 
     connect(crOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(CROnly); });
     connect(lfOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(LFOnly); });
     connect(crlfAction, &QAction::triggered, [this]() { setLineEndingMode(CRLF); });
     //connect(tabSettingsAction, &QAction::triggered, ...);
+    connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     auto aboutAction = helpMenu->addAction(ICON("help-about"), tr("&About..."));
@@ -296,6 +300,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     statusBar()->addPermanentWidget(m_insertLabel);
     m_crlfLabel = new ActivationLabel(this);
     statusBar()->addPermanentWidget(m_crlfLabel);
+    m_indentButton = new QToolButton(this);
+    m_indentButton->setAutoRaise(true);;
+    m_indentButton->setPopupMode(QToolButton::InstantPopup);
+    populateIndentButtonMenu();
+    statusBar()->addPermanentWidget(m_indentButton);
     m_encodingButton = new QToolButton(this);
     m_encodingButton->setAutoRaise(true);
     m_encodingButton->setPopupMode(QToolButton::InstantPopup);
@@ -332,11 +341,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showWhitespaceAction->setChecked(m_editor->showWhitespace());
     showCurrentLineAction->setChecked(m_editor->highlightCurrentLine());
     showMatchingBraces->setChecked(m_editor->matchBraces());
-
-    // Enable some features for testing...
-    m_editor->setTabWidth(8);
-    m_editor->setExpandTabs(false);
-    m_editor->setAutoIndent(true);
 
     // This feature, counter-intuitively, scrolls the document such that the
     // cursor is in the center ONLY when moving the cursor -- it does NOT
@@ -437,6 +441,13 @@ void QTextPadWindow::setOverwriteMode(bool overwrite)
     m_insertLabel->setText(overwrite ? tr("OVR") : tr("INS"));
 }
 
+void QTextPadWindow::setAutoIndent(bool ai)
+{
+    m_editor->setAutoIndent(ai);
+    m_autoIndentAction->setChecked(ai);
+    updateIndentStatus();
+}
+
 void QTextPadWindow::setLineEndingMode(LineEndingMode mode)
 {
     m_lineEndingMode = mode;
@@ -503,6 +514,64 @@ void QTextPadWindow::nextLineEndingMode()
     case CRLF:
         setLineEndingMode(CROnly);
         break;
+    }
+}
+
+void QTextPadWindow::updateIndentStatus()
+{
+    const int tabWidth = m_editor->tabWidth();
+    const int indentWidth = m_editor->indentWidth();
+    const auto indentMode = m_editor->indentationMode();
+
+    QString description;
+    switch (indentMode) {
+    case SyntaxTextEdit::IndentSpaces:
+        description = tr("Soft Tabs: %1").arg(indentWidth);
+        if (tabWidth != indentWidth)
+            description += tr(" (%1)").arg(tabWidth);
+        break;
+    case SyntaxTextEdit::IndentTabs:
+        description = tr("Tab Size: %1").arg(tabWidth);
+        break;
+    case SyntaxTextEdit::IndentMixed:
+        description = tr("Mixed Indent: %1").arg(indentWidth);
+        if (tabWidth != indentWidth)
+            description += tr(" (%1)").arg(tabWidth);
+        break;
+    }
+
+    m_indentButton->setText(description);
+
+    QAction *otherAction = Q_NULLPTR;
+    bool haveMatch = false;
+    for (auto action : m_tabWidthActions->actions()) {
+        if (!action->data().isValid()) {
+            otherAction = action;
+        } else if (tabWidth == action->data().toInt()) {
+            action->setChecked(true);
+            haveMatch = true;
+        }
+    }
+    if (!haveMatch && otherAction)
+        otherAction->setChecked(true);
+
+    otherAction = Q_NULLPTR;
+    haveMatch = false;
+    for (auto action : m_indentWidthActions->actions()) {
+        if (!action->data().isValid()) {
+            otherAction = action;
+        } else if (indentWidth == action->data().toInt()) {
+            action->setChecked(true);
+            haveMatch = true;
+        }
+    }
+    if (!haveMatch && otherAction)
+        otherAction->setChecked(true);
+
+    for (auto action : m_indentModeActions->actions()) {
+        const auto actionMode = static_cast<SyntaxTextEdit::IndentationMode>(action->data().toInt());
+        if (indentMode == actionMode)
+            action->setChecked(true);
     }
 }
 
@@ -590,4 +659,124 @@ void QTextPadWindow::populateEncodingMenu()
             });
         }
     }
+}
+
+void QTextPadWindow::populateIndentButtonMenu()
+{
+    auto indentMenu = new QMenu(this);
+
+    // Qt 5.1 has QMenu::addSection, but that results in a style hint that
+    // is completely ignored by some platforms, including both GTK and Windows
+    auto headerLabel = new QLabel(tr("Tab Width"), this);
+    headerLabel->setAlignment(Qt::AlignCenter);
+    headerLabel->setContentsMargins(4, 4, 4, 0);
+    auto headerAction = new QWidgetAction(this);
+    headerAction->setDefaultWidget(headerLabel);
+    indentMenu->addAction(headerAction);
+    (void) indentMenu->addSeparator();
+
+    m_tabWidthActions = new QActionGroup(this);
+    auto tabWidth8Action = indentMenu->addAction(QStringLiteral("8"));
+    tabWidth8Action->setCheckable(true);
+    tabWidth8Action->setActionGroup(m_tabWidthActions);
+    tabWidth8Action->setData(8);
+    auto tabWidth4Action = indentMenu->addAction(QStringLiteral("4"));
+    tabWidth4Action->setCheckable(true);
+    tabWidth4Action->setActionGroup(m_tabWidthActions);
+    tabWidth4Action->setData(4);
+    auto tabWidth2Action = indentMenu->addAction(QStringLiteral("2"));
+    tabWidth2Action->setCheckable(true);
+    tabWidth2Action->setActionGroup(m_tabWidthActions);
+    tabWidth2Action->setData(2);
+    auto tabWidthOtherAction = indentMenu->addAction(tr("Other..."));
+    tabWidthOtherAction->setCheckable(true);
+    tabWidthOtherAction->setActionGroup(m_tabWidthActions);
+
+    for (auto action : m_tabWidthActions->actions()) {
+        if (action == tabWidthOtherAction)
+            continue;
+        connect(action, &QAction::triggered, [this, action]() {
+            m_editor->setTabWidth(action->data().toInt());
+            updateIndentStatus();
+        });
+    }
+    //connect(tabWidthOtherAction, &QAction::triggered, ...);
+
+    headerLabel = new QLabel(tr("Indentation Width"), this);
+    headerLabel->setAlignment(Qt::AlignCenter);
+    headerLabel->setContentsMargins(4, 4, 4, 0);
+    headerAction = new QWidgetAction(this);
+    headerAction->setDefaultWidget(headerLabel);
+    indentMenu->addAction(headerAction);
+    (void) indentMenu->addSeparator();
+
+    m_indentWidthActions = new QActionGroup(this);
+    auto indentWidth8Action = indentMenu->addAction(QStringLiteral("8"));
+    indentWidth8Action->setCheckable(true);
+    indentWidth8Action->setActionGroup(m_indentWidthActions);
+    indentWidth8Action->setData(8);
+    auto indentWidth4Action = indentMenu->addAction(QStringLiteral("4"));
+    indentWidth4Action->setCheckable(true);
+    indentWidth4Action->setActionGroup(m_indentWidthActions);
+    indentWidth4Action->setData(4);
+    auto indentWidth2Action = indentMenu->addAction(QStringLiteral("2"));
+    indentWidth2Action->setCheckable(true);
+    indentWidth2Action->setActionGroup(m_indentWidthActions);
+    indentWidth2Action->setData(2);
+    auto indentWidthOtherAction = indentMenu->addAction(tr("Other..."));
+    indentWidthOtherAction->setCheckable(true);
+    indentWidthOtherAction->setActionGroup(m_indentWidthActions);
+
+    for (auto action : m_indentWidthActions->actions()) {
+        if (action == indentWidthOtherAction)
+            continue;
+        connect(action, &QAction::triggered, [this, action]() {
+            m_editor->setIndentWidth(action->data().toInt());
+            updateIndentStatus();
+        });
+    }
+    //connect(indentWidthOtherAction, &QAction::triggered, ...);
+
+    headerLabel = new QLabel(tr("Indentation Mode"), this);
+    headerLabel->setAlignment(Qt::AlignCenter);
+    headerLabel->setContentsMargins(4, 4, 4, 0);
+    headerAction = new QWidgetAction(this);
+    headerAction->setDefaultWidget(headerLabel);
+    indentMenu->addAction(headerAction);
+    (void) indentMenu->addSeparator();
+
+    m_indentModeActions = new QActionGroup(this);
+    auto indentSpacesAction = indentMenu->addAction(tr("&Spaces"));
+    indentSpacesAction->setCheckable(true);
+    indentSpacesAction->setActionGroup(m_indentModeActions);
+    indentSpacesAction->setData(static_cast<int>(SyntaxTextEdit::IndentSpaces));
+    auto indentTabsAction = indentMenu->addAction(tr("&Tabs"));
+    indentTabsAction->setCheckable(true);
+    indentTabsAction->setActionGroup(m_indentModeActions);
+    indentTabsAction->setData(static_cast<int>(SyntaxTextEdit::IndentTabs));
+    auto indentMixedAction = indentMenu->addAction(tr("&Mixed"));
+    indentMixedAction->setCheckable(true);
+    indentMixedAction->setActionGroup(m_indentModeActions);
+    indentMixedAction->setData(static_cast<int>(SyntaxTextEdit::IndentMixed));
+
+    for (auto action : m_indentModeActions->actions()) {
+        connect(action, &QAction::triggered, [this, action]() {
+            const auto mode = static_cast<SyntaxTextEdit::IndentationMode>(action->data().toInt());
+            m_editor->setIndentationMode(mode);
+            updateIndentStatus();
+        });
+    }
+
+    (void) indentMenu->addSeparator();
+    // Make a copy since we don't want to show the key shortcut here
+    auto autoIndentAction = indentMenu->addAction(m_autoIndentAction->text());
+    autoIndentAction->setCheckable(true);
+    autoIndentAction->setChecked(m_autoIndentAction->isChecked());
+    connect(m_autoIndentAction, &QAction::toggled,
+            autoIndentAction, &QAction::setChecked);
+    connect(autoIndentAction, &QAction::triggered,
+            m_autoIndentAction, &QAction::trigger);
+
+    m_indentButton->setMenu(indentMenu);
+    updateIndentStatus();
 }
