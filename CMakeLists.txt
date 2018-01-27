@@ -16,6 +16,7 @@ endif()
 
 set(qtextpad_SOURCES
     main.cpp
+    appsettings.cpp
     qtextpadwindow.cpp
     settingspopup.cpp
     syntaxtextedit.cpp
@@ -23,6 +24,7 @@ set(qtextpad_SOURCES
 
 set(qtextpad_HEADERS
     activationlabel.h
+    appsettings.h
     qtextpadwindow.h
     settingspopup.h
     syntaxtextedit.h

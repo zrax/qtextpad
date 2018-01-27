@@ -36,6 +36,7 @@
 #include "activationlabel.h"
 #include "syntaxtextedit.h"
 #include "settingspopup.h"
+#include "appsettings.h"
 
 #define ICON(name)  QIcon::fromTheme(QStringLiteral(name), \
                                      QIcon(QStringLiteral(":/icons/" name ".png")))
@@ -323,17 +324,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_crlfLabel, &ActivationLabel::activated,
             this, &QTextPadWindow::nextLineEndingMode);
 
-    QFont defaultFont;
-    defaultFont.setFixedPitch(true);
-#ifdef _WIN32
-    // Included in Vista or Office 2007, both of which are "Old Enough" (2018)
-    defaultFont.setFamily("Consolas");
-#else
-    defaultFont.setFamily("Monospace");
-#endif
-    defaultFont.setPointSize(10);
-    m_editor->setFont(defaultFont);
-
     wordWrapAction->setChecked(m_editor->wordWrap());
     longLineAction->setChecked(m_editor->showLongLineEdge());
     indentGuidesAction->setChecked(m_editor->showIndentGuides());
@@ -341,19 +331,22 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showWhitespaceAction->setChecked(m_editor->showWhitespace());
     showCurrentLineAction->setChecked(m_editor->highlightCurrentLine());
     showMatchingBraces->setChecked(m_editor->matchBraces());
-
-    // This feature, counter-intuitively, scrolls the document such that the
-    // cursor is in the center ONLY when moving the cursor -- it does NOT
-    // reposition the cursor when normal scrolling occurs.  Furthermore, this
-    // property is the only way to enable scrolling past the last line of
-    // the document.  TL;DR: This property is poorly named.
-    m_editor->setCenterOnScroll(true);
+    m_autoIndentAction->setChecked(m_editor->autoIndent());
 
     setSyntax(SyntaxTextEdit::nullSyntax());
-    setTheme((m_editor->palette().color(QPalette::Base).lightness() < 128)
-             ? SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
-             : SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme));
     setEncoding("UTF-8");
+
+    QTextPadSettings settings;
+    auto theme = (m_editor->palette().color(QPalette::Base).lightness() < 128)
+                 ? SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
+                 : SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
+    QString themeName = settings.editorTheme();
+    if (!themeName.isEmpty()) {
+        auto requestedTheme = SyntaxTextEdit::syntaxRepo()->theme(themeName);
+        if (requestedTheme.isValid())
+            theme = requestedTheme;
+    }
+    setTheme(theme);
 
     m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).width("OVR") + 4);
     m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).width("CRLF") + 4);
@@ -373,7 +366,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_documentTitle = tr("Untitled");
     updateTitle();
 
-    resize(600, 400);
+    resize(settings.windowSize());
 }
 
 void QTextPadWindow::setSyntax(const KSyntaxHighlighting::Definition &syntax)
@@ -538,6 +531,9 @@ void QTextPadWindow::updateIndentStatus()
         if (tabWidth != indentWidth)
             description += tr(" (%1)").arg(tabWidth);
         break;
+    default:
+        description = tr("INVALID");
+        break;
     }
 
     m_indentButton->setText(description);
@@ -573,6 +569,14 @@ void QTextPadWindow::updateIndentStatus()
         if (indentMode == actionMode)
             action->setChecked(true);
     }
+}
+
+void QTextPadWindow::closeEvent(QCloseEvent *e)
+{
+    // TODO:  Prompt for save
+    QTextPadSettings settings;
+    settings.setWindowSize(size());
+    e->accept();
 }
 
 void QTextPadWindow::populateRecentFiles()

@@ -61,6 +61,9 @@ public slots:
     void nextLineEndingMode();
     void updateIndentStatus();
 
+protected:
+    void closeEvent(QCloseEvent *e) Q_DECL_OVERRIDE;
+
 private:
     SyntaxTextEdit *m_editor;
 

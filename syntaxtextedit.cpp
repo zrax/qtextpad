@@ -29,15 +29,16 @@
 
 #include <cmath>
 
+#include "appsettings.h"
+
 enum SyntaxTextEdit_Config
 {
     Config_ShowLineNumbers = (1U<<0),
-    Config_ExpandTabs = (1U<<1),
-    Config_AutoIndent = (1U<<2),
-    Config_MatchBraces = (1U<<3),
-    Config_HighlightCurLine = (1U<<4),
-    Config_IndentGuides = (1U<<5),
-    Config_LongLineEdge = (1U<<6),
+    Config_AutoIndent = (1U<<1),
+    Config_MatchBraces = (1U<<2),
+    Config_HighlightCurLine = (1U<<3),
+    Config_IndentGuides = (1U<<4),
+    Config_LongLineEdge = (1U<<5),
 };
 
 class LineNumberMargin : public QWidget
@@ -98,7 +99,7 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
-      m_longLineMarker(80), m_config(), m_indentationMode(IndentSpaces),
+      m_longLineMarker(80), m_config(), m_indentationMode(),
       m_originalFontSize()
 {
     m_lineMargin = new LineNumberMargin(this);
@@ -111,12 +112,43 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     connect(this, &QPlainTextEdit::cursorPositionChanged,
             this, &SyntaxTextEdit::updateCursor);
 
-    // Default editor configuration flags
-    m_config = Config_MatchBraces | Config_HighlightCurLine | Config_AutoIndent;
-    setWordWrap(false);
+    // Default editor configuration
+    QTextPadSettings settings;
+    setFont(settings.editorFont());
+
+    if (settings.lineNumbers())
+        m_config |= Config_ShowLineNumbers;
+    if (settings.autoIndent())
+        m_config |= Config_AutoIndent;
+    if (settings.matchBraces())
+        m_config |= Config_MatchBraces;
+    if (settings.highlightCurLine())
+        m_config |= Config_HighlightCurLine;
+    if (settings.indentationGuides())
+        m_config |= Config_IndentGuides;
+    if (settings.showLongLineMargin())
+        m_config |= Config_LongLineEdge;
+
+    m_tabCharSize = settings.tabWidth();
+    m_indentWidth = settings.indentWidth();
+    m_longLineMarker = settings.longLineWidth();
+
+    setWordWrap(settings.wordWrap());
+    setIndentationMode(settings.indentMode());
+
+    // This feature, counter-intuitively, scrolls the document such that the
+    // cursor is in the center ONLY when moving the cursor -- it does NOT
+    // reposition the cursor when normal scrolling occurs.  Furthermore, this
+    // property is the only way to enable scrolling past the last line of
+    // the document.  TL;DR: This property is poorly named.
+    setCenterOnScroll(settings.scrollPastEndOfFile());
 
     QTextOption opt = document()->defaultTextOption();
     opt.setFlags(opt.flags() | QTextOption::AddSpaceForLineAndParagraphSeparators);
+    if (settings.showWhitespace())
+        opt.setFlags(opt.flags() | QTextOption::ShowTabsAndSpaces);
+    else
+        opt.setFlags(opt.flags() & ~QTextOption::ShowTabsAndSpaces);
     document()->setDefaultTextOption(opt);
 
     updateMargins();
@@ -189,6 +221,8 @@ void SyntaxTextEdit::setShowLineNumbers(bool show)
         m_config &= ~Config_ShowLineNumbers;
     updateMargins();
     m_lineMargin->update();
+
+    QTextPadSettings().setLineNumbers(show);
 }
 
 bool SyntaxTextEdit::showLineNumbers() const
@@ -204,6 +238,8 @@ void SyntaxTextEdit::setShowWhitespace(bool show)
     else
         opt.setFlags(opt.flags() & ~QTextOption::ShowTabsAndSpaces);
     document()->setDefaultTextOption(opt);
+
+    QTextPadSettings().setShowWhitespace(show);
 }
 
 bool SyntaxTextEdit::showWhitespace() const
@@ -219,6 +255,8 @@ void SyntaxTextEdit::setHighlightCurrentLine(bool show)
     else
         m_config &= ~Config_HighlightCurLine;
     viewport()->update();
+
+    QTextPadSettings().setHighlightCurLine(show);
 }
 
 bool SyntaxTextEdit::highlightCurrentLine() const
@@ -230,6 +268,14 @@ void SyntaxTextEdit::setTabWidth(int width)
 {
     m_tabCharSize = width;
     updateTabMetrics();
+
+    QTextPadSettings().setTabWidth(width);
+}
+
+void SyntaxTextEdit::setIndentWidth(int width)
+{
+    m_indentWidth = width;
+    QTextPadSettings().setIndentWidth(width);
 }
 
 void SyntaxTextEdit::updateTabMetrics()
@@ -240,6 +286,19 @@ void SyntaxTextEdit::updateTabMetrics()
     QTextOption opt = document()->defaultTextOption();
     opt.setTabStop(tabWidth);
     document()->setDefaultTextOption(opt);
+}
+
+void SyntaxTextEdit::setIndentationMode(int mode)
+{
+    if (mode < 0 || mode >= IndentMode_MAX) {
+        // Set default indentation mode instead
+        m_indentationMode = IndentSpaces;
+    } else {
+        m_indentationMode = static_cast<IndentationMode>(mode);
+    }
+
+    // Save the real indentation mode
+    QTextPadSettings().setIndentMode(static_cast<int>(m_indentationMode));
 }
 
 int SyntaxTextEdit::textColumn(const QString &block, int positionInBlock) const
@@ -260,6 +319,8 @@ void SyntaxTextEdit::setAutoIndent(bool ai)
         m_config |= Config_AutoIndent;
     else
         m_config &= ~Config_AutoIndent;
+
+    QTextPadSettings().setAutoIndent(ai);
 }
 
 bool SyntaxTextEdit::autoIndent() const
@@ -274,6 +335,8 @@ void SyntaxTextEdit::setShowLongLineEdge(bool show)
     else
         m_config &= ~Config_LongLineEdge;
     viewport()->update();
+
+    QTextPadSettings().setShowLongLineMargin(show);
 }
 
 bool SyntaxTextEdit::showLongLineEdge() const
@@ -285,6 +348,8 @@ void SyntaxTextEdit::setLongLineWidth(int pos)
 {
     m_longLineMarker = pos;
     viewport()->update();
+
+    QTextPadSettings().setLongLineWidth(pos);
 }
 
 void SyntaxTextEdit::setShowIndentGuides(bool show)
@@ -294,6 +359,8 @@ void SyntaxTextEdit::setShowIndentGuides(bool show)
     else
         m_config &= ~Config_IndentGuides;
     viewport()->update();
+
+    QTextPadSettings().setIndentationGuides(show);
 }
 
 bool SyntaxTextEdit::showIndentGuides() const
@@ -305,6 +372,7 @@ void SyntaxTextEdit::setWordWrap(bool wrap)
 {
     setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere
                          : QTextOption::NoWrap);
+    QTextPadSettings().setWordWrap(wrap);
 }
 
 bool SyntaxTextEdit::wordWrap() const
@@ -319,6 +387,8 @@ void SyntaxTextEdit::setMatchBraces(bool match)
     else
         m_config &= ~Config_MatchBraces;
     updateCursor();
+
+    QTextPadSettings().setMatchBraces(match);
 }
 
 bool SyntaxTextEdit::matchBraces() const
@@ -332,6 +402,8 @@ void SyntaxTextEdit::setFont(const QFont &font)
     QPlainTextEdit::setFont(font);
     m_originalFontSize = font.pointSize();
     updateTabMetrics();
+
+    QTextPadSettings().setEditorFont(font);
 }
 
 void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
@@ -552,7 +624,7 @@ void SyntaxTextEdit::indentSelection()
         int leadingIndent = 0;
         int startOfLine = 0;
         for (const auto ch : cursor.block().text()) {
-            if (ch == '\t') {
+            if (ch == QLatin1Char('\t')) {
                 leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
                 startOfLine += 1;
             } else if (ch == ' ') {
@@ -594,7 +666,7 @@ void SyntaxTextEdit::outdentSelection()
         int leadingIndent = 0;
         int startOfLine = 0;
         for (const auto ch : cursor.block().text()) {
-            if (ch == '\t') {
+            if (ch == QLatin1Char('\t')) {
                 leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
                 startOfLine += 1;
             } else if (ch == ' ') {
@@ -658,7 +730,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
             const QStringRef cursorText = blockText.leftRef(cursor.positionInBlock());
             int vpos = 0;
             for (const auto ch : cursorText) {
-                if (ch == '\t')
+                if (ch == QLatin1Char('\t'))
                     vpos += (m_tabCharSize - (vpos % m_tabCharSize));
                 else
                     vpos += 1;
@@ -701,7 +773,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
                     const QString blockText = scanCursor.block().text();
                     for (const auto ch : blockText) {
-                        if (ch == '\t' || ch == ' ')
+                        if (ch.isSpace())
                             startOfLine += 1;
                         else
                             break;

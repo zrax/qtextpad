@@ -51,7 +51,7 @@ public:
 
     void setTabWidth(int width);
     int tabWidth() const { return m_tabCharSize; }
-    void setIndentWidth(int width) { m_indentWidth = width; }
+    void setIndentWidth(int width);
     int indentWidth() const { return m_indentWidth; }
 
     enum IndentationMode
@@ -59,8 +59,9 @@ public:
         IndentSpaces,
         IndentTabs,
         IndentMixed,
+        IndentMode_MAX,
     };
-    void setIndentationMode(IndentationMode mode) { m_indentationMode = mode; }
+    void setIndentationMode(int mode);
     IndentationMode indentationMode() const { return m_indentationMode; }
 
     int textColumn(const QString &block, int positionInBlock) const;
