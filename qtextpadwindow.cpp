@@ -21,6 +21,7 @@
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
+#include <QFontDialog>
 #include <QApplication>
 #include <QWidgetAction>
 #include <QClipboard>
@@ -224,7 +225,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto zoomResetAction = viewMenu->addAction(ICON("zoom-original"), tr("Reset &Zoom"));
     zoomResetAction->setShortcut(Qt::CTRL | Qt::Key_0);
 
-    //connect(fontAction, &QAction::triggered, ...);
+    connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(wordWrapAction, &QAction::toggled, m_editor, &SyntaxTextEdit::setWordWrap);
     connect(longLineAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setShowLongLineEdge);
@@ -569,6 +570,15 @@ void QTextPadWindow::updateIndentStatus()
         if (indentMode == actionMode)
             action->setChecked(true);
     }
+}
+
+void QTextPadWindow::chooseEditorFont()
+{
+    bool ok = false;
+    QFont newFont = QFontDialog::getFont(&ok, m_editor->defaultFont(), this,
+                                         tr("Default Editor Font"));
+    if (ok)
+        m_editor->setDefaultFont(newFont);
 }
 
 void QTextPadWindow::closeEvent(QCloseEvent *e)

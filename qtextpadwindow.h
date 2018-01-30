@@ -60,6 +60,7 @@ public slots:
     void nextInsertMode();
     void nextLineEndingMode();
     void updateIndentStatus();
+    void chooseEditorFont();
 
 protected:
     void closeEvent(QCloseEvent *e) Q_DECL_OVERRIDE;

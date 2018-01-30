@@ -84,9 +84,11 @@ public:
     static KSyntaxHighlighting::Repository *syntaxRepo();
     static const KSyntaxHighlighting::Definition &nullSyntax();
 
-    void setFont(const QFont &font);    // Hides QPlainTextEdit::setFont
+    void setDefaultFont(const QFont &font);
     void setTheme(const KSyntaxHighlighting::Theme &theme);
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
+
+    QFont defaultFont() const;
 
 protected:
     void resizeEvent(QResizeEvent *e) Q_DECL_OVERRIDE;

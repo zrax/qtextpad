@@ -44,7 +44,7 @@ enum SyntaxTextEdit_Config
 class LineNumberMargin : public QWidget
 {
 public:
-    LineNumberMargin(SyntaxTextEdit *editor)
+    explicit LineNumberMargin(SyntaxTextEdit *editor)
         : QWidget(editor), m_editor(editor) { }
 
     QSize sizeHint() const Q_DECL_OVERRIDE
@@ -65,7 +65,7 @@ private:
 class WhitespaceSyntaxHighlighter : public KSyntaxHighlighting::SyntaxHighlighter
 {
 public:
-    WhitespaceSyntaxHighlighter(QTextDocument *document)
+    explicit WhitespaceSyntaxHighlighter(QTextDocument *document)
         : KSyntaxHighlighting::SyntaxHighlighter(document)
     { }
 
@@ -114,7 +114,7 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
 
     // Default editor configuration
     QTextPadSettings settings;
-    setFont(settings.editorFont());
+    setDefaultFont(settings.editorFont());
 
     if (settings.lineNumbers())
         m_config |= Config_ShowLineNumbers;
@@ -396,14 +396,22 @@ bool SyntaxTextEdit::matchBraces() const
     return !!(m_config & Config_MatchBraces);
 }
 
-void SyntaxTextEdit::setFont(const QFont &font)
+void SyntaxTextEdit::setDefaultFont(const QFont &font)
 {
     // Note:  This will reset the zoom factor to 100%
-    QPlainTextEdit::setFont(font);
+    setFont(font);
     m_originalFontSize = font.pointSize();
+    updateMargins();
     updateTabMetrics();
 
     QTextPadSettings().setEditorFont(font);
+}
+
+QFont SyntaxTextEdit::defaultFont() const
+{
+    QFont baseFont = font();
+    baseFont.setPointSize(m_originalFontSize);
+    return baseFont;
 }
 
 void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
@@ -627,7 +635,7 @@ void SyntaxTextEdit::indentSelection()
             if (ch == QLatin1Char('\t')) {
                 leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
                 startOfLine += 1;
-            } else if (ch == ' ') {
+            } else if (ch == QLatin1Char(' ')) {
                 leadingIndent += 1;
                 startOfLine += 1;
             } else {
@@ -669,7 +677,7 @@ void SyntaxTextEdit::outdentSelection()
             if (ch == QLatin1Char('\t')) {
                 leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
                 startOfLine += 1;
-            } else if (ch == ' ') {
+            } else if (ch == QLatin1Char(' ')) {
                 leadingIndent += 1;
                 startOfLine += 1;
             } else {
@@ -701,20 +709,21 @@ void SyntaxTextEdit::outdentSelection()
 void SyntaxTextEdit::zoomIn()
 {
     QPlainTextEdit::zoomIn(1);
+    updateMargins();
     updateTabMetrics();
 }
 
 void SyntaxTextEdit::zoomOut()
 {
     QPlainTextEdit::zoomOut(1);
+    updateMargins();
     updateTabMetrics();
 }
 
 void SyntaxTextEdit::zoomReset()
 {
-    QFont originFont = font();
-    originFont.setPointSize(m_originalFontSize);
-    QPlainTextEdit::setFont(originFont);
+    setFont(defaultFont());
+    updateMargins();
     updateTabMetrics();
 }
 
@@ -880,7 +889,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         p.setPen(m_indentGuideFg);
         QTextBlock block = firstVisibleBlock();
         const QFontMetricsF fm(font());
-        const qreal indentLine = fm.width(QString(m_indentWidth, 'x'));
+        const qreal indentLine = fm.width(QString(m_indentWidth, ' '));
         const qreal lineOffset = contentOffset().x() + document()->documentMargin();
         while (block.isValid()) {
             QString blockText = block.text();
