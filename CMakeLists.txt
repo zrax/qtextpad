@@ -18,6 +18,7 @@ set(qtextpad_SOURCES
     main.cpp
     appsettings.cpp
     qtextpadwindow.cpp
+    searchdialog.cpp
     settingspopup.cpp
     syntaxtextedit.cpp
 )
@@ -26,6 +27,7 @@ set(qtextpad_HEADERS
     activationlabel.h
     appsettings.h
     qtextpadwindow.h
+    searchdialog.h
     settingspopup.h
     syntaxtextedit.h
 )

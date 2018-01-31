@@ -28,6 +28,7 @@
 #include <QTextBlock>
 #include <QTextCodec>
 #include <QTimer>
+#include <QFileInfo>
 
 #include <Repository>
 #include <Definition>
@@ -37,10 +38,8 @@
 #include "activationlabel.h"
 #include "syntaxtextedit.h"
 #include "settingspopup.h"
+#include "searchdialog.h"
 #include "appsettings.h"
-
-#define ICON(name)  QIcon::fromTheme(QStringLiteral(name), \
-                                     QIcon(QStringLiteral(":/icons/" name ".png")))
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -171,10 +170,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(selectAllAction, &QAction::triggered, m_editor, &QPlainTextEdit::selectAll);
     connect(m_overwiteModeAction, &QAction::toggled,
             this, &QTextPadWindow::setOverwriteMode);
-    //connect(findAction, &QAction::triggered, ...);
-    //connect(findNextAction, &QAction::triggered, ...);
-    //connect(findPrevAction, &QAction::triggered, ...);
-    //connect(replaceAction, &QAction::triggered, ...);
+
+    connect(findAction, &QAction::triggered, [this]() { SearchDialog::create(this, false); });
+    connect(findNextAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, false); });
+    connect(findPrevAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, true); });
+    connect(replaceAction, &QAction::triggered, [this]() { SearchDialog::create(this, true); });
 
     connect(m_editor, &QPlainTextEdit::undoAvailable, undoAction, &QAction::setEnabled);
     undoAction->setEnabled(false);
@@ -478,7 +478,7 @@ void QTextPadWindow::updateCursorPosition()
 
 void QTextPadWindow::updateTitle()
 {
-    QString title = m_documentTitle + QStringLiteral(" – QTextPad");  // n-dash
+    QString title = m_documentTitle + QStringLiteral(" – qtextpad");  // n-dash
     if (m_modified)
         title = QStringLiteral("* ") + title;
 
@@ -591,7 +591,14 @@ void QTextPadWindow::closeEvent(QCloseEvent *e)
 
 void QTextPadWindow::populateRecentFiles()
 {
-    // TODO: Save and retrieve recent files list
+    QStringList recentFiles = QTextPadSettings().recentFiles();
+    for (const auto &filename : recentFiles) {
+        QFileInfo info(filename);
+        auto recentFileAction = m_recentFiles->addAction(info.fileName());
+        recentFileAction->setData(info.absoluteFilePath());
+        //connect(recentFileAction, &QAction::triggered, ...);
+    }
+
     (void) m_recentFiles->addSeparator();
     auto clearListAction = m_recentFiles->addAction(tr("Clear List"));
     connect(clearListAction, &QAction::triggered, [this]() {

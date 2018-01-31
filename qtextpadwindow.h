@@ -39,6 +39,8 @@ class QTextPadWindow : public QMainWindow
 public:
     QTextPadWindow(QWidget *parent = 0);
 
+    SyntaxTextEdit *editor() { return m_editor; }
+
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
     void setTheme(const KSyntaxHighlighting::Theme &theme);
     void setEncoding(const QString &codecName);

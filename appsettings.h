@@ -32,25 +32,26 @@ public:
     QStringList recentFiles() const;
     void addRecentFile(const QString &filename);
 
-    SIMPLE_SETTING(bool, "WordWrap", wordWrap, setWordWrap, false)
-    SIMPLE_SETTING(bool, "ShowLongLineMargin", showLongLineMargin,
+    SIMPLE_SETTING(bool, "Editor/WordWrap", wordWrap, setWordWrap, false)
+    SIMPLE_SETTING(bool, "Editor/ShowLongLineMargin", showLongLineMargin,
                    setShowLongLineMargin, false)
-    SIMPLE_SETTING(int, "LongLineWidth", longLineWidth, setLongLineWidth, 80)
-    SIMPLE_SETTING(bool, "IndentationGuides", indentationGuides, setIndentationGuides, false)
-    SIMPLE_SETTING(bool, "LineNumbers", lineNumbers, setLineNumbers, false)
-    SIMPLE_SETTING(bool, "ShowWhitespace", showWhitespace, setShowWhitespace, false)
-    SIMPLE_SETTING(bool, "HighlightCurrentLine", highlightCurLine,
+    SIMPLE_SETTING(int, "Editor/LongLineWidth", longLineWidth, setLongLineWidth, 80)
+    SIMPLE_SETTING(bool, "Editor/IndentationGuides", indentationGuides,
+                   setIndentationGuides, false)
+    SIMPLE_SETTING(bool, "Editor/LineNumbers", lineNumbers, setLineNumbers, false)
+    SIMPLE_SETTING(bool, "Editor/ShowWhitespace", showWhitespace, setShowWhitespace, false)
+    SIMPLE_SETTING(bool, "Editor/HighlightCurrentLine", highlightCurLine,
                    setHighlightCurLine, true)
-    SIMPLE_SETTING(bool, "MatchBraces", matchBraces, setMatchBraces, true)
+    SIMPLE_SETTING(bool, "Editor/MatchBraces", matchBraces, setMatchBraces, true)
 
-    SIMPLE_SETTING(int, "TabWidth", tabWidth, setTabWidth, 4)
-    SIMPLE_SETTING(int, "IndentWidth", indentWidth, setIndentWidth, 4)
+    SIMPLE_SETTING(int, "Editor/TabWidth", tabWidth, setTabWidth, 4)
+    SIMPLE_SETTING(int, "Editor/IndentWidth", indentWidth, setIndentWidth, 4)
     // -1 or any other invalid value will trigger the setting of the default
-    SIMPLE_SETTING(int, "IndentMode", indentMode, setIndentMode, -1)
-    SIMPLE_SETTING(bool, "AutoIndent", autoIndent, setAutoIndent, true)
+    SIMPLE_SETTING(int, "Editor/IndentMode", indentMode, setIndentMode, -1)
+    SIMPLE_SETTING(bool, "Editor/AutoIndent", autoIndent, setAutoIndent, true)
 
     // "Hidden" settings (for now)
-    SIMPLE_SETTING(bool, "ScrollPastEndOfFile", scrollPastEndOfFile,
+    SIMPLE_SETTING(bool, "Editor/ScrollPastEndOfFile", scrollPastEndOfFile,
                    setScrollPastEndOfFile, true)
 
     QFont editorFont() const;
@@ -62,8 +63,27 @@ public:
     QSize windowSize() const;
     void setWindowSize(const QSize &size) { m_settings.setValue("WindowSize", size); }
 
+    // Search dialog options
+    QStringList recentSearches() const;
+    void addRecentSearch(const QString &text);
+
+    QStringList recentSearchReplacements() const;
+    void addRecentSearchReplacement(const QString &text);
+
+    SIMPLE_SETTING(bool, "Search/CaseSensitive", searchCaseSensitive,
+                   setSearchCaseSensitive, false)
+    SIMPLE_SETTING(bool, "Search/WholeWord", searchWholeWord,
+                   setSearchWholeWord, false)
+    SIMPLE_SETTING(bool, "Search/Regex", searchRegex, setSearchRegex, false)
+    SIMPLE_SETTING(bool, "Search/Escapes", searchEscapes, setSearchEscapes, false)
+    SIMPLE_SETTING(bool, "Search/Wrap", searchWrap, setSearchWrap, true)
+
 private:
     QSettings m_settings;
 };
+
+/* Helper for loading theme icons */
+#define ICON(name)  QIcon::fromTheme(QStringLiteral(name), \
+                                     QIcon(QStringLiteral(":/icons/" name ".png")))
 
 #endif // _APPSETTINGS_H
