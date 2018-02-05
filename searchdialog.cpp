@@ -215,6 +215,65 @@ void SearchDialog::showReplace(bool show)
     }
 }
 
+QString translateCharEscape(const QStringRef &digits, int *advance)
+{
+    Q_ASSERT(digits.size() > 0);
+    Q_ASSERT(advance);
+
+    *advance = 0;
+    if (digits.at(0) == QLatin1Char('x')) {
+        // We only support exactly 2 hex bytes with \x format
+        if (digits.size() < 3)
+            return QString::null;
+        QByteArray number = digits.mid(1, 2).toLatin1();
+        char *end;
+        ulong ch = strtoul(number.constData(), &end, 16);
+        if (*end != '\0')
+            return QString::null;
+        *advance = 2;
+        return QString(QChar::fromLatin1(static_cast<char>(ch)));
+    } else if (digits.at(0) == QLatin1Char('u')) {
+        if (digits.size() < 5)
+            return QString::null;
+        QByteArray number = digits.mid(1, 4).toLatin1();
+        char *end;
+        ulong ch = strtoul(number.constData(), &end, 16);
+        if (*end != '\0')
+            return QString::null;
+        *advance = 4;
+        return QString(QChar(static_cast<ushort>(ch)));
+    } else if (digits.at(0) == QLatin1Char('U')) {
+        if (digits.size() < 9)
+            return QString::null;
+        QByteArray number = digits.mid(1, 8).toLatin1();
+        char *end;
+        ulong ch = strtoul(number.constData(), &end, 16);
+        if (*end != '\0')
+            return QString::null;
+
+        *advance = 8;
+        if (ch > 0xFFFFU) {
+            const QChar utf16[2] = {
+                QChar::highSurrogate(ch),
+                QChar::lowSurrogate(ch),
+            };
+            return QString(utf16, 2);
+        } else {
+            return QString(QChar(static_cast<ushort>(ch)));
+        }
+    } else {
+        // Octal codes can be 1, 2, or 3 characters long...
+        QByteArray number = digits.mid(0, 3).toLatin1();
+        char *end;
+        ulong ch = strtoul(number.constData(), &end, 8);
+        *advance = static_cast<int>(end - number.constData());
+        if (*advance == 0 || ch > 0xFFU)
+            return QString::null;
+        *advance -= 1;      // The first digit was already accounted for
+        return QString(QChar::fromLatin1(static_cast<char>(ch)));
+    }
+}
+
 QString translateEscapes(const QString &text)
 {
     QString result;
@@ -266,17 +325,22 @@ QString translateEscapes(const QString &text)
         case '4':
         case '5':
         case '6':
-        case '7':
-            // TODO: Octal code
-            break;
-        case 'x':
-            // TODO: Hex byte
-            break;
-        case 'u':
-            // TODO: Unicode character (16-bit)
-            break;
-        case 'U':
-            // TODO: Unicode character (32-bit)
+        case '7':   // Octal code
+        case 'x':   // Hex byte
+        case 'u':   // Unicode character (16-bit)
+        case 'U':   // Unicode character (32-bit)
+            {
+                int advance;
+                const QString chars = translateCharEscape(text.midRef(pos + 1), &advance);
+                if (chars.isEmpty()) {
+                    // Translation failed
+                    result.append(QLatin1Char('\\'));
+                    result.append(next);
+                } else {
+                    result.append(chars);
+                    start += advance;
+                }
+            }
             break;
         default:
             // Just keep unrecognized sequences untranslated
@@ -411,11 +475,14 @@ void SearchDialog::replaceCurrent()
         return;
     }
 
+    QString replaceText = m_replaceText->currentText();
+    if (m_escapes->isChecked())
+        replaceText = translateEscapes(replaceText);
+
     m_replaceCursor.beginEditBlock();
     m_replaceCursor.removeSelectedText();
-    m_replaceCursor.insertText(m_replaceText->currentText());
+    m_replaceCursor.insertText(replaceText);
     m_replaceCursor.endEditBlock();
-    editor()->viewport()->update();
 
     m_replaceCursor = searchNext(Q_NULLPTR, false);
 }
@@ -439,7 +506,10 @@ void SearchDialog::replaceAll()
         return;
     }
 
-    const QString replaceText = m_replaceText->currentText();
+    QString replaceText = m_replaceText->currentText();
+    if (m_escapes->isChecked())
+        replaceText = translateEscapes(replaceText);
+
     searchCursor.beginEditBlock();
     auto replaceCursor = searchCursor;
     int replacements = 0;
@@ -449,11 +519,8 @@ void SearchDialog::replaceAll()
         replaceCursor = performSearch(replaceCursor, false);
         ++replacements;
     }
+    searchCursor.endEditBlock();
 
     QMessageBox::information(qobject_cast<QWidget *>(parent()), QString::null,
                              tr("Successfully replaced %1 matches").arg(replacements));
-
-    // For some reason, the document doesn't repaint itself after replace-all
-    // if we don't also modify the editor's cursor
-    editor()->viewport()->update();
 }
