@@ -63,6 +63,7 @@ public slots:
     void nextLineEndingMode();
     void updateIndentStatus();
     void chooseEditorFont();
+    void promptTabSettings();
 
 protected:
     void closeEvent(QCloseEvent *e) Q_DECL_OVERRIDE;

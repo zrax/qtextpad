@@ -17,6 +17,7 @@ endif()
 set(qtextpad_SOURCES
     main.cpp
     appsettings.cpp
+    indentsettings.cpp
     qtextpadwindow.cpp
     searchdialog.cpp
     settingspopup.cpp
@@ -26,6 +27,7 @@ set(qtextpad_SOURCES
 set(qtextpad_HEADERS
     activationlabel.h
     appsettings.h
+    indentsettings.h
     qtextpadwindow.h
     searchdialog.h
     settingspopup.h

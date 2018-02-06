@@ -39,6 +39,7 @@
 #include "syntaxtextedit.h"
 #include "settingspopup.h"
 #include "searchdialog.h"
+#include "indentsettings.h"
 #include "appsettings.h"
 
 class EncodingPopupAction : public QWidgetAction
@@ -272,7 +273,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(crOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(CROnly); });
     connect(lfOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(LFOnly); });
     connect(crlfAction, &QAction::triggered, [this]() { setLineEndingMode(CRLF); });
-    //connect(tabSettingsAction, &QAction::triggered, ...);
+    connect(tabSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptTabSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -581,6 +582,16 @@ void QTextPadWindow::chooseEditorFont()
         m_editor->setDefaultFont(newFont);
 }
 
+void QTextPadWindow::promptTabSettings()
+{
+    auto dialog = new IndentSettingsDialog(this);
+    dialog->loadSettings(m_editor);
+    if (dialog->exec() == QDialog::Accepted) {
+        dialog->applySettings(m_editor);
+        updateIndentStatus();
+    }
+}
+
 void QTextPadWindow::closeEvent(QCloseEvent *e)
 {
     // TODO:  Prompt for save
@@ -721,7 +732,8 @@ void QTextPadWindow::populateIndentButtonMenu()
             updateIndentStatus();
         });
     }
-    //connect(tabWidthOtherAction, &QAction::triggered, ...);
+    connect(tabWidthOtherAction, &QAction::triggered,
+            this, &QTextPadWindow::promptTabSettings);
 
     headerLabel = new QLabel(tr("Indentation Width"), this);
     headerLabel->setAlignment(Qt::AlignCenter);
@@ -756,7 +768,8 @@ void QTextPadWindow::populateIndentButtonMenu()
             updateIndentStatus();
         });
     }
-    //connect(indentWidthOtherAction, &QAction::triggered, ...);
+    connect(indentWidthOtherAction, &QAction::triggered,
+            this, &QTextPadWindow::promptTabSettings);
 
     headerLabel = new QLabel(tr("Indentation Mode"), this);
     headerLabel->setAlignment(Qt::AlignCenter);
