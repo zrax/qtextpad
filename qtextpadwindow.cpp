@@ -430,10 +430,11 @@ void QTextPadWindow::setEncoding(const QString &codecName)
     if (m_encodingActions->checkedAction())
         m_encodingActions->checkedAction()->setChecked(false);
 
-    QTextCodec *codec = KCharsets::charsets()->codecForName(codecName);
-    if (!codec) {
+    bool ok = false;
+    (void) KCharsets::charsets()->codecForName(codecName, ok);
+    if (!ok) {
         qWarning("Invalid codec selected");
-        m_encodingButton->setText(tr("Invalid"));
+        m_encodingButton->setText(tr("Invalid (%1)").arg(codecName));
     } else {
         // Use the passed name for UI consistency
         m_encodingButton->setText(codecName);

@@ -200,24 +200,13 @@ EncodingPopup::EncodingPopup(QWidget *parent)
     connect(tree(), &QTreeWidget::currentItemChanged,
             this, &EncodingPopup::encodingItemChanged);
 
-    // Load the available character sets by script
+    // Load the available character sets by descriptive name
     auto charsets = KCharsets::charsets();
-    auto encodingScripts = charsets->encodingsByScript();
-    std::sort(encodingScripts.begin(), encodingScripts.end(),
-              [](const QStringList &left, const QStringList &right)
-    {
-        return left.first() < right.first();
-    });
-
-    for (const auto encodingList : encodingScripts) {
-        auto *parent = new QTreeWidgetItem(tree(), QStringList() << encodingList.first());
-        for (int i = 1; i < encodingList.size(); ++i) {
-            QString codecName = encodingList.at(i);
-            auto item = new QTreeWidgetItem(parent, QStringList() << codecName);
-            item->setData(0, Qt::UserRole, codecName);
-        }
+    auto codecs = charsets->descriptiveEncodingNames();
+    for (const auto codecDesc : codecs) {
+        auto item = new QTreeWidgetItem(tree(), QStringList() << codecDesc);
+        item->setData(0, Qt::UserRole, charsets->encodingForName(codecDesc));
     }
-    tree()->expandAll();
     tree()->resizeColumnToContents(0);
 }
 
