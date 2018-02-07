@@ -22,6 +22,7 @@ set(qtextpad_SOURCES
     searchdialog.cpp
     settingspopup.cpp
     syntaxtextedit.cpp
+    undocommands.cpp
 )
 
 set(qtextpad_HEADERS
@@ -32,6 +33,7 @@ set(qtextpad_HEADERS
     searchdialog.h
     settingspopup.h
     syntaxtextedit.h
+    undocommands.h
 )
 
 set(qtextpad_RESOURCES

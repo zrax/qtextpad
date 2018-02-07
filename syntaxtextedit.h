@@ -96,6 +96,10 @@ protected:
     void wheelEvent(QWheelEvent *e) Q_DECL_OVERRIDE;
     void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
 
+signals:
+    void parentUndo();
+    void parentRedo();
+
 public slots:
     void indentSelection();
     void outdentSelection();

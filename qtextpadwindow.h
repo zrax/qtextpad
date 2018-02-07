@@ -25,6 +25,8 @@ class ActivationLabel;
 class QToolButton;
 class QMenu;
 class QActionGroup;
+class QUndoStack;
+class QUndoCommand;
 
 namespace KSyntaxHighlighting
 {
@@ -45,6 +47,8 @@ public:
     void setTheme(const KSyntaxHighlighting::Theme &theme);
     void setEncoding(const QString &codecName);
 
+    QString textEncoding() const { return m_textEncoding; }
+
     void setOverwriteMode(bool overwrite);
     void setAutoIndent(bool ai);
 
@@ -55,9 +59,13 @@ public:
         CRLF,
     };
     void setLineEndingMode(LineEndingMode mode);
+    LineEndingMode lineEndingMode() const { return m_lineEndingMode; }
 
     bool saveDocumentTo(const QString &filename);
     bool loadDocumentFrom(const QString &filename);
+    bool isDocumentModified() const;
+
+    void addUndoCommand(QUndoCommand *command);
 
 public slots:
     bool promptForSave();
@@ -68,12 +76,17 @@ public slots:
     bool loadDocument();
     bool reloadDocument();
 
+    void editorContextMenu(const QPoint& pos);
     void updateCursorPosition();
     void nextInsertMode();
     void nextLineEndingMode();
     void updateIndentStatus();
     void chooseEditorFont();
     void promptTabSettings();
+
+    // User-triggered actions that store commands in the Undo stack
+    void changeEncoding(const QString &encoding);
+    void changeLineEndingMode(LineEndingMode mode);
 
 protected:
     void closeEvent(QCloseEvent *e) Q_DECL_OVERRIDE;
@@ -82,6 +95,7 @@ private:
     SyntaxTextEdit *m_editor;
     QString m_openFilename;
     QString m_documentTitle;
+    QString m_textEncoding;
 
     QMenu *m_recentFiles;
     QMenu *m_themeMenu;
@@ -90,7 +104,7 @@ private:
 
     // QAction caches
     QAction *m_reloadAction;
-    QAction *m_overwiteModeAction;
+    QAction *m_overwriteModeAction;
     QAction *m_autoIndentAction;
     QActionGroup *m_themeActions;
     QActionGroup *m_syntaxActions;
@@ -99,6 +113,7 @@ private:
     QActionGroup *m_tabWidthActions;
     QActionGroup *m_indentWidthActions;
     QActionGroup *m_indentModeActions;
+    QList<QAction *> m_editorContextActions;
 
     ActivationLabel *m_positionLabel;
     ActivationLabel *m_crlfLabel;
@@ -107,6 +122,9 @@ private:
     QToolButton *m_encodingButton;
     QToolButton *m_syntaxButton;
     LineEndingMode m_lineEndingMode;
+
+    // Custom Undo Stack for adding non-editor undo items
+    QUndoStack *m_undoStack;
 
     void updateTitle();
     void populateRecentFiles();

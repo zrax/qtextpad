@@ -729,6 +729,16 @@ void SyntaxTextEdit::zoomReset()
 
 void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 {
+    // Ensure these are handled by the application, NOT by QPlainTextEdit's
+    // built-in implementation that bypasses us altogether
+    if (e->matches(QKeySequence::Undo)) {
+        emit parentUndo();
+        return;
+    } else if (e->matches(QKeySequence::Redo)) {
+        emit parentRedo();
+        return;
+    }
+
     switch (e->key()) {
     case Qt::Key_Tab:
         if (haveSelection()) {

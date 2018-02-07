@@ -27,6 +27,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QClipboard>
+#include <QUndoStack>
 #include <QTextBlock>
 #include <QTextCodec>
 #include <QTimer>
@@ -43,6 +44,7 @@
 #include "searchdialog.h"
 #include "indentsettings.h"
 #include "appsettings.h"
+#include "undocommands.h"
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -56,7 +58,8 @@ protected:
         auto popup = new EncodingPopup(menuParent);
         connect(popup, &EncodingPopup::encodingSelected,
                 [this](const QString &codecName) {
-            qobject_cast<QTextPadWindow *>(parent())->setEncoding(codecName);
+            auto window = qobject_cast<QTextPadWindow *>(parent());
+            window->changeEncoding(codecName);
 
             // Don't close the popup right after clicking, so the user can
             // briefly see the visual feedback for the item they selected.
@@ -99,6 +102,12 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     setCentralWidget(m_editor);
     m_editor->setFrameStyle(QFrame::NoFrame);
 
+    m_undoStack = new QUndoStack(this);
+    connect(m_editor->document(), &QTextDocument::undoCommandAdded,
+            [this]() { addUndoCommand(new TextEditorUndoCommand(m_editor)); });
+    connect(m_editor, &SyntaxTextEdit::parentUndo, m_undoStack, &QUndoStack::undo);
+    connect(m_editor, &SyntaxTextEdit::parentRedo, m_undoStack, &QUndoStack::redo);
+
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto newAction = fileMenu->addAction(ICON("document-new"), tr("&New"));
     newAction->setShortcut(QKeySequence::New);
@@ -136,24 +145,31 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     QMenu *editMenu = menuBar()->addMenu(tr("&Edit"));
     auto undoAction = editMenu->addAction(ICON("edit-undo"), tr("&Undo"));
     undoAction->setShortcut(QKeySequence::Undo);
+    m_editorContextActions << undoAction;
     auto redoAction = editMenu->addAction(ICON("edit-redo"), tr("&Redo"));
     redoAction->setShortcut(QKeySequence::Redo);
-    (void) editMenu->addSeparator();
+    m_editorContextActions << redoAction;
+    m_editorContextActions << editMenu->addSeparator();
     auto cutAction = editMenu->addAction(ICON("edit-cut"), tr("Cu&t"));
     cutAction->setShortcut(QKeySequence::Cut);
+    m_editorContextActions << cutAction;
     auto copyAction = editMenu->addAction(ICON("edit-copy"), tr("&Copy"));
     copyAction->setShortcut(QKeySequence::Copy);
+    m_editorContextActions << copyAction;
     auto pasteAction = editMenu->addAction(ICON("edit-paste"), tr("&Paste"));
     pasteAction->setShortcut(QKeySequence::Paste);
+    m_editorContextActions << pasteAction;
     auto clearAction = editMenu->addAction(ICON("edit-delete"), tr("&Delete"));
     clearAction->setShortcut(QKeySequence::Delete);
-    (void) editMenu->addSeparator();
+    m_editorContextActions << clearAction;
+    m_editorContextActions << editMenu->addSeparator();
     auto selectAllAction = editMenu->addAction(tr("Select &All"));
     selectAllAction->setShortcut(QKeySequence::SelectAll);
+    m_editorContextActions << selectAllAction;
     (void) editMenu->addSeparator();
-    m_overwiteModeAction = editMenu->addAction(tr("&Overwrite Mode"));
-    m_overwiteModeAction->setShortcut(Qt::Key_Insert);
-    m_overwiteModeAction->setCheckable(true);
+    m_overwriteModeAction = editMenu->addAction(tr("&Overwrite Mode"));
+    m_overwriteModeAction->setShortcut(Qt::Key_Insert);
+    m_overwriteModeAction->setCheckable(true);
     (void) editMenu->addSeparator();
     auto findAction = editMenu->addAction(ICON("edit-find"), tr("&Find..."));
     findAction->setShortcut(QKeySequence::Find);
@@ -164,14 +180,14 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto replaceAction = editMenu->addAction(ICON("edit-find-replace"), tr("&Replace..."));
     replaceAction->setShortcut(QKeySequence::Replace);
 
-    connect(undoAction, &QAction::triggered, m_editor, &QPlainTextEdit::undo);
-    connect(redoAction, &QAction::triggered, m_editor, &QPlainTextEdit::redo);
+    connect(undoAction, &QAction::triggered, m_undoStack, &QUndoStack::undo);
+    connect(redoAction, &QAction::triggered, m_undoStack, &QUndoStack::redo);
     connect(cutAction, &QAction::triggered, m_editor, &QPlainTextEdit::cut);
     connect(copyAction, &QAction::triggered, m_editor, &QPlainTextEdit::copy);
     connect(pasteAction, &QAction::triggered, m_editor, &QPlainTextEdit::paste);
     connect(clearAction, &QAction::triggered, m_editor, &SyntaxTextEdit::deleteSelection);
     connect(selectAllAction, &QAction::triggered, m_editor, &QPlainTextEdit::selectAll);
-    connect(m_overwiteModeAction, &QAction::toggled,
+    connect(m_overwriteModeAction, &QAction::toggled,
             this, &QTextPadWindow::setOverwriteMode);
 
     connect(findAction, &QAction::triggered, [this]() { SearchDialog::create(this, false); });
@@ -179,19 +195,28 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(findPrevAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, true); });
     connect(replaceAction, &QAction::triggered, [this]() { SearchDialog::create(this, true); });
 
-    connect(m_editor, &QPlainTextEdit::undoAvailable, undoAction, &QAction::setEnabled);
+    connect(m_undoStack, &QUndoStack::canUndoChanged, undoAction, &QAction::setEnabled);
     undoAction->setEnabled(false);
-    connect(m_editor, &QPlainTextEdit::redoAvailable, redoAction, &QAction::setEnabled);
+    connect(m_undoStack, &QUndoStack::canRedoChanged, redoAction, &QAction::setEnabled);
     redoAction->setEnabled(false);
     connect(m_editor, &QPlainTextEdit::copyAvailable, cutAction, &QAction::setEnabled);
     cutAction->setEnabled(false);
     connect(m_editor, &QPlainTextEdit::copyAvailable, copyAction, &QAction::setEnabled);
     copyAction->setEnabled(false);
+    connect(m_editor, &QPlainTextEdit::copyAvailable, clearAction, &QAction::setEnabled);
+    clearAction->setEnabled(false);
 
     connect(QApplication::clipboard(), &QClipboard::dataChanged, [this, pasteAction]() {
         pasteAction->setEnabled(m_editor->canPaste());
     });
     pasteAction->setEnabled(m_editor->canPaste());
+
+    // The Editor's default context menu hooks directly into the QTextDocument's
+    // undo stack, which won't see our custom actions.  We might as well just
+    // use the app's actions for everything else while we're fixing that.
+    m_editor->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_editor, &QPlainTextEdit::customContextMenuRequested,
+            this, &QTextPadWindow::editorContextMenu);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
     auto fontAction = viewMenu->addAction(tr("Default &Font..."));
@@ -272,9 +297,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_autoIndentAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
     m_autoIndentAction->setCheckable(true);
 
-    connect(crOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(CROnly); });
-    connect(lfOnlyAction, &QAction::triggered, [this]() { setLineEndingMode(LFOnly); });
-    connect(crlfAction, &QAction::triggered, [this]() { setLineEndingMode(CRLF); });
+    connect(crOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(CROnly); });
+    connect(lfOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(LFOnly); });
+    connect(crlfAction, &QAction::triggered, [this]() { changeLineEndingMode(CRLF); });
     connect(tabSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptTabSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
 
@@ -364,8 +389,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     connect(m_editor, &SyntaxTextEdit::cursorPositionChanged,
             this, &QTextPadWindow::updateCursorPosition);
-    connect(m_editor->document(), &QTextDocument::modificationChanged,
-            [this](bool) { updateTitle(); });
+    connect(m_undoStack, &QUndoStack::cleanChanged, [this](bool) { updateTitle(); });
 
     // Set up the editor and status for a clean, empty document
     newDocument();
@@ -407,6 +431,8 @@ void QTextPadWindow::setTheme(const KSyntaxHighlighting::Theme &theme)
 
 void QTextPadWindow::setEncoding(const QString &codecName)
 {
+    m_textEncoding = codecName;
+
     // We may not directly match the passed encoding, so don't show a
     // radio check at all if we can't find the encoding.
     if (m_encodingActions->checkedAction())
@@ -434,7 +460,7 @@ void QTextPadWindow::setEncoding(const QString &codecName)
 void QTextPadWindow::setOverwriteMode(bool overwrite)
 {
     m_editor->setOverwriteMode(overwrite);
-    m_overwiteModeAction->setChecked(overwrite);
+    m_overwriteModeAction->setChecked(overwrite);
     m_insertLabel->setText(overwrite ? tr("OVR") : tr("INS"));
 }
 
@@ -482,16 +508,26 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename)
     m_openFilename = filename;
     QFileInfo fi(m_openFilename);
     m_documentTitle = fi.fileName();
-    m_editor->document()->clearUndoRedoStacks();
-    m_editor->document()->setModified(false);
+    m_undoStack->clear();
+    m_undoStack->setClean();
     m_reloadAction->setEnabled(true);
     updateTitle();
     return true;
 }
 
+bool QTextPadWindow::isDocumentModified() const
+{
+    return !m_undoStack->isClean();
+}
+
+void QTextPadWindow::addUndoCommand(QUndoCommand *command)
+{
+    m_undoStack->push(command);
+}
+
 bool QTextPadWindow::promptForSave()
 {
-    if (m_editor->document()->isModified()) {
+    if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString::null,
                             tr("%1 has been modified.  Would you like to save your changes first?")
                             .arg(m_documentTitle), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
@@ -511,8 +547,8 @@ void QTextPadWindow::newDocument()
     m_editor->clear();
     m_openFilename = QString::null;
     m_documentTitle = tr("Untitled");
-    m_editor->document()->clearUndoRedoStacks();
-    m_editor->document()->setModified(false);
+    m_undoStack->clear();
+    m_undoStack->setClean();
     m_reloadAction->setEnabled(false);
     updateTitle();
 }
@@ -531,7 +567,7 @@ bool QTextPadWindow::saveDocument()
     m_openFilename = path;
     QFileInfo fi(m_openFilename);
     m_documentTitle = fi.fileName();
-    m_editor->document()->setModified(false);
+    m_undoStack->setClean();
     updateTitle();
     return true;
 }
@@ -547,7 +583,7 @@ bool QTextPadWindow::saveDocumentAs()
     m_openFilename = path;
     QFileInfo fi(m_openFilename);
     m_documentTitle = fi.fileName();
-    m_editor->document()->setModified(false);
+    m_undoStack->setClean();
     updateTitle();
     return true;
 }
@@ -576,7 +612,7 @@ bool QTextPadWindow::loadDocument()
 
 bool QTextPadWindow::reloadDocument()
 {
-    if (m_editor->document()->isModified()) {
+    if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString::null,
                             tr("%1 has been modified.  Are you sure you want to discard your changes?")
                             .arg(m_documentTitle), QMessageBox::Yes | QMessageBox::No);
@@ -584,6 +620,27 @@ bool QTextPadWindow::reloadDocument()
             return false;
     }
     return loadDocumentFrom(m_openFilename);
+}
+
+void QTextPadWindow::editorContextMenu(const QPoint &pos)
+{
+    std::unique_ptr<QMenu> menu(new QMenu(m_editor));
+    for (auto action : m_editorContextActions)
+        menu->addAction(action);
+
+#if 0
+    // TODO: Qt provides a control code menu in RTL text mode, but
+    // does not provide any public API way to use it without instantiating
+    // QPlainTextEdit's default context menu :(
+    if (QGuiApplication::styleHints()->useRtlExtensions()) {
+        menu->addSeparator();
+        // Private API
+        auto ctrlCharMenu = new QUnicodeControlCharacterMenu(m_editor, menu);
+        menu->addMenu(ctrlCharMenu);
+    }
+#endif
+
+    menu->exec(m_editor->viewport()->mapToGlobal(pos));
 }
 
 void QTextPadWindow::updateCursorPosition()
@@ -598,7 +655,7 @@ void QTextPadWindow::updateCursorPosition()
 void QTextPadWindow::updateTitle()
 {
     QString title = m_documentTitle + QStringLiteral(" – qtextpad");  // n-dash
-    if (m_editor->document()->isModified())
+    if (isDocumentModified())
         title = QStringLiteral("* ") + title;
 
     setWindowTitle(title);
@@ -613,13 +670,13 @@ void QTextPadWindow::nextLineEndingMode()
 {
     switch (m_lineEndingMode) {
     case CROnly:
-        setLineEndingMode(LFOnly);
+        changeLineEndingMode(LFOnly);
         break;
     case LFOnly:
-        setLineEndingMode(CRLF);
+        changeLineEndingMode(CRLF);
         break;
     case CRLF:
-        setLineEndingMode(CROnly);
+        changeLineEndingMode(CROnly);
         break;
     }
 }
@@ -692,6 +749,18 @@ void QTextPadWindow::chooseEditorFont()
                                          tr("Default Editor Font"));
     if (ok)
         m_editor->setDefaultFont(newFont);
+}
+
+void QTextPadWindow::changeEncoding(const QString &encoding)
+{
+    auto command = new ChangeEncodingCommand(this, encoding);
+    addUndoCommand(command);
+}
+
+void QTextPadWindow::changeLineEndingMode(LineEndingMode mode)
+{
+    auto command = new ChangeLineEndingCommand(this, mode);
+    addUndoCommand(command);
 }
 
 void QTextPadWindow::promptTabSettings()
@@ -803,7 +872,7 @@ void QTextPadWindow::populateEncodingMenu()
             item->setActionGroup(m_encodingActions);
             item->setData(codecName);
             connect(item, &QAction::triggered, [this, codecName]() {
-                setEncoding(codecName);
+                changeEncoding(codecName);
             });
         }
     }
