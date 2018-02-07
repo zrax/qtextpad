@@ -83,7 +83,8 @@ protected:
         auto popup = new SyntaxPopup(menuParent);
         connect(popup, &SyntaxPopup::syntaxSelected,
                 [this](const KSyntaxHighlighting::Definition &syntax) {
-            qobject_cast<QTextPadWindow *>(parent())->setSyntax(syntax);
+            auto window = qobject_cast<QTextPadWindow *>(parent());
+            window->setSyntax(syntax);
 
             // Don't close the popup right after clicking, so the user can
             // briefly see the visual feedback for the item they selected.
@@ -362,9 +363,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showMatchingBraces->setChecked(m_editor->matchBraces());
     m_autoIndentAction->setChecked(m_editor->autoIndent());
 
-    setSyntax(SyntaxTextEdit::nullSyntax());
-    setEncoding("UTF-8");
-
     QTextPadSettings settings;
     auto theme = (m_editor->palette().color(QPalette::Base).lightness() < 128)
                  ? SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
@@ -380,12 +378,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).width("OVR") + 4);
     m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).width("CRLF") + 4);
     setOverwriteMode(false);
-#ifdef _WIN32
-    setLineEndingMode(CRLF);
-#else
-    // OSX uses LF as well, and we don't support building for classic MacOS
-    setLineEndingMode(LFOnly);
-#endif
 
     connect(m_editor, &SyntaxTextEdit::cursorPositionChanged,
             this, &QTextPadWindow::updateCursorPosition);
@@ -505,6 +497,8 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
 bool QTextPadWindow::loadDocumentFrom(const QString &filename)
 {
     // TODO: Decode and load from file
+    m_editor->document()->clearUndoRedoStacks();
+
     m_openFilename = filename;
     QFileInfo fi(m_openFilename);
     m_documentTitle = fi.fileName();
@@ -545,6 +539,17 @@ void QTextPadWindow::newDocument()
         return;
 
     m_editor->clear();
+    m_editor->document()->clearUndoRedoStacks();
+
+    setSyntax(SyntaxTextEdit::nullSyntax());
+    setEncoding("UTF-8");
+#ifdef _WIN32
+    setLineEndingMode(CRLF);
+#else
+    // OSX uses LF as well, and we don't support building for classic MacOS
+    setLineEndingMode(LFOnly);
+#endif
+
     m_openFilename = QString::null;
     m_documentTitle = tr("Untitled");
     m_undoStack->clear();
@@ -568,6 +573,7 @@ bool QTextPadWindow::saveDocument()
     QFileInfo fi(m_openFilename);
     m_documentTitle = fi.fileName();
     m_undoStack->setClean();
+    m_editor->document()->clearUndoRedoStacks();
     updateTitle();
     return true;
 }
@@ -584,6 +590,7 @@ bool QTextPadWindow::saveDocumentAs()
     QFileInfo fi(m_openFilename);
     m_documentTitle = fi.fileName();
     m_undoStack->setClean();
+    m_editor->document()->clearUndoRedoStacks();
     updateTitle();
     return true;
 }
@@ -753,14 +760,24 @@ void QTextPadWindow::chooseEditorFont()
 
 void QTextPadWindow::changeEncoding(const QString &encoding)
 {
-    auto command = new ChangeEncodingCommand(this, encoding);
-    addUndoCommand(command);
+    if (m_openFilename.isEmpty()) {
+        // Don't save changes in the undo stack if we are creating a new file
+        setEncoding(encoding);
+    } else {
+        auto command = new ChangeEncodingCommand(this, encoding);
+        addUndoCommand(command);
+    }
 }
 
 void QTextPadWindow::changeLineEndingMode(LineEndingMode mode)
 {
-    auto command = new ChangeLineEndingCommand(this, mode);
-    addUndoCommand(command);
+    if (m_openFilename.isEmpty()) {
+        // Don't save changes in the undo stack if we are creating a new file
+        setLineEndingMode(mode);
+    } else {
+        auto command = new ChangeLineEndingCommand(this, mode);
+        addUndoCommand(command);
+    }
 }
 
 void QTextPadWindow::promptTabSettings()
