@@ -24,6 +24,8 @@
 #include <QFontDialog>
 #include <QApplication>
 #include <QWidgetAction>
+#include <QMessageBox>
+#include <QFileDialog>
 #include <QClipboard>
 #include <QTextBlock>
 #include <QTextCodec>
@@ -45,7 +47,7 @@
 class EncodingPopupAction : public QWidgetAction
 {
 public:
-    EncodingPopupAction(QTextPadWindow *parent)
+    explicit EncodingPopupAction(QTextPadWindow *parent)
         : QWidgetAction(parent) { }
 
 protected:
@@ -69,7 +71,7 @@ protected:
 class SyntaxPopupAction : public QWidgetAction
 {
 public:
-    SyntaxPopupAction(QTextPadWindow *parent)
+    explicit SyntaxPopupAction(QTextPadWindow *parent)
         : QWidgetAction(parent) { }
 
 protected:
@@ -91,7 +93,7 @@ protected:
 };
 
 QTextPadWindow::QTextPadWindow(QWidget *parent)
-    : QMainWindow(parent), m_modified(false)
+    : QMainWindow(parent)
 {
     m_editor = new SyntaxTextEdit(this);
     setCentralWidget(m_editor);
@@ -105,8 +107,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     openAction->setShortcut(QKeySequence::Open);
     m_recentFiles = fileMenu->addMenu(tr("Open &Recent"));
     populateRecentFiles();
-    auto reloadAction = fileMenu->addAction(ICON("view-refresh"), tr("Re&load"));
-    reloadAction->setShortcut(QKeySequence::Refresh);
+    m_reloadAction = fileMenu->addAction(ICON("view-refresh"), tr("Re&load"));
+    m_reloadAction->setShortcut(QKeySequence::Refresh);
     (void) fileMenu->addSeparator();
     auto saveAction = fileMenu->addAction(ICON("document-save"), tr("&Save"));
     saveAction->setShortcut(QKeySequence::Save);
@@ -121,12 +123,12 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
 
-    //connect(newAction, &QAction::triggered, ...);
-    //connect(openAction, &QAction::triggered, ...);
-    //connect(reloadAction, &QAction::triggered, ...);
-    //connect(saveAction, &QAction::triggered, ...);
-    //connect(saveAsAction, &QAction::triggered, ...);
-    //connect(saveCopyAction, &QAction::triggered, ...);
+    connect(newAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
+    connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
+    connect(m_reloadAction, &QAction::triggered, this, &QTextPadWindow::reloadDocument);
+    connect(saveAction, &QAction::triggered, this, &QTextPadWindow::saveDocument);
+    connect(saveAsAction, &QAction::triggered, this, &QTextPadWindow::saveDocumentAs);
+    connect(saveCopyAction, &QAction::triggered, this, &QTextPadWindow::saveDocumentCopy);
     //connect(printAction, &QAction::triggered, ...);
     //connect(printPreviewAction, &QAction::triggered, ...);
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
@@ -363,10 +365,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_editor, &SyntaxTextEdit::cursorPositionChanged,
             this, &QTextPadWindow::updateCursorPosition);
     connect(m_editor->document(), &QTextDocument::modificationChanged,
-            this, &QTextPadWindow::modificationStatusChanged);
+            [this](bool) { updateTitle(); });
 
-    m_documentTitle = tr("Untitled");
-    updateTitle();
+    // Set up the editor and status for a clean, empty document
+    newDocument();
 
     resize(settings.windowSize());
 }
@@ -468,6 +470,122 @@ void QTextPadWindow::setLineEndingMode(LineEndingMode mode)
     }
 }
 
+bool QTextPadWindow::saveDocumentTo(const QString &filename)
+{
+    // TODO: Encode and save to file
+    return true;
+}
+
+bool QTextPadWindow::loadDocumentFrom(const QString &filename)
+{
+    // TODO: Decode and load from file
+    m_openFilename = filename;
+    QFileInfo fi(m_openFilename);
+    m_documentTitle = fi.fileName();
+    m_editor->document()->clearUndoRedoStacks();
+    m_editor->document()->setModified(false);
+    m_reloadAction->setEnabled(true);
+    updateTitle();
+    return true;
+}
+
+bool QTextPadWindow::promptForSave()
+{
+    if (m_editor->document()->isModified()) {
+        int response = QMessageBox::question(this, QString::null,
+                            tr("%1 has been modified.  Would you like to save your changes first?")
+                            .arg(m_documentTitle), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+        if (response == QMessageBox::Cancel)
+            return false;
+        else if (response == QMessageBox::Yes)
+            return saveDocument();
+    }
+    return true;
+}
+
+void QTextPadWindow::newDocument()
+{
+    if (!promptForSave())
+        return;
+
+    m_editor->clear();
+    m_openFilename = QString::null;
+    m_documentTitle = tr("Untitled");
+    m_editor->document()->clearUndoRedoStacks();
+    m_editor->document()->setModified(false);
+    m_reloadAction->setEnabled(false);
+    updateTitle();
+}
+
+bool QTextPadWindow::saveDocument()
+{
+    QString path = m_openFilename;
+    if (path.isEmpty()) {
+        path = QFileDialog::getSaveFileName(this, tr("Save File"));
+        if (path.isEmpty())
+            return false;
+    }
+    if (!saveDocumentTo(path))
+        return false;
+
+    m_openFilename = path;
+    QFileInfo fi(m_openFilename);
+    m_documentTitle = fi.fileName();
+    m_editor->document()->setModified(false);
+    updateTitle();
+    return true;
+}
+
+bool QTextPadWindow::saveDocumentAs()
+{
+    QString path = QFileDialog::getSaveFileName(this, tr("Save File As"));
+    if (path.isEmpty())
+        return false;
+    if (!saveDocumentTo(path))
+        return false;
+
+    m_openFilename = path;
+    QFileInfo fi(m_openFilename);
+    m_documentTitle = fi.fileName();
+    m_editor->document()->setModified(false);
+    updateTitle();
+    return true;
+}
+
+bool QTextPadWindow::saveDocumentCopy()
+{
+    QString path = QFileDialog::getSaveFileName(this, tr("Save Copy As"));
+    if (path.isEmpty())
+        return false;
+    return saveDocumentTo(path);
+}
+
+bool QTextPadWindow::loadDocument()
+{
+    QString startPath;
+    if (!m_openFilename.isEmpty()) {
+        QFileInfo fi(m_openFilename);
+        startPath = fi.absolutePath();
+    }
+    QString path = QFileDialog::getOpenFileName(this, tr("Load File"), startPath);
+    if (path.isEmpty())
+        return false;
+
+    return loadDocumentFrom(path);
+}
+
+bool QTextPadWindow::reloadDocument()
+{
+    if (m_editor->document()->isModified()) {
+        int response = QMessageBox::question(this, QString::null,
+                            tr("%1 has been modified.  Are you sure you want to discard your changes?")
+                            .arg(m_documentTitle), QMessageBox::Yes | QMessageBox::No);
+        if (response == QMessageBox::No)
+            return false;
+    }
+    return loadDocumentFrom(m_openFilename);
+}
+
 void QTextPadWindow::updateCursorPosition()
 {
     const QTextCursor cursor = m_editor->textCursor();
@@ -480,16 +598,10 @@ void QTextPadWindow::updateCursorPosition()
 void QTextPadWindow::updateTitle()
 {
     QString title = m_documentTitle + QStringLiteral(" – qtextpad");  // n-dash
-    if (m_modified)
+    if (m_editor->document()->isModified())
         title = QStringLiteral("* ") + title;
 
     setWindowTitle(title);
-}
-
-void QTextPadWindow::modificationStatusChanged(bool modified)
-{
-    m_modified = modified;
-    updateTitle();
 }
 
 void QTextPadWindow::nextInsertMode()
@@ -594,7 +706,11 @@ void QTextPadWindow::promptTabSettings()
 
 void QTextPadWindow::closeEvent(QCloseEvent *e)
 {
-    // TODO:  Prompt for save
+    if (!promptForSave()) {
+        e->ignore();
+        return;
+    }
+
     QTextPadSettings settings;
     settings.setWindowSize(size());
     e->accept();

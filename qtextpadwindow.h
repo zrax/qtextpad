@@ -37,7 +37,7 @@ class QTextPadWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    QTextPadWindow(QWidget *parent = 0);
+    explicit QTextPadWindow(QWidget *parent = Q_NULLPTR);
 
     SyntaxTextEdit *editor() { return m_editor; }
 
@@ -56,9 +56,19 @@ public:
     };
     void setLineEndingMode(LineEndingMode mode);
 
+    bool saveDocumentTo(const QString &filename);
+    bool loadDocumentFrom(const QString &filename);
+
 public slots:
+    bool promptForSave();
+    void newDocument();
+    bool saveDocument();
+    bool saveDocumentAs();
+    bool saveDocumentCopy();
+    bool loadDocument();
+    bool reloadDocument();
+
     void updateCursorPosition();
-    void modificationStatusChanged(bool modified);
     void nextInsertMode();
     void nextLineEndingMode();
     void updateIndentStatus();
@@ -70,6 +80,8 @@ protected:
 
 private:
     SyntaxTextEdit *m_editor;
+    QString m_openFilename;
+    QString m_documentTitle;
 
     QMenu *m_recentFiles;
     QMenu *m_themeMenu;
@@ -77,6 +89,7 @@ private:
     QMenu *m_encodingMenu;
 
     // QAction caches
+    QAction *m_reloadAction;
     QAction *m_overwiteModeAction;
     QAction *m_autoIndentAction;
     QActionGroup *m_themeActions;
@@ -94,9 +107,6 @@ private:
     QToolButton *m_encodingButton;
     QToolButton *m_syntaxButton;
     LineEndingMode m_lineEndingMode;
-
-    QString m_documentTitle;
-    bool m_modified;
 
     void updateTitle();
     void populateRecentFiles();
