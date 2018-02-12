@@ -45,6 +45,11 @@
 #include "indentsettings.h"
 #include "appsettings.h"
 #include "undocommands.h"
+#include "ftdetect.h"
+
+#define LARGE_FILE_SIZE     (10*1024*1024)  // 10 MiB
+#define DETECTION_SIZE      (1*1024)
+#define DECODE_BLOCK_SIZE   (16*1024)
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -495,123 +500,6 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
     return true;
 }
 
-#define UTF8_MIB             106
-#define UTF16_BE_MIB        1013
-#define UTF16_LE_MIB        1014
-#define UTF32_BE_MIB        1018
-#define UTF32_LE_MIB        1019
-
-struct DetectionParams
-{
-    QTextCodec *textCodec;
-    int bomOffset;
-    QTextPadWindow::LineEndingMode lineEndings;
-    KSyntaxHighlighting::Definition syntaxDefinition;
-
-    static DetectionParams detect(const QByteArray &buffer)
-    {
-        DetectionParams result;
-
-        // BOM detection based partly on QTextCodec::codecForUtfText, except
-        // we try a few more things and keep track of the number of BOM bytes
-        // to skip when loading the file.
-        result.textCodec = Q_NULLPTR;
-        result.bomOffset = 0;
-#ifdef _WIN32
-        result.lineEndings = QTextPadWindow::CRLF;
-#else
-        result.lineEndings = QTextPadWindow::LFOnly;
-#endif
-        if (buffer.size() >= 3) {
-            if ((uchar)buffer.at(0) == 0xef && (uchar)buffer.at(1) == 0xbb
-                    && (uchar)buffer.at(2) == 0xbf) {
-                result.textCodec = QTextCodec::codecForMib(UTF8_MIB);
-                result.bomOffset = 3;
-            }
-        }
-        if (buffer.size() >= 4 && result.textCodec == Q_NULLPTR) {
-            if ((uchar)buffer.at(0) == 0x00 && (uchar)buffer.at(1) == 0x00
-                    && (uchar)buffer.at(2) == 0xfe && (uchar)buffer.at(3) == 0xff) {
-                result.textCodec = QTextCodec::codecForMib(UTF32_BE_MIB);
-                result.bomOffset = 4;
-            } else if ((uchar)buffer.at(0) == 0xff && (uchar)buffer.at(1) == 0xfe
-                    && (uchar)buffer.at(2) == 0x00 && (uchar)buffer.at(3) == 0x00) {
-                result.textCodec = QTextCodec::codecForMib(UTF32_LE_MIB);
-                result.bomOffset = 4;
-            }
-        }
-        if (buffer.size() >= 2 && result.textCodec == Q_NULLPTR) {
-            if ((uchar)buffer.at(0) == 0xfe && (uchar)buffer.at(1) == 0xff) {
-                result.textCodec = QTextCodec::codecForMib(UTF16_BE_MIB);
-                result.bomOffset = 2;
-            } else if ((uchar)buffer.at(0) == 0xff && (uchar)buffer.at(1) == 0xfe) {
-                result.textCodec = QTextCodec::codecForMib(UTF16_LE_MIB);
-                result.bomOffset = 2;
-            }
-        }
-
-        // If no BOM, try UTF-8.  Note that UTF-16 and UTF-32 without a BOM
-        // are not attempted, since my experience indicates that doing so
-        // tends to cause problems than it fixes.  UTF-8 on the other hand is
-        // fairly tolerant due to the encoding of multi-byte sequences.
-        // However, this will generally also treat pure 7-bit ASCII as UTF-8
-        // (which is probably fine for our purposes).
-        // WARNING: The implementation of QTextCodec::ConverterState is
-        // undocumented, so this may break in the future.
-        if (result.textCodec == Q_NULLPTR) {
-            QTextCodec::ConverterState state;
-            auto codec = QTextCodec::codecForMib(UTF8_MIB);
-            (void) codec->toUnicode(buffer.constData(), buffer.size(), &state);
-            if (state.invalidChars == 0)
-                result.textCodec = codec;
-        }
-
-        // If UTF-8 didn't work for us either, fall back to the system locale,
-        // and after that just try ISO-8859-1 (Latin-1) which can decode
-        // "anything" (even if incorrectly)
-        if (result.textCodec == Q_NULLPTR) {
-            QTextCodec::ConverterState state;
-            auto codec = QTextCodec::codecForLocale();
-            (void) codec->toUnicode(buffer.constData(), buffer.size(), &state);
-            if (state.invalidChars == 0)
-                result.textCodec = codec;
-            else
-                result.textCodec = QTextCodec::codecForName("ISO-8859-1");
-        }
-
-        // Now try to detect line endings.  If there are no line endings, or
-        // there is no clear winner, then we stick with the platform default
-        // set above.
-        int crlfCount = 0;
-        int crCount = 0;
-        int lfCount = 0;
-        for (int i = 0; i < buffer.size(); ++i) {
-            if (buffer.at(i) == '\n') {
-                lfCount += 1;
-            } else if (buffer.at(i) == '\r') {
-                if (i + 1 < buffer.size() && buffer.at(i + 1) == '\n') {
-                    crlfCount += 1;
-                    ++i;
-                } else {
-                    crCount += 1;
-                }
-            }
-        }
-        if (lfCount > crlfCount && lfCount > crCount)
-            result.lineEndings = QTextPadWindow::LFOnly;
-        else if (crlfCount > lfCount && crlfCount > crCount)
-            result.lineEndings = QTextPadWindow::CRLF;
-        else if (crCount > crlfCount && crCount > lfCount)
-            result.lineEndings = QTextPadWindow::CROnly;
-
-        return result;
-    }
-};
-
-#define LARGE_FILE_SIZE     (10*1024*1024)  // 10 MiB
-#define DETECTION_SIZE      (1*1024)
-#define DECODE_BLOCK_SIZE   (16*1024)
-
 bool QTextPadWindow::loadDocumentFrom(const QString &filename)
 {
     QFile file(filename);
@@ -630,12 +518,12 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename)
     }
 
     auto buffer = file.read(DETECTION_SIZE);
-    auto detect = DetectionParams::detect(buffer);
-    setLineEndingMode(detect.lineEndings);
-    setEncoding(detect.textCodec->name());
+    auto detect = FileDetection::detect(buffer, filename);
+    setLineEndingMode(detect.lineEndings());
+    setEncoding(detect.textCodec()->name());
 
-    file.seek(detect.bomOffset);
-    auto decoder = detect.textCodec->makeDecoder();
+    file.seek(detect.bomOffset());
+    auto decoder = detect.textCodec()->makeDecoder();
     QStringList pieces;
     for ( ;; ) {
         buffer = file.read(DECODE_BLOCK_SIZE);
@@ -645,15 +533,19 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename)
     }
 
     // Don't let the syntax highlighter hinder us while setting the new content
+    m_editor->clear();
     setSyntax(SyntaxTextEdit::nullSyntax());
     m_editor->setPlainText(pieces.join(QString::null));
     m_editor->document()->clearUndoRedoStacks();
 
     auto definition = SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
     if (definition.isValid()) {
+        // Prefer the filename match if applicable
         setSyntax(definition);
     } else {
-        // TODO: Attempt detection based on file content...
+        definition = FileDetection::definitionForFileMagic(filename);
+        if (definition.isValid())
+            setSyntax(definition);
     }
 
     m_openFilename = filename;
