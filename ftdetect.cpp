@@ -74,7 +74,7 @@ QTextPadWindow::LineEndingMode FileDetection::lineEndings() const
 
 static QTextCodec *detectMagicEncoding(const QString &filename)
 {
-    magic_t_RAII magic = magic_open(MAGIC_MIME_ENCODING);
+    magic_t_RAII magic = magic_open(MAGIC_MIME_ENCODING | MAGIC_SYMLINK);
     if (!magic) {
         qDebug("Could not initialize libmagic");
         return Q_NULLPTR;
@@ -198,7 +198,7 @@ FileDetection FileDetection::detect(const QByteArray &buffer, const QString &fil
 
 static QString detectMimeType(const QString &filename)
 {
-    magic_t_RAII magic = magic_open(MAGIC_MIME_TYPE);
+    magic_t_RAII magic = magic_open(MAGIC_MIME_TYPE | MAGIC_SYMLINK);
     if (!magic) {
         qDebug("Could not initialize libmagic");
         return QString::null;
@@ -224,7 +224,10 @@ KSyntaxHighlighting::Definition FileDetection::definitionForFileMagic(const QStr
 {
     using KSyntaxHighlighting::Definition;
 
-    QString mime = detectMimeType(filename);
+    const QString mime = detectMimeType(filename);
+    if (mime == QStringLiteral("text/plain"))
+        return Definition();
+
     const QStringList mimeParts = mime.split(QLatin1Char('/'));
     if (mimeParts.size() == 0 || mimeParts.last().isEmpty())
         return Definition();

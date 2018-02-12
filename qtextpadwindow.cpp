@@ -538,15 +538,14 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename)
     m_editor->setPlainText(pieces.join(QString::null));
     m_editor->document()->clearUndoRedoStacks();
 
-    auto definition = SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
-    if (definition.isValid()) {
-        // Prefer the filename match if applicable
+    // If libmagic finds a match, it's probably more likely to be correct
+    // than the filename match, which is easily fooled
+    // (e.g. idle3.6 is not a Troff Mandoc file)
+    auto definition = FileDetection::definitionForFileMagic(filename);
+    if (!definition.isValid())
+        definition = SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
+    if (definition.isValid())
         setSyntax(definition);
-    } else {
-        definition = FileDetection::definitionForFileMagic(filename);
-        if (definition.isValid())
-            setSyntax(definition);
-    }
 
     m_openFilename = filename;
     QFileInfo fi(m_openFilename);
