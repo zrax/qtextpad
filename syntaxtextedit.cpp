@@ -114,7 +114,6 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
 
     // Default editor configuration
     QTextPadSettings settings;
-    setDefaultFont(settings.editorFont());
 
     if (settings.lineNumbers())
         m_config |= Config_ShowLineNumbers;
@@ -133,6 +132,7 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     m_indentWidth = settings.indentWidth();
     m_longLineMarker = settings.longLineWidth();
 
+    setDefaultFont(settings.editorFont());
     setWordWrap(settings.wordWrap());
     setIndentationMode(settings.indentMode());
 
@@ -150,8 +150,6 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     else
         opt.setFlags(opt.flags() & ~QTextOption::ShowTabsAndSpaces);
     document()->setDefaultTextOption(opt);
-
-    updateMargins();
 }
 
 bool SyntaxTextEdit::haveSelection() const
