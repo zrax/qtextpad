@@ -18,8 +18,8 @@
 #include <QCommandLineParser>
 #include <QIcon>
 
-#include <Repository>
-#include <Definition>
+#include <KSyntaxHighlighting/Repository>
+#include <KSyntaxHighlighting/Definition>
 
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"

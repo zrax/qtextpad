@@ -18,8 +18,8 @@
 
 #include <QTextCodec>
 #include <QRegularExpression>
-#include <Definition>
-#include <Repository>
+#include <KSyntaxHighlighting/Definition>
+#include <KSyntaxHighlighting/Repository>
 #include <magic.h>
 
 #include "syntaxtextedit.h"

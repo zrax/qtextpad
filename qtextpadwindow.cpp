@@ -33,9 +33,9 @@
 #include <QTimer>
 #include <QFileInfo>
 
-#include <Repository>
-#include <Definition>
-#include <Theme>
+#include <KSyntaxHighlighting/Repository>
+#include <KSyntaxHighlighting/Definition>
+#include <KSyntaxHighlighting/Theme>
 #include <KCharsets>
 
 #include "activationlabel.h"

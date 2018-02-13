@@ -26,7 +26,7 @@
 #include <QVBoxLayout>
 #include <QTextCodec>
 
-#include <Repository>
+#include <KSyntaxHighlighting/Repository>
 #include <KCharsets>
 
 #include "syntaxtextedit.h"

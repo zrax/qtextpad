@@ -18,7 +18,7 @@
 #define _SETTINGSPOPUP_H
 
 #include <QWidget>
-#include <Definition>
+#include <KSyntaxHighlighting/Definition>
 
 class QLineEdit;
 class QTreeWidget;
