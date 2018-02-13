@@ -65,6 +65,7 @@ public:
     IndentationMode indentationMode() const { return m_indentationMode; }
 
     int textColumn(const QString &block, int positionInBlock) const;
+    void moveCursorTo(int line, int column = 0);
 
     void setAutoIndent(bool ai);
     bool autoIndent() const;

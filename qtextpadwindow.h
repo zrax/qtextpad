@@ -62,10 +62,11 @@ public:
     LineEndingMode lineEndingMode() const { return m_lineEndingMode; }
 
     bool saveDocumentTo(const QString &filename);
-    bool loadDocumentFrom(const QString &filename);
+    bool loadDocumentFrom(const QString &filename,
+                          const QString &textEncoding = QString());
     bool isDocumentModified() const;
 
-    void addUndoCommand(QUndoCommand *command);
+    void gotoLine(int line, int column = 0);
 
 public slots:
     bool promptForSave();
@@ -125,6 +126,7 @@ private:
 
     // Custom Undo Stack for adding non-editor undo items
     QUndoStack *m_undoStack;
+    void addUndoCommand(QUndoCommand *command);
 
     void updateTitle();
     void populateRecentFiles();

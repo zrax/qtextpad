@@ -311,6 +311,36 @@ int SyntaxTextEdit::textColumn(const QString &block, int positionInBlock) const
     return column;
 }
 
+void SyntaxTextEdit::moveCursorTo(int line, int column)
+{
+    const auto block = document()->findBlockByLineNumber(line - 1);
+    if (!block.isValid() && line > 0) {
+        // Just navigate to the end of the file if we don't have the requested
+        // line number.
+        QTextCursor cursor(document());
+        cursor.movePosition(QTextCursor::End);
+        setTextCursor(cursor);
+        return;
+    }
+
+    QTextCursor cursor(block);
+    if (column > 0) {
+        const QString blockText = block.text();
+        int columnIndex = 0, cursorIndex = 0;
+        for (; cursorIndex < blockText.size(); ++cursorIndex) {
+            if (columnIndex >= column - 1)
+                break;
+            if (blockText.at(cursorIndex) == QLatin1Char('\t'))
+                columnIndex = columnIndex - (columnIndex % m_tabCharSize) + m_tabCharSize;
+            else
+                ++columnIndex;
+        }
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor,
+                            cursorIndex);
+    }
+    setTextCursor(cursor);
+}
+
 void SyntaxTextEdit::setAutoIndent(bool ai)
 {
     if (ai)

@@ -438,7 +438,7 @@ void QTextPadWindow::setEncoding(const QString &codecName)
     bool ok = false;
     (void) KCharsets::charsets()->codecForName(codecName, ok);
     if (!ok) {
-        qWarning("Invalid codec selected");
+        qWarning(tr("Invalid codec selected").toLocal8Bit().constData());
         m_encodingButton->setText(tr("Invalid (%1)").arg(codecName));
     } else {
         // Use the passed name for UI consistency
@@ -500,7 +500,7 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
     return true;
 }
 
-bool QTextPadWindow::loadDocumentFrom(const QString &filename)
+bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &textEncoding)
 {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -519,10 +519,23 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename)
 
     auto detect = FileDetection::detect(file.read(DETECTION_SIZE), filename);
     setLineEndingMode(detect.lineEndings());
-    setEncoding(detect.textCodec()->name());
+
+    QTextCodec *codec = Q_NULLPTR;
+    if (!textEncoding.isEmpty()) {
+        bool ok;
+        codec = KCharsets::charsets()->codecForName(textEncoding, ok);
+        if (!ok) {
+            qDebug(tr("Invalid manually-specified encoding: %s").toLocal8Bit().constData(),
+                   textEncoding.toLocal8Bit().constData());
+            codec = Q_NULLPTR;
+        }
+    }
+    if (!codec)
+        codec = detect.textCodec();
+    setEncoding(codec->name());
 
     file.seek(detect.bomOffset());
-    auto decoder = detect.textCodec()->makeDecoder();
+    auto decoder = codec->makeDecoder();
     QStringList pieces;
     for ( ;; ) {
         const auto buffer = file.read(DECODE_BLOCK_SIZE);
@@ -564,6 +577,11 @@ bool QTextPadWindow::isDocumentModified() const
 void QTextPadWindow::addUndoCommand(QUndoCommand *command)
 {
     m_undoStack->push(command);
+}
+
+void QTextPadWindow::gotoLine(int line, int column)
+{
+    m_editor->moveCursorTo(line, column);
 }
 
 bool QTextPadWindow::promptForSave()

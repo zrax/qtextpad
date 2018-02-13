@@ -15,9 +15,14 @@
  */
 
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QIcon>
 
+#include <Repository>
+#include <Definition>
+
 #include "qtextpadwindow.h"
+#include "syntaxtextedit.h"
 
 // Determine if the default icon theme includes the necessary icons for
 // our toolbar.  If not, we need to use our own theme.
@@ -40,9 +45,33 @@ static void setDefaultIconTheme()
         QIcon::setThemeName(QStringLiteral("qtextpad"));
 }
 
+#define trMain(text) QCoreApplication::translate("main", text)
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setApplicationName("qtextpad");
+    app.setApplicationVersion("1.0");
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription(trMain("qtextpad - The lightweight Qt code and text editor"));
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.addPositionalArgument("filename", trMain("A document to open at startup"),
+                                 trMain("[filename]"));
+    parser.addPositionalArgument("line", trMain("Move the cursor to the specified line"),
+                                 trMain("[+line]"));
+
+    const QCommandLineOption encodingOption(QStringList() << "e" << "encoding",
+            trMain("Specify the encoding of the file (default: detect)"),
+            trMain("encoding"));
+    const QCommandLineOption syntaxOption(QStringList() << "S" << "syntax",
+            trMain("Specify the syntax definition to use for the file (default: detect)"),
+            trMain("syntax"));
+    parser.addOption(encodingOption);
+    parser.addOption(syntaxOption);
+
+    parser.process(app);
 
     setDefaultIconTheme();
 
@@ -58,6 +87,50 @@ int main(int argc, char *argv[])
 
     QTextPadWindow win;
     win.show();
+
+    QString startupFile;
+    int startupLine = -1;
+    int startupCol = -1;
+    for (const auto &arg : parser.positionalArguments()) {
+        if (arg.startsWith(QLatin1Char('+'))) {
+            bool ok;
+            QStringList parts = arg.split(QLatin1Char(','));
+            startupLine = parts.at(0).midRef(1).toInt(&ok, 0);
+            if (!ok) {
+                qWarning(trMain("Invalid startup line parameter: '%s'").toLocal8Bit().constData(),
+                         arg.toLocal8Bit().constData());
+                startupLine = -1;
+            }
+            if (parts.size() > 1) {
+                startupCol = parts.at(1).toInt(&ok, 0);
+                if (!ok) {
+                    qWarning(trMain("Invalid startup line parameter: '%s'").toLocal8Bit().constData(),
+                             arg.toLocal8Bit().constData());
+                    startupCol = -1;
+                }
+            }
+        } else {
+            startupFile = arg;
+        }
+    }
+
+    QString textEncoding;
+    if (parser.isSet(encodingOption))
+        textEncoding = parser.value(encodingOption);
+    if (!startupFile.isEmpty() && win.loadDocumentFrom(startupFile, textEncoding)) {
+        if (startupLine > 0)
+            win.gotoLine(startupLine, startupCol);
+        if (parser.isSet(syntaxOption)) {
+            auto syntaxRepo = SyntaxTextEdit::syntaxRepo();
+            auto syntaxDef = syntaxRepo->definitionForName(parser.value(syntaxOption));
+            if (syntaxDef.isValid()) {
+                win.setSyntax(syntaxDef);
+            } else {
+                qDebug(trMain("Invalid sytnax definition specified: %s").toLocal8Bit().constData(),
+                       parser.value(syntaxOption).toLocal8Bit().constData());
+            }
+        }
+    }
 
     return app.exec();
 }
