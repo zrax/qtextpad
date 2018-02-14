@@ -726,7 +726,7 @@ void QTextPadWindow::updateCursorPosition()
 
 void QTextPadWindow::updateTitle()
 {
-    QString title = m_documentTitle + QStringLiteral(" – qtextpad");  // n-dash
+    QString title = m_documentTitle + QStringLiteral(" \u2013 qtextpad");  // n-dash
     if (isDocumentModified())
         title = QStringLiteral("* ") + title;
 

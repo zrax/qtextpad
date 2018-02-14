@@ -20,13 +20,30 @@ set(CMAKE_AUTOMOC TRUE)
 set(CMAKE_AUTORCC TRUE)
 set(CMAKE_CXX_STANDARD 11)
 
+include(FeatureSummary)
+
 find_package(Qt5Core 5.4 REQUIRED)
 find_package(Qt5Widgets REQUIRED)
+
 find_package(KF5SyntaxHighlighting REQUIRED)
+set_package_properties(KF5SyntaxHighlighting PROPERTIES
+        URL "https://community.kde.org/Frameworks"
+        DESCRIPTION "Syntax Highlighting framework for Qt5"
+        TYPE REQUIRED)
+
 find_package(KF5Codecs REQUIRED)
+set_package_properties(KF5Codecs PROPERTIES
+        URL "https://community.kde.org/Frameworks"
+        DESCRIPTION "Text encoding framework and extra encodings for Qt5"
+        TYPE REQUIRED)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-find_package(Magic REQUIRED)
+find_package(Magic)
+set_package_properties(Magic PROPERTIES
+        URL "https://www.darwinsys.com/file/"
+        DESCRIPTION "File type identification library"
+        TYPE OPTIONAL
+        PURPOSE "Provides improved auto-detection of file types and encodings")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
@@ -60,10 +77,18 @@ set(qtextpad_RESOURCES
     qtextpad.qrc
 )
 
-include_directories(${Magic_INCLUDE_DIR})
+if(${Magic_FOUND})
+    add_definitions(-DHAVE_LIBMAGIC)
+    include_directories(${Magic_INCLUDE_DIR})
+endif()
 
 add_executable(qtextpad WIN32 MACOSX_BUNDLE
                ${qtextpad_SOURCES} ${qtextpad_HEADERS} ${qtextpad_RESOURCES})
 target_link_libraries(qtextpad Qt5::Core Qt5::Widgets
-                               KF5::SyntaxHighlighting KF5::Codecs
-                               ${Magic_LIBRARY})
+                               KF5::SyntaxHighlighting KF5::Codecs)
+
+if(${Magic_FOUND})
+    target_link_libraries(qtextpad ${Magic_LIBRARY})
+endif()
+
+feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

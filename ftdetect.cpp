@@ -20,7 +20,9 @@
 #include <QRegularExpression>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
-#include <magic.h>
+#ifdef HAVE_LIBMAGIC
+#   include <magic.h>
+#endif
 
 #include "syntaxtextedit.h"
 
@@ -40,6 +42,7 @@ struct DetectionParams_p
     KSyntaxHighlighting::Definition syntaxDefinition;
 };
 
+#ifdef HAVE_LIBMAGIC
 struct magic_t_RAII
 {
     magic_t m_magic;
@@ -50,6 +53,7 @@ struct magic_t_RAII
     operator magic_t() { return m_magic; }
     bool operator!() const { return !m_magic; }
 };
+#endif
 
 
 FileDetection::~FileDetection()
@@ -72,6 +76,7 @@ QTextPadWindow::LineEndingMode FileDetection::lineEndings() const
     return reinterpret_cast<DetectionParams_p *>(m_params)->lineEndings;
 }
 
+#ifdef HAVE_LIBMAGIC
 static QTextCodec *detectMagicEncoding(const QString &filename)
 {
     magic_t_RAII magic = magic_open(MAGIC_MIME_ENCODING | MAGIC_SYMLINK);
@@ -106,6 +111,7 @@ static QTextCodec *detectMagicEncoding(const QString &filename)
 
     return Q_NULLPTR;
 }
+#endif
 
 FileDetection FileDetection::detect(const QByteArray &buffer, const QString &filename)
 {
@@ -151,9 +157,21 @@ FileDetection FileDetection::detect(const QByteArray &buffer, const QString &fil
         }
     }
 
+#ifdef HAVE_LIBMAGIC
     // If no BOM, try asking libmagic.
     if (params->textCodec == Q_NULLPTR)
         params->textCodec = detectMagicEncoding(filename);
+#else
+    // If we don't have libmagic and no BOM, try seeing if Qt's UTF-8 codec
+    // can decode it without any errors
+    if (params->textCodec == Q_NULLPTR) {
+        QTextCodec::ConverterState state;
+        auto codec = QTextCodec::codecForMib(UTF8_MIB);
+        (void) codec->toUnicode(buffer.constData(), buffer.size(), &state);
+        if (state.invalidChars == 0)
+            params->textCodec = codec;
+    }
+#endif
 
     // If libmagic didn't work for us either, fall back to the system locale,
     // and after that just try ISO-8859-1 (Latin-1) which can decode
@@ -198,6 +216,7 @@ FileDetection FileDetection::detect(const QByteArray &buffer, const QString &fil
 
 static QString detectMimeType(const QString &filename)
 {
+#ifdef HAVE_LIBMAGIC
     magic_t_RAII magic = magic_open(MAGIC_MIME_TYPE | MAGIC_SYMLINK);
     if (!magic) {
         qDebug("Could not initialize libmagic");
@@ -216,6 +235,10 @@ static QString detectMimeType(const QString &filename)
         return QString::null;
     }
     return QString::fromLatin1(mime);
+#else
+    (void) filename;
+    return QString::null;
+#endif
 }
 
 // For some reason, KSyntaxHighlighting::Repository doesn't provide a lookup
