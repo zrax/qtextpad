@@ -115,6 +115,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_editor, &SyntaxTextEdit::parentUndo, m_undoStack, &QUndoStack::undo);
     connect(m_editor, &SyntaxTextEdit::parentRedo, m_undoStack, &QUndoStack::redo);
 
+    QTextPadSettings settings;
+
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto newAction = fileMenu->addAction(ICON("document-new"), tr("&New"));
     newAction->setShortcut(QKeySequence::New);
@@ -307,33 +309,50 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_autoIndentAction = settingsMenu->addAction(tr("&Auto Indent"));
     m_autoIndentAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
     m_autoIndentAction->setCheckable(true);
+    (void) settingsMenu->addSeparator();
+    auto showToolBarAction = settingsMenu->addAction(tr("Show Tool &Bar"));
+    showToolBarAction->setCheckable(true);
+    showToolBarAction->setChecked(settings.showToolBar());
+    auto showStatusBarAction = settingsMenu->addAction(tr("Show Stat&us Bar"));
+    showStatusBarAction->setCheckable(true);
+    showStatusBarAction->setChecked(settings.showStatusBar());
+    auto showFilePathAction = settingsMenu->addAction(tr("Show &Path in Title Bar"));
+    showFilePathAction->setCheckable(true);
+    showFilePathAction->setChecked(settings.showFilePath());
 
     connect(crOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(CROnly); });
     connect(lfOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(LFOnly); });
     connect(crlfAction, &QAction::triggered, [this]() { changeLineEndingMode(CRLF); });
     connect(tabSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptTabSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
+    connect(showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     auto aboutAction = helpMenu->addAction(ICON("help-about"), tr("&About..."));
     aboutAction->setShortcut(QKeySequence::HelpContents);
 
-    auto toolBar = addToolBar(tr("Toolbar"));
-    toolBar->setIconSize(QSize(22, 22));
-    toolBar->setMovable(false);
-    toolBar->addAction(newAction);
-    toolBar->addAction(openAction);
-    toolBar->addAction(saveAction);
-    (void) toolBar->addSeparator();
-    toolBar->addAction(undoAction);
-    toolBar->addAction(redoAction);
-    (void) toolBar->addSeparator();
-    toolBar->addAction(cutAction);
-    toolBar->addAction(copyAction);
-    toolBar->addAction(pasteAction);
-    (void) toolBar->addSeparator();
-    toolBar->addAction(findAction);
-    toolBar->addAction(replaceAction);
+    m_toolBar = addToolBar(tr("Toolbar"));
+    m_toolBar->setIconSize(QSize(22, 22));
+    m_toolBar->setMovable(false);
+    m_toolBar->addAction(newAction);
+    m_toolBar->addAction(openAction);
+    m_toolBar->addAction(saveAction);
+    (void) m_toolBar->addSeparator();
+    m_toolBar->addAction(undoAction);
+    m_toolBar->addAction(redoAction);
+    (void) m_toolBar->addSeparator();
+    m_toolBar->addAction(cutAction);
+    m_toolBar->addAction(copyAction);
+    m_toolBar->addAction(pasteAction);
+    (void) m_toolBar->addSeparator();
+    m_toolBar->addAction(findAction);
+    m_toolBar->addAction(replaceAction);
+
+    if (!settings.showToolBar())
+        m_toolBar->setVisible(false);
+    connect(showToolBarAction, &QAction::toggled, m_toolBar, &QToolBar::setVisible);
+    connect(m_toolBar->toggleViewAction(), &QAction::toggled,
+            showToolBarAction, &QAction::setChecked);
 
     m_positionLabel = new ActivationLabel(this);
     statusBar()->addWidget(m_positionLabel, 1);
@@ -358,6 +377,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     statusBar()->addPermanentWidget(m_syntaxButton);
     updateCursorPosition();
 
+    if (!settings.showStatusBar())
+        statusBar()->setVisible(false);
+    connect(showStatusBarAction, &QAction::toggled, statusBar(), &QStatusBar::setVisible);
+
     connect(m_positionLabel, &ActivationLabel::activated,
             this, &QTextPadWindow::navigateToLine);
     connect(m_insertLabel, &ActivationLabel::activated,
@@ -374,7 +397,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showMatchingBraces->setChecked(m_editor->matchBraces());
     m_autoIndentAction->setChecked(m_editor->autoIndent());
 
-    QTextPadSettings settings;
     auto theme = (m_editor->palette().color(QPalette::Base).lightness() < 128)
                  ? SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
                  : SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
@@ -566,8 +588,6 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         setSyntax(definition);
 
     m_openFilename = filename;
-    QFileInfo fi(m_openFilename);
-    m_documentTitle = fi.fileName();
     m_undoStack->clear();
     m_undoStack->setClean();
     m_reloadAction->setEnabled(true);
@@ -595,7 +615,7 @@ bool QTextPadWindow::promptForSave()
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString::null,
                             tr("%1 has been modified.  Would you like to save your changes first?")
-                            .arg(m_documentTitle), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+                            .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (response == QMessageBox::Cancel)
             return false;
         else if (response == QMessageBox::Yes)
@@ -622,7 +642,6 @@ void QTextPadWindow::newDocument()
 #endif
 
     m_openFilename = QString::null;
-    m_documentTitle = tr("Untitled");
     m_undoStack->clear();
     m_undoStack->setClean();
     m_reloadAction->setEnabled(false);
@@ -641,8 +660,6 @@ bool QTextPadWindow::saveDocument()
         return false;
 
     m_openFilename = path;
-    QFileInfo fi(m_openFilename);
-    m_documentTitle = fi.fileName();
     m_undoStack->setClean();
     m_editor->document()->clearUndoRedoStacks();
     updateTitle();
@@ -658,8 +675,6 @@ bool QTextPadWindow::saveDocumentAs()
         return false;
 
     m_openFilename = path;
-    QFileInfo fi(m_openFilename);
-    m_documentTitle = fi.fileName();
     m_undoStack->setClean();
     m_editor->document()->clearUndoRedoStacks();
     updateTitle();
@@ -693,7 +708,7 @@ bool QTextPadWindow::reloadDocument()
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString::null,
                             tr("%1 has been modified.  Are you sure you want to discard your changes?")
-                            .arg(m_documentTitle), QMessageBox::Yes | QMessageBox::No);
+                            .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No);
         if (response == QMessageBox::No)
             return false;
     }
@@ -730,9 +745,25 @@ void QTextPadWindow::updateCursorPosition()
                              .arg(column + 1));
 }
 
+QString QTextPadWindow::documentTitle()
+{
+    if (m_openFilename.isEmpty())
+        return tr("Untitled");
+
+    QFileInfo fi(m_openFilename);
+    return fi.fileName();
+}
+
 void QTextPadWindow::updateTitle()
 {
-    QString title = m_documentTitle + QStringLiteral(" \u2013 qtextpad");  // n-dash
+    QTextPadSettings settings;
+
+    QString title = documentTitle();
+    if (settings.showFilePath() && !m_openFilename.isEmpty()) {
+        QFileInfo fi(m_openFilename);
+        title += QStringLiteral(" [%1]").arg(fi.absolutePath());
+    }
+    title += QStringLiteral(" \u2013 qtextpad");  // n-dash
     if (isDocumentModified())
         title = QStringLiteral("* ") + title;
 
@@ -888,6 +919,12 @@ void QTextPadWindow::navigateToLine()
     gotoLine(line, column);
 }
 
+void QTextPadWindow::toggleFilePath(bool show)
+{
+    QTextPadSettings().setShowFilePath(show);
+    updateTitle();
+}
+
 void QTextPadWindow::closeEvent(QCloseEvent *e)
 {
     if (!promptForSave()) {
@@ -897,6 +934,8 @@ void QTextPadWindow::closeEvent(QCloseEvent *e)
 
     QTextPadSettings settings;
     settings.setWindowSize(size());
+    settings.setShowToolBar(m_toolBar->isVisible());
+    settings.setShowStatusBar(statusBar()->isVisible());
     e->accept();
 }
 

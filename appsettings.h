@@ -32,6 +32,11 @@ public:
     QStringList recentFiles() const;
     void addRecentFile(const QString &filename);
 
+    SIMPLE_SETTING(bool, "ShowToolBar", showToolBar, setShowToolBar, true)
+    SIMPLE_SETTING(bool, "ShowStatusBar", showStatusBar, setShowStatusBar, true)
+    SIMPLE_SETTING(bool, "ShowFilePath", showFilePath, setShowFilePath, false)
+
+    // Editor settings
     SIMPLE_SETTING(bool, "Editor/WordWrap", wordWrap, setWordWrap, false)
     SIMPLE_SETTING(bool, "Editor/ShowLongLineMargin", showLongLineMargin,
                    setShowLongLineMargin, false)

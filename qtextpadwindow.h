@@ -85,6 +85,7 @@ public slots:
     void chooseEditorFont();
     void promptTabSettings();
     void navigateToLine();
+    void toggleFilePath(bool show);
 
     // User-triggered actions that store commands in the Undo stack
     void changeEncoding(const QString &encoding);
@@ -96,9 +97,9 @@ protected:
 private:
     SyntaxTextEdit *m_editor;
     QString m_openFilename;
-    QString m_documentTitle;
     QString m_textEncoding;
 
+    QToolBar *m_toolBar;
     QMenu *m_recentFiles;
     QMenu *m_themeMenu;
     QMenu *m_syntaxMenu;
@@ -129,6 +130,7 @@ private:
     QUndoStack *m_undoStack;
     void addUndoCommand(QUndoCommand *command);
 
+    QString documentTitle();
     void updateTitle();
     void populateRecentFiles();
     void populateThemeMenu();
