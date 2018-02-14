@@ -84,6 +84,7 @@ public slots:
     void updateIndentStatus();
     void chooseEditorFont();
     void promptTabSettings();
+    void navigateToLine();
 
     // User-triggered actions that store commands in the Undo stack
     void changeEncoding(const QString &encoding);

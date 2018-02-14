@@ -20,6 +20,7 @@
 #include <QRegularExpression>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
+
 #ifdef HAVE_LIBMAGIC
 #   include <magic.h>
 #endif
@@ -248,11 +249,11 @@ KSyntaxHighlighting::Definition FileDetection::definitionForFileMagic(const QStr
     using KSyntaxHighlighting::Definition;
 
     const QString mime = detectMimeType(filename);
-    if (mime == QStringLiteral("text/plain"))
+    if (mime.isEmpty() || mime == QStringLiteral("text/plain"))
         return Definition();
 
     const QStringList mimeParts = mime.split(QLatin1Char('/'));
-    if (mimeParts.size() == 0 || mimeParts.last().isEmpty())
+    if (mimeParts.size() != 2 || mimeParts.last().isEmpty())
         return Definition();
 
     QVector<Definition> candidates;

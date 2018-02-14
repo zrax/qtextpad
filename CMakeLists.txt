@@ -42,7 +42,7 @@ find_package(Magic)
 set_package_properties(Magic PROPERTIES
         URL "https://www.darwinsys.com/file/"
         DESCRIPTION "File type identification library"
-        TYPE OPTIONAL
+        TYPE RECOMMENDED
         PURPOSE "Provides improved auto-detection of file types and encodings")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")

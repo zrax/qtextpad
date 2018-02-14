@@ -26,6 +26,7 @@
 #include <QWidgetAction>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QClipboard>
 #include <QUndoStack>
 #include <QTextBlock>
@@ -48,8 +49,8 @@
 #include "ftdetect.h"
 
 #define LARGE_FILE_SIZE     (10*1024*1024)  // 10 MiB
-#define DETECTION_SIZE      (1*1024)
-#define DECODE_BLOCK_SIZE   (16*1024)
+#define DETECTION_SIZE      (      1*1024)
+#define DECODE_BLOCK_SIZE   (     16*1024)
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -181,10 +182,13 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     findAction->setShortcut(QKeySequence::Find);
     auto findNextAction = editMenu->addAction(tr("Find &Next"));
     findNextAction->setShortcut(QKeySequence::FindNext);
-    auto findPrevAction = editMenu->addAction(tr("Find &Previous"));
+    auto findPrevAction = editMenu->addAction(tr("Find Pre&vious"));
     findPrevAction->setShortcut(QKeySequence::FindPrevious);
-    auto replaceAction = editMenu->addAction(ICON("edit-find-replace"), tr("&Replace..."));
+    auto replaceAction = editMenu->addAction(ICON("edit-find-replace"), tr("R&eplace..."));
     replaceAction->setShortcut(QKeySequence::Replace);
+    (void) editMenu->addSeparator();
+    auto gotoAction = editMenu->addAction(ICON("go-jump"), tr("Go to &line..."));
+    gotoAction->setShortcut(Qt::CTRL | Qt::Key_J);
 
     connect(undoAction, &QAction::triggered, m_undoStack, &QUndoStack::undo);
     connect(redoAction, &QAction::triggered, m_undoStack, &QUndoStack::redo);
@@ -200,6 +204,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(findNextAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, false); });
     connect(findPrevAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, true); });
     connect(replaceAction, &QAction::triggered, [this]() { SearchDialog::create(this, true); });
+    connect(gotoAction, &QAction::triggered, this, &QTextPadWindow::navigateToLine);
 
     connect(m_undoStack, &QUndoStack::canUndoChanged, undoAction, &QAction::setEnabled);
     undoAction->setEnabled(false);
@@ -353,7 +358,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     statusBar()->addPermanentWidget(m_syntaxButton);
     updateCursorPosition();
 
-    //connect(m_positionLabel, &ActivationLabel::activated, ...);
+    connect(m_positionLabel, &ActivationLabel::activated,
+            this, &QTextPadWindow::navigateToLine);
     connect(m_insertLabel, &ActivationLabel::activated,
             this, &QTextPadWindow::nextInsertMode);
     connect(m_crlfLabel, &ActivationLabel::activated,
@@ -853,6 +859,33 @@ void QTextPadWindow::promptTabSettings()
         dialog->applySettings(m_editor);
         updateIndentStatus();
     }
+}
+
+void QTextPadWindow::navigateToLine()
+{
+    const QTextCursor cursor = m_editor->textCursor();
+    const QString curLine = QString::number(cursor.block().blockNumber() + 1);
+    QInputDialog dialog(this);
+    dialog.setWindowTitle(tr("Go to Line"));
+    dialog.setWindowIcon(ICON("go-jump"));
+    dialog.setLabelText(tr("Enter line number or line:column"));
+    dialog.setTextValue(curLine);
+    if (dialog.exec() == QDialog::Rejected)
+        return;
+
+    QStringList parts = dialog.textValue().split(QChar(':'));
+    bool ok;
+    int line = parts.at(0).toInt(&ok);
+    int column = 0;
+    if (ok && parts.size() > 1)
+        column = parts.at(1).toInt(&ok);
+
+    if (!ok || line < 0 || column < 0) {
+        QMessageBox::critical(this, QString::null, tr("Invalid line number specified"));
+        return;
+    }
+
+    gotoLine(line, column);
 }
 
 void QTextPadWindow::closeEvent(QCloseEvent *e)
