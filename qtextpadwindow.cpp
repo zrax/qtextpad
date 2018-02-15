@@ -588,6 +588,9 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         setSyntax(definition);
 
     m_openFilename = filename;
+    QTextPadSettings().addRecentFile(filename, textEncoding);
+    populateRecentFiles();
+
     m_undoStack->clear();
     m_undoStack->setClean();
     m_reloadAction->setEnabled(true);
@@ -941,18 +944,25 @@ void QTextPadWindow::closeEvent(QCloseEvent *e)
 
 void QTextPadWindow::populateRecentFiles()
 {
-    QStringList recentFiles = QTextPadSettings().recentFiles();
-    for (const auto &filename : recentFiles) {
-        QFileInfo info(filename);
-        auto recentFileAction = m_recentFiles->addAction(info.fileName());
-        recentFileAction->setData(info.absoluteFilePath());
-        //connect(recentFileAction, &QAction::triggered, ...);
+    m_recentFiles->clear();
+
+    auto recentFiles = QTextPadSettings().recentFiles();
+    for (const auto &recent : recentFiles) {
+        auto fileInfo = recent.split(QLatin1Char('\0'));
+        QFileInfo info(fileInfo.first());
+        const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
+        auto recentFileAction = m_recentFiles->addAction(label);
+        connect(recentFileAction, &QAction::triggered, [this, fileInfo]() {
+            const QString encoding = fileInfo.size() > 1 ? fileInfo.at(1) : QString::null;
+            loadDocumentFrom(fileInfo.first(), encoding);
+        });
     }
 
     (void) m_recentFiles->addSeparator();
     auto clearListAction = m_recentFiles->addAction(tr("Clear List"));
     connect(clearListAction, &QAction::triggered, [this]() {
-        m_recentFiles->clear();
+        QTextPadSettings settings;
+        settings.clearRecentFiles();
         populateRecentFiles();
     });
 }

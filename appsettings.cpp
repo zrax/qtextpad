@@ -50,23 +50,31 @@ QStringList QTextPadSettings::recentFiles() const
 #define FILE_COMPARE_CS Qt::CaseSensitive
 #endif
 
-void QTextPadSettings::addRecentFile(const QString &filename)
+void QTextPadSettings::addRecentFile(const QString &filename, const QString &encoding)
 {
-    QStringList files = recentFiles();
+    auto files = recentFiles();
     QString absFilename = QFileInfo(filename).absoluteFilePath();
     auto iter = files.begin();
     while (iter != files.end()) {
-        QString file = *iter;
-        if (file.compare(absFilename, FILE_COMPARE_CS) == 0) {
+        auto fileInfo = iter->split(QLatin1Char('\0'));
+        if (fileInfo.first().compare(absFilename, FILE_COMPARE_CS) == 0) {
             iter = files.erase(iter);
         } else {
             ++iter;
         }
     }
-    files.prepend(filename);
+    if (!encoding.isEmpty())
+        files.prepend(absFilename + QLatin1Char('\0') + encoding);
+    else
+        files.prepend(absFilename);
     while (files.size() > RECENT_FILES)
         files.removeLast();
-    m_settings.setValue("RecentFiles", files);
+    m_settings.setValue("RecentFiles", QVariant::fromValue(files));
+}
+
+void QTextPadSettings::clearRecentFiles()
+{
+    m_settings.setValue("RecentFiles", QStringList{});
 }
 
 QFont QTextPadSettings::editorFont() const

@@ -30,7 +30,8 @@ public:
     QString settingsDir() const;
 
     QStringList recentFiles() const;
-    void addRecentFile(const QString &filename);
+    void addRecentFile(const QString &filename, const QString &encoding);
+    void clearRecentFiles();
 
     SIMPLE_SETTING(bool, "ShowToolBar", showToolBar, setShowToolBar, true)
     SIMPLE_SETTING(bool, "ShowStatusBar", showStatusBar, setShowStatusBar, true)
