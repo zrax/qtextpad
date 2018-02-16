@@ -30,28 +30,6 @@ void TextEditorUndoCommand::redo()
 }
 
 
-ChangeEncodingCommand::ChangeEncodingCommand(QTextPadWindow *window,
-                                             const QString &newEncoding)
-    : m_window(window), m_newEncoding(newEncoding)
-{
-    m_oldEncoding = window->textEncoding();
-
-    // Apply the encoding change now, since this is the only time we should
-    // construct this undo command
-    window->setEncoding(newEncoding);
-}
-
-void ChangeEncodingCommand::undo()
-{
-    m_window->setEncoding(m_oldEncoding);
-}
-
-void ChangeEncodingCommand::redo()
-{
-    m_window->setEncoding(m_newEncoding);
-}
-
-
 ChangeLineEndingCommand::ChangeLineEndingCommand(QTextPadWindow *window,
                                                  int newMode)
     : m_window(window), m_newMode(newMode)

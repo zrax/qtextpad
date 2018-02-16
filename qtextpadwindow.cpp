@@ -70,7 +70,9 @@ protected:
             // Don't close the popup right after clicking, so the user can
             // briefly see the visual feedback for the item they selected.
             QTimer::singleShot(100, []() {
-                QApplication::activePopupWidget()->close();
+                auto popupWidget = QApplication::activePopupWidget();
+                if (popupWidget)
+                    popupWidget->close();
             });
         });
         return popup;
@@ -95,7 +97,9 @@ protected:
             // Don't close the popup right after clicking, so the user can
             // briefly see the visual feedback for the item they selected.
             QTimer::singleShot(100, []() {
-                QApplication::activePopupWidget()->close();
+                auto popupWidget = QApplication::activePopupWidget();
+                if (popupWidget)
+                    popupWidget->close();
             });
         });
         return popup;
@@ -627,6 +631,18 @@ bool QTextPadWindow::promptForSave()
     return true;
 }
 
+bool QTextPadWindow::promptForDiscard()
+{
+    if (isDocumentModified()) {
+        int response = QMessageBox::question(this, QString::null,
+                            tr("%1 has been modified.  Are you sure you want to discard your changes?")
+                            .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No);
+        if (response == QMessageBox::No)
+            return false;
+    }
+    return true;
+}
+
 void QTextPadWindow::newDocument()
 {
     if (!promptForSave())
@@ -694,6 +710,9 @@ bool QTextPadWindow::saveDocumentCopy()
 
 bool QTextPadWindow::loadDocument()
 {
+    if (!promptForSave())
+        return false;
+
     QString startPath;
     if (!m_openFilename.isEmpty()) {
         QFileInfo fi(m_openFilename);
@@ -708,14 +727,20 @@ bool QTextPadWindow::loadDocument()
 
 bool QTextPadWindow::reloadDocument()
 {
-    if (isDocumentModified()) {
-        int response = QMessageBox::question(this, QString::null,
-                            tr("%1 has been modified.  Are you sure you want to discard your changes?")
-                            .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No);
-        if (response == QMessageBox::No)
-            return false;
-    }
-    return loadDocumentFrom(m_openFilename);
+    if (m_openFilename.isEmpty())
+        return true;
+    if (!promptForDiscard())
+        return false;
+    return loadDocumentFrom(m_openFilename, m_textEncoding);
+}
+
+bool QTextPadWindow::reloadDocumentEncoding(const QString &textEncoding)
+{
+    if (m_openFilename.isEmpty())
+        return true;
+    if (!promptForDiscard())
+        return false;
+    return loadDocumentFrom(m_openFilename, textEncoding);
 }
 
 void QTextPadWindow::editorContextMenu(const QPoint &pos)
@@ -866,11 +891,12 @@ void QTextPadWindow::chooseEditorFont()
 void QTextPadWindow::changeEncoding(const QString &encoding)
 {
     if (m_openFilename.isEmpty()) {
-        // Don't save changes in the undo stack if we are creating a new file
+        // Don't try to re-load the document if we're creating a new file
         setEncoding(encoding);
     } else {
-        auto command = new ChangeEncodingCommand(this, encoding);
-        addUndoCommand(command);
+        const QString oldEncoding = m_textEncoding;
+        if (!reloadDocumentEncoding(encoding))
+            setEncoding(oldEncoding);
     }
 }
 

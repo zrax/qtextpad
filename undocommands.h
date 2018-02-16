@@ -35,19 +35,6 @@ private:
     SyntaxTextEdit *m_editor;
 };
 
-class ChangeEncodingCommand : public QUndoCommand
-{
-public:
-    ChangeEncodingCommand(QTextPadWindow *window, const QString &newEncoding);
-
-    void undo() Q_DECL_OVERRIDE;
-    void redo() Q_DECL_OVERRIDE;
-
-private:
-    QTextPadWindow *m_window;
-    QString m_oldEncoding, m_newEncoding;
-};
-
 class ChangeLineEndingCommand : public QUndoCommand
 {
 public:

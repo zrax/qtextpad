@@ -70,12 +70,14 @@ public:
 
 public slots:
     bool promptForSave();
+    bool promptForDiscard();
     void newDocument();
     bool saveDocument();
     bool saveDocumentAs();
     bool saveDocumentCopy();
     bool loadDocument();
     bool reloadDocument();
+    bool reloadDocumentEncoding(const QString &textEncoding);
 
     void editorContextMenu(const QPoint& pos);
     void updateCursorPosition();
