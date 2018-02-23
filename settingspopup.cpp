@@ -27,9 +27,9 @@
 #include <QTextCodec>
 
 #include <KSyntaxHighlighting/Repository>
-#include <KCharsets>
 
 #include "syntaxtextedit.h"
+#include "charsets.h"
 
 class DecoratedFilterEdit : public QLineEdit
 {
@@ -201,11 +201,23 @@ EncodingPopup::EncodingPopup(QWidget *parent)
             this, &EncodingPopup::encodingItemChanged);
 
     // Load the available character sets by descriptive name
-    auto charsets = KCharsets::charsets();
-    auto codecs = charsets->descriptiveEncodingNames();
-    for (const auto codecDesc : codecs) {
-        auto item = new QTreeWidgetItem(tree(), QStringList() << codecDesc);
-        item->setData(0, Qt::UserRole, charsets->encodingForName(codecDesc));
+    auto encodingScripts = QTextPadCharsets::encodingsByScript();
+
+    // Sort the lists by script/region name
+    std::sort(encodingScripts.begin(), encodingScripts.end(),
+              [](const QStringList &left, const QStringList &right)
+    {
+        return left.first() < right.first();
+    });
+
+    for (const auto &encodingList : encodingScripts) {
+        const QString &scriptName = encodingList.first();
+        for (int i = 1; i < encodingList.size(); ++i) {
+            const QString &encoding = encodingList.at(i);
+            auto item = new QTreeWidgetItem(tree(), QStringList()
+                        << tr("%1 (%2)").arg(scriptName).arg(encoding));
+            item->setData(0, Qt::UserRole, encoding);
+        }
     }
     tree()->resizeColumnToContents(0);
 }

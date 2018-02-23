@@ -37,7 +37,6 @@
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Theme>
-#include <KCharsets>
 
 #include "activationlabel.h"
 #include "syntaxtextedit.h"
@@ -47,6 +46,7 @@
 #include "appsettings.h"
 #include "undocommands.h"
 #include "ftdetect.h"
+#include "charsets.h"
 
 #define LARGE_FILE_SIZE     (10*1024*1024)  // 10 MiB
 #define DETECTION_SIZE      (      1*1024)
@@ -467,9 +467,7 @@ void QTextPadWindow::setEncoding(const QString &codecName)
     if (m_encodingActions->checkedAction())
         m_encodingActions->checkedAction()->setChecked(false);
 
-    bool ok = false;
-    (void) KCharsets::charsets()->codecForName(codecName, ok);
-    if (!ok) {
+    if (!QTextPadCharsets::codecForName(codecName)) {
         qWarning(tr("Invalid codec selected").toLocal8Bit().constData());
         m_encodingButton->setText(tr("Invalid (%1)").arg(codecName));
     } else {
@@ -554,12 +552,10 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
 
     QTextCodec *codec = Q_NULLPTR;
     if (!textEncoding.isEmpty()) {
-        bool ok;
-        codec = KCharsets::charsets()->codecForName(textEncoding, ok);
-        if (!ok) {
+        codec = QTextPadCharsets::codecForName(textEncoding);
+        if (!codec) {
             qDebug(tr("Invalid manually-specified encoding: %s").toLocal8Bit().constData(),
                    textEncoding.toLocal8Bit().constData());
-            codec = Q_NULLPTR;
         }
     }
     if (!codec)
@@ -1043,8 +1039,7 @@ void QTextPadWindow::populateThemeMenu()
 void QTextPadWindow::populateEncodingMenu()
 {
     m_encodingActions = new QActionGroup(this);
-    auto charsets = KCharsets::charsets();
-    auto encodingScripts = charsets->encodingsByScript();
+    auto encodingScripts = QTextPadCharsets::encodingsByScript();
 
     // Sort the lists by script/region name
     std::sort(encodingScripts.begin(), encodingScripts.end(),
@@ -1053,10 +1048,10 @@ void QTextPadWindow::populateEncodingMenu()
         return left.first() < right.first();
     });
 
-    for (const auto encodingList : encodingScripts) {
+    for (const auto &encodingList : encodingScripts) {
         QMenu *parentMenu = m_encodingMenu->addMenu(encodingList.first());
         for (int i = 1; i < encodingList.size(); ++i) {
-            QString codecName = encodingList.at(i);
+            const QString &codecName = encodingList.at(i);
             auto item = parentMenu->addAction(codecName);
             item->setCheckable(true);
             item->setActionGroup(m_encodingActions);

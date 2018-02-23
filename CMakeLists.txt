@@ -31,12 +31,6 @@ set_package_properties(KF5SyntaxHighlighting PROPERTIES
         DESCRIPTION "Syntax Highlighting framework for Qt5"
         TYPE REQUIRED)
 
-find_package(KF5Codecs REQUIRED)
-set_package_properties(KF5Codecs PROPERTIES
-        URL "https://community.kde.org/Frameworks"
-        DESCRIPTION "Text encoding framework and extra encodings for Qt5"
-        TYPE REQUIRED)
-
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Magic)
 set_package_properties(Magic PROPERTIES
@@ -52,6 +46,7 @@ endif()
 set(qtextpad_SOURCES
     main.cpp
     appsettings.cpp
+    charsets.cpp
     ftdetect.cpp
     indentsettings.cpp
     qtextpadwindow.cpp
@@ -64,6 +59,7 @@ set(qtextpad_SOURCES
 set(qtextpad_HEADERS
     activationlabel.h
     appsettings.h
+    charsets.h
     ftdetect.h
     indentsettings.h
     qtextpadwindow.h
@@ -84,8 +80,7 @@ endif()
 
 add_executable(qtextpad WIN32 MACOSX_BUNDLE
                ${qtextpad_SOURCES} ${qtextpad_HEADERS} ${qtextpad_RESOURCES})
-target_link_libraries(qtextpad Qt5::Core Qt5::Widgets
-                               KF5::SyntaxHighlighting KF5::Codecs)
+target_link_libraries(qtextpad Qt5::Core Qt5::Widgets KF5::SyntaxHighlighting)
 
 if(${Magic_FOUND})
     target_link_libraries(qtextpad ${Magic_LIBRARY})
