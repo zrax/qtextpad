@@ -52,7 +52,7 @@ QTextCodec *QTextPadCharsets::codecForName(const QString &name)
 // for example, all of which are the same ambiguous UTF-16 codec)
 QTextPadCharsets::QTextPadCharsets()
 {
-    m_encodingCache.reserve(16);
+    m_encodingCache.reserve(17);
     m_encodingCache.append(QStringList {
         trCharsets("Arabic"),
         "ISO-8859-6",
@@ -168,6 +168,14 @@ QTextPadCharsets::QTextPadCharsets()
             else
                 ++enc;
         }
+    }
+    int script = 0;
+    while (script < m_encodingCache.size()) {
+        // One entry means only the script name is present with no encodings
+        if (m_encodingCache.at(script).size() == 1)
+            m_encodingCache.removeAt(script);
+        else
+            ++script;
     }
 }
 
