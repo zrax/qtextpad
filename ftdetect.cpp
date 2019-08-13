@@ -221,24 +221,24 @@ static QString detectMimeType(const QString &filename)
     magic_t_RAII magic = magic_open(MAGIC_MIME_TYPE | MAGIC_SYMLINK);
     if (!magic) {
         qDebug("Could not initialize libmagic");
-        return QString::null;
+        return QString();
     }
 
     if (magic_load(magic, Q_NULLPTR) < 0) {
         qDebug("Could not load magic database: %s", magic_error(magic));
-        return QString::null;
+        return QString();
     }
 
     const QByteArray filenameEncoded = QFile::encodeName(filename);
     const char *mime = magic_file(magic, filenameEncoded.constData());
     if (!mime) {
         qDebug("Could not get MIME type from libmagic: %s", magic_error(magic));
-        return QString::null;
+        return QString();
     }
     return QString::fromLatin1(mime);
 #else
     (void) filename;
-    return QString::null;
+    return QString();
 #endif
 }
 

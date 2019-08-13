@@ -79,11 +79,11 @@ SearchDialog::SearchDialog(QWidget *parent)
 
     m_searchText = new SearchComboBox(this);
     m_searchText->addItems(settings.recentSearches());
-    m_searchText->setCurrentText(QString::null);
+    m_searchText->setCurrentText(QString());
 
     m_replaceText = new SearchComboBox(this);
     m_replaceText->addItems(settings.recentSearchReplacements());
-    m_replaceText->setCurrentText(QString::null);
+    m_replaceText->setCurrentText(QString());
     m_replaceWidgets.append(m_replaceText);
 
     m_caseSensitive = new QCheckBox(tr("Match ca&se"), this);
@@ -224,32 +224,32 @@ QString translateCharEscape(const QStringRef &digits, int *advance)
     if (digits.at(0) == QLatin1Char('x')) {
         // We only support exactly 2 hex bytes with \x format
         if (digits.size() < 3)
-            return QString::null;
+            return QString();
         QByteArray number = digits.mid(1, 2).toLatin1();
         char *end;
         ulong ch = strtoul(number.constData(), &end, 16);
         if (*end != '\0')
-            return QString::null;
+            return QString();
         *advance = 2;
         return QString(QChar::fromLatin1(static_cast<char>(ch)));
     } else if (digits.at(0) == QLatin1Char('u')) {
         if (digits.size() < 5)
-            return QString::null;
+            return QString();
         QByteArray number = digits.mid(1, 4).toLatin1();
         char *end;
         ulong ch = strtoul(number.constData(), &end, 16);
         if (*end != '\0')
-            return QString::null;
+            return QString();
         *advance = 4;
         return QString(QChar(static_cast<ushort>(ch)));
     } else if (digits.at(0) == QLatin1Char('U')) {
         if (digits.size() < 9)
-            return QString::null;
+            return QString();
         QByteArray number = digits.mid(1, 8).toLatin1();
         char *end;
         ulong ch = strtoul(number.constData(), &end, 16);
         if (*end != '\0')
-            return QString::null;
+            return QString();
 
         *advance = 8;
         if (ch > 0xFFFFU) {
@@ -268,7 +268,7 @@ QString translateCharEscape(const QStringRef &digits, int *advance)
         ulong ch = strtoul(number.constData(), &end, 8);
         *advance = static_cast<int>(end - number.constData());
         if (*advance == 0 || ch > 0xFFU)
-            return QString::null;
+            return QString();
         *advance -= 1;      // The first digit was already accounted for
         return QString(QChar::fromLatin1(static_cast<char>(ch)));
     }
@@ -440,7 +440,7 @@ QTextCursor SearchDialog::searchNext(QTextPadWindow *parent, bool reverse)
     }
 
     if (searchCursor.isNull()) {
-        QMessageBox::information(parent, QString::null,
+        QMessageBox::information(parent, QString(),
                                  tr("The specified text was not found"));
     } else {
         editor->setTextCursor(searchCursor);
@@ -501,7 +501,7 @@ void SearchDialog::replaceAll()
     searchCursor.movePosition(QTextCursor::Start);
     searchCursor = performSearch(searchCursor, false);
     if (searchCursor.isNull()) {
-        QMessageBox::information(qobject_cast<QWidget *>(parent()), QString::null,
+        QMessageBox::information(qobject_cast<QWidget *>(parent()), QString(),
                                  tr("The specified text was not found"));
         return;
     }
@@ -521,6 +521,6 @@ void SearchDialog::replaceAll()
     }
     searchCursor.endEditBlock();
 
-    QMessageBox::information(qobject_cast<QWidget *>(parent()), QString::null,
+    QMessageBox::information(qobject_cast<QWidget *>(parent()), QString(),
                              tr("Successfully replaced %1 matches").arg(replacements));
 }

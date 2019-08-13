@@ -175,7 +175,7 @@ int SyntaxTextEdit::lineMarginWidth()
         maxLine /= 10;
         ++digits;
     }
-    return fontMetrics().width(QString(digits + 1, '0')) + 2;
+    return fontMetrics().boundingRect(QString(digits + 1, '0')).width() + 2;
 }
 
 void SyntaxTextEdit::paintLineNumbers(QPaintEvent *paintEvent)
@@ -282,7 +282,11 @@ void SyntaxTextEdit::updateTabMetrics()
     // on many fonts.  Hack from QtCreator: Set it in the text option instead
     const qreal tabWidth = QFontMetricsF(font()).width(QString(m_tabCharSize, ' '));
     QTextOption opt = document()->defaultTextOption();
+#if QT_VERSION_CHECK(5, 10, 0)
+    opt.setTabStopDistance(tabWidth);
+#else
     opt.setTabStop(tabWidth);
+#endif
     document()->setDefaultTextOption(opt);
 }
 

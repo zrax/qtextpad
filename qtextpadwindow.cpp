@@ -412,8 +412,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     }
     setTheme(theme);
 
-    m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).width("OVR") + 4);
-    m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).width("CRLF") + 4);
+    m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).boundingRect("OVR").width() + 4);
+    m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).boundingRect("CRLF").width() + 4);
     setOverwriteMode(false);
 
     connect(m_editor, &SyntaxTextEdit::cursorPositionChanged,
@@ -534,13 +534,13 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
 {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, QString::null,
+        QMessageBox::critical(this, QString(),
                               tr("Cannot open file %1 for reading").arg(filename));
         return false;
     }
 
     if (file.size() > LARGE_FILE_SIZE) {
-        int response = QMessageBox::question(this, QString::null,
+        int response = QMessageBox::question(this, QString(),
                             tr("Warning: Are you sure you want to open this large file?"),
                             QMessageBox::Yes | QMessageBox::No);
         if (response == QMessageBox::No)
@@ -575,7 +575,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     // Don't let the syntax highlighter hinder us while setting the new content
     m_editor->clear();
     setSyntax(SyntaxTextEdit::nullSyntax());
-    m_editor->setPlainText(pieces.join(QString::null));
+    m_editor->setPlainText(pieces.join(QString()));
     m_editor->document()->clearUndoRedoStacks();
 
     // If libmagic finds a match, it's probably more likely to be correct
@@ -616,7 +616,7 @@ void QTextPadWindow::gotoLine(int line, int column)
 bool QTextPadWindow::promptForSave()
 {
     if (isDocumentModified()) {
-        int response = QMessageBox::question(this, QString::null,
+        int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Would you like to save your changes first?")
                             .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (response == QMessageBox::Cancel)
@@ -630,7 +630,7 @@ bool QTextPadWindow::promptForSave()
 bool QTextPadWindow::promptForDiscard()
 {
     if (isDocumentModified()) {
-        int response = QMessageBox::question(this, QString::null,
+        int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Are you sure you want to discard your changes?")
                             .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No);
         if (response == QMessageBox::No)
@@ -656,7 +656,7 @@ void QTextPadWindow::newDocument()
     setLineEndingMode(LFOnly);
 #endif
 
-    m_openFilename = QString::null;
+    m_openFilename = QString();
     m_undoStack->clear();
     m_undoStack->setClean();
     m_reloadAction->setEnabled(false);
@@ -937,7 +937,7 @@ void QTextPadWindow::navigateToLine()
         column = parts.at(1).toInt(&ok);
 
     if (!ok || line < 0 || column < 0) {
-        QMessageBox::critical(this, QString::null, tr("Invalid line number specified"));
+        QMessageBox::critical(this, QString(), tr("Invalid line number specified"));
         return;
     }
 
@@ -975,7 +975,7 @@ void QTextPadWindow::populateRecentFiles()
         const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
         auto recentFileAction = m_recentFiles->addAction(label);
         connect(recentFileAction, &QAction::triggered, [this, fileInfo]() {
-            const QString encoding = fileInfo.size() > 1 ? fileInfo.at(1) : QString::null;
+            const QString encoding = fileInfo.size() > 1 ? fileInfo.at(1) : QString();
             loadDocumentFrom(fileInfo.first(), encoding);
         });
     }
