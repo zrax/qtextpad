@@ -163,7 +163,7 @@ SyntaxPopup::SyntaxPopup(QWidget *parent)
     const auto syntaxDefs = syntaxRepo->definitions();
     QMap<QString, QTreeWidgetItem *> groupItems;
     for (const auto &def : syntaxDefs) {
-        if (def.isHidden())
+        if (def.isHidden() || def == SyntaxTextEdit::nullSyntax())
             continue;
 
         QTreeWidgetItem *parent = groupItems.value(def.translatedSection(), Q_NULLPTR);

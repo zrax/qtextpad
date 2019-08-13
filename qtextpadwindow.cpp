@@ -1005,7 +1005,7 @@ void QTextPadWindow::populateSyntaxMenu()
     const auto syntaxDefs = syntaxRepo->definitions();
     QMap<QString, QMenu *> groupMenus;
     for (const auto def : syntaxDefs) {
-        if (def.isHidden())
+        if (def.isHidden() || def == SyntaxTextEdit::nullSyntax())
             continue;
 
         QMenu *parentMenu = groupMenus.value(def.translatedSection(), Q_NULLPTR);
