@@ -49,6 +49,9 @@ public:
 
     QString textEncoding() const { return m_textEncoding; }
 
+    bool utfBOM() const;
+    void setUtfBOM(bool bom);
+
     void setOverwriteMode(bool overwrite);
     void setAutoIndent(bool ai);
 
@@ -92,6 +95,7 @@ public slots:
     // User-triggered actions that store commands in the Undo stack
     void changeEncoding(const QString &encoding);
     void changeLineEndingMode(LineEndingMode mode);
+    void changeUtfBOM();
 
 protected:
     void closeEvent(QCloseEvent *e) Q_DECL_OVERRIDE;
@@ -111,6 +115,7 @@ private:
     // QAction caches
     QAction *m_reloadAction;
     QAction *m_overwriteModeAction;
+    QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
     QActionGroup *m_loadEncodingActions;
     QActionGroup *m_themeActions;

@@ -61,4 +61,17 @@ private:
     QString m_oldEncoding, m_newEncoding;
 };
 
+class ChangeUtfBOMCommand : public QUndoCommand
+{
+public:
+    explicit ChangeUtfBOMCommand(QTextPadWindow *window);
+
+    void undo() Q_DECL_OVERRIDE;
+    void redo() Q_DECL_OVERRIDE;
+
+private:
+    QTextPadWindow *m_window;
+    bool m_utfBOM;
+};
+
 #endif // _UNDOCOMMANDS_H

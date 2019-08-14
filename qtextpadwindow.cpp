@@ -495,6 +495,16 @@ void QTextPadWindow::setEncoding(const QString &codecName)
     }
 }
 
+bool QTextPadWindow::utfBOM() const
+{
+    return m_utfBOMAction->isChecked();
+}
+
+void QTextPadWindow::setUtfBOM(bool bom)
+{
+    m_utfBOMAction->setChecked(bom);
+}
+
 void QTextPadWindow::setOverwriteMode(bool overwrite)
 {
     m_editor->setOverwriteMode(overwrite);
@@ -564,7 +574,11 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         break;
     }
 
-    auto encoder = codec->makeEncoder();
+    QTextCodec::ConversionFlags codecFlags = QTextCodec::DefaultConversion;
+    if (!utfBOM())
+        codecFlags |= QTextCodec::IgnoreHeader;
+
+    auto encoder = codec->makeEncoder(codecFlags);
     const auto buffer = encoder->fromUnicode(document);
     qint64 count = file.write(buffer);
     if (count < 0) {
@@ -644,6 +658,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     m_undoStack->setClean();
     m_reloadAction->setEnabled(true);
     m_loadEncodingMenu->setEnabled(true);
+    m_utfBOMAction->setChecked(detect.bomOffset() != 0);
     updateTitle();
     return true;
 }
@@ -711,6 +726,7 @@ void QTextPadWindow::newDocument()
     m_undoStack->setClean();
     m_reloadAction->setEnabled(false);
     m_loadEncodingMenu->setEnabled(false);
+    m_utfBOMAction->setChecked(false);
     updateTitle();
 }
 
@@ -957,6 +973,15 @@ void QTextPadWindow::changeLineEndingMode(LineEndingMode mode)
     }
 }
 
+void QTextPadWindow::changeUtfBOM()
+{
+    if (!m_openFilename.isEmpty()) {
+        // Don't save changes in the undo stack if we are creating a new file
+        auto command = new ChangeUtfBOMCommand(this);
+        addUndoCommand(command);
+    }
+}
+
 void QTextPadWindow::promptTabSettings()
 {
     auto dialog = new IndentSettingsDialog(this);
@@ -1091,6 +1116,11 @@ void QTextPadWindow::populateEncodingMenu()
     m_loadEncodingActions = new QActionGroup(this);
     m_setEncodingActions = new QActionGroup(this);
     auto encodingScripts = QTextPadCharsets::encodingsByScript();
+
+    m_utfBOMAction = m_setEncodingMenu->addAction(tr("Write Unicode BOM"));
+    m_utfBOMAction->setCheckable(true);
+    (void) m_setEncodingMenu->addSeparator();
+    connect(m_utfBOMAction, &QAction::triggered, this, &QTextPadWindow::changeUtfBOM);
 
     // Sort the lists by script/region name
     std::sort(encodingScripts.begin(), encodingScripts.end(),

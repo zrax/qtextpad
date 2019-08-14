@@ -72,3 +72,19 @@ void ChangeEncodingCommand::redo()
 {
     m_window->setEncoding(m_newEncoding);
 }
+
+
+ChangeUtfBOMCommand::ChangeUtfBOMCommand(QTextPadWindow *window)
+    : m_window(window), m_utfBOM(window->utfBOM())
+{
+}
+
+void ChangeUtfBOMCommand::undo()
+{
+    m_window->setUtfBOM(!m_utfBOM);
+}
+
+void ChangeUtfBOMCommand::redo()
+{
+    m_window->setUtfBOM(m_utfBOM);
+}
