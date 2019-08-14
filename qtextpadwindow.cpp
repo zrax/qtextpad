@@ -237,7 +237,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
             this, &QTextPadWindow::editorContextMenu);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
-    auto fontAction = viewMenu->addAction(tr("Default &Font..."));
     m_themeMenu = viewMenu->addMenu(tr("&Theme"));
     populateThemeMenu();
     (void) viewMenu->addSeparator();
@@ -274,7 +273,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto zoomResetAction = viewMenu->addAction(ICON("zoom-original"), tr("Reset &Zoom"));
     zoomResetAction->setShortcut(Qt::CTRL | Qt::Key_0);
 
-    connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(wordWrapAction, &QAction::toggled, m_editor, &SyntaxTextEdit::setWordWrap);
     connect(longLineAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setShowLongLineEdge);
@@ -296,6 +294,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(zoomResetAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomReset);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
+    auto fontAction = settingsMenu->addAction(tr("Editor &Font..."));
+    (void) settingsMenu->addSeparator();
     m_syntaxMenu = settingsMenu->addMenu(tr("&Syntax"));
     populateSyntaxMenu();
     m_setEncodingMenu = settingsMenu->addMenu(tr("&Encoding"));
@@ -330,6 +330,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showFilePathAction->setCheckable(true);
     showFilePathAction->setChecked(settings.showFilePath());
 
+    connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(crOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(CROnly); });
     connect(lfOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(LFOnly); });
     connect(crlfAction, &QAction::triggered, [this]() { changeLineEndingMode(CRLF); });
@@ -953,7 +954,7 @@ void QTextPadWindow::chooseEditorFont()
 {
     bool ok = false;
     QFont newFont = QFontDialog::getFont(&ok, m_editor->defaultFont(), this,
-                                         tr("Default Editor Font"));
+                                         tr("Set Editor Font"));
     if (ok)
         m_editor->setDefaultFont(newFont);
 }
