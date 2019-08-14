@@ -590,6 +590,9 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         return false;
     }
 
+    QTextPadSettings().addRecentFile(filename, m_textEncoding);
+    populateRecentFiles();
+
     return true;
 }
 
@@ -743,7 +746,6 @@ bool QTextPadWindow::saveDocument()
 
     m_openFilename = path;
     m_undoStack->setClean();
-    m_editor->document()->clearUndoRedoStacks();
     updateTitle();
     return true;
 }
@@ -758,7 +760,6 @@ bool QTextPadWindow::saveDocumentAs()
 
     m_openFilename = path;
     m_undoStack->setClean();
-    m_editor->document()->clearUndoRedoStacks();
     updateTitle();
     return true;
 }
