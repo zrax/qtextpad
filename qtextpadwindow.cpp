@@ -536,7 +536,46 @@ void QTextPadWindow::setLineEndingMode(LineEndingMode mode)
 
 bool QTextPadWindow::saveDocumentTo(const QString &filename)
 {
-    // TODO: Encode and save to file
+    auto codec = QTextPadCharsets::codecForName(m_textEncoding);
+    if (!codec) {
+        QMessageBox::critical(this, QString(),
+            tr("The selected encoding (%1) is invalid.  Please select a valid "
+               "encoding before attempting to save.").arg(m_textEncoding));
+        return false;
+    }
+
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)) {
+        QMessageBox::critical(this, QString(),
+                              tr("Cannot open file %1 for writing").arg(filename));
+        return false;
+    }
+
+    auto document = m_editor->toPlainText();
+    switch (m_lineEndingMode) {
+    case CROnly:
+        document.replace(QLatin1Char('\n'), QLatin1Char('\r'));
+        break;
+    case LFOnly:
+        // No action
+        break;
+    case CRLF:
+        document.replace(QLatin1Char('\n'), QStringLiteral("\r\n"));
+        break;
+    }
+
+    auto encoder = codec->makeEncoder();
+    const auto buffer = encoder->fromUnicode(document);
+    qint64 count = file.write(buffer);
+    if (count < 0) {
+        QMessageBox::critical(this, QString(),
+                              tr("Error writing to file: %1").arg(file.errorString()));
+        return false;
+    } else if (count != buffer.size()) {
+        QMessageBox::critical(this, QString(), tr("Error: File truncated while writing"));
+        return false;
+    }
+
     return true;
 }
 
