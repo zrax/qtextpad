@@ -49,7 +49,7 @@
 #include "charsets.h"
 
 #define LARGE_FILE_SIZE     (10*1024*1024)  // 10 MiB
-#define DETECTION_SIZE      (      1*1024)
+#define DETECTION_SIZE      (      4*1024)
 #define DECODE_BLOCK_SIZE   (     16*1024)
 
 class EncodingPopupAction : public QWidgetAction
