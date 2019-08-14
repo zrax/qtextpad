@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
             if (syntaxDef.isValid()) {
                 win.setSyntax(syntaxDef);
             } else {
-                qDebug(trMain("Invalid sytnax definition specified: %s").toLocal8Bit().constData(),
+                qDebug(trMain("Invalid syntax definition specified: %s").toLocal8Bit().constData(),
                        parser.value(syntaxOption).toLocal8Bit().constData());
             }
         }
