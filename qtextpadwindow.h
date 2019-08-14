@@ -77,7 +77,7 @@ public slots:
     bool saveDocumentCopy();
     bool loadDocument();
     bool reloadDocument();
-    bool reloadDocumentEncoding(const QString &textEncoding);
+    void reloadDocumentEncoding(const QString &textEncoding);
 
     void editorContextMenu(const QPoint& pos);
     void updateCursorPosition();
@@ -103,17 +103,19 @@ private:
 
     QToolBar *m_toolBar;
     QMenu *m_recentFiles;
+    QMenu *m_loadEncodingMenu;
     QMenu *m_themeMenu;
     QMenu *m_syntaxMenu;
-    QMenu *m_encodingMenu;
+    QMenu *m_setEncodingMenu;
 
     // QAction caches
     QAction *m_reloadAction;
     QAction *m_overwriteModeAction;
     QAction *m_autoIndentAction;
+    QActionGroup *m_loadEncodingActions;
     QActionGroup *m_themeActions;
     QActionGroup *m_syntaxActions;
-    QActionGroup *m_encodingActions;
+    QActionGroup *m_setEncodingActions;
     QActionGroup *m_lineEndingActions;
     QActionGroup *m_tabWidthActions;
     QActionGroup *m_indentWidthActions;

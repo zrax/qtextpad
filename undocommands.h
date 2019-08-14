@@ -48,4 +48,17 @@ private:
     int m_oldMode, m_newMode;
 };
 
+class ChangeEncodingCommand : public QUndoCommand
+{
+public:
+    ChangeEncodingCommand(QTextPadWindow *window, QString newEncoding);
+
+    void undo() Q_DECL_OVERRIDE;
+    void redo() Q_DECL_OVERRIDE;
+
+private:
+    QTextPadWindow *m_window;
+    QString m_oldEncoding, m_newEncoding;
+};
+
 #endif // _UNDOCOMMANDS_H

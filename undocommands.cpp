@@ -50,3 +50,25 @@ void ChangeLineEndingCommand::redo()
 {
     m_window->setLineEndingMode(static_cast<QTextPadWindow::LineEndingMode>(m_newMode));
 }
+
+
+ChangeEncodingCommand::ChangeEncodingCommand(QTextPadWindow *window,
+                                             QString newEncoding)
+    : m_window(window), m_newEncoding(std::move(newEncoding))
+{
+    m_oldEncoding = window->textEncoding();
+
+    // Apply the change now, since this is the only time we should
+    // construct this undo command
+    window->setEncoding(m_newEncoding);
+}
+
+void ChangeEncodingCommand::undo()
+{
+    m_window->setEncoding(m_oldEncoding);
+}
+
+void ChangeEncodingCommand::redo()
+{
+    m_window->setEncoding(m_newEncoding);
+}
