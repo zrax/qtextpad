@@ -56,9 +56,8 @@ public:
     SIMPLE_SETTING(int, "Editor/IndentMode", indentMode, setIndentMode, -1)
     SIMPLE_SETTING(bool, "Editor/AutoIndent", autoIndent, setAutoIndent, true)
 
-    // "Hidden" settings (for now)
     SIMPLE_SETTING(bool, "Editor/ScrollPastEndOfFile", scrollPastEndOfFile,
-                   setScrollPastEndOfFile, true)
+                   setScrollPastEndOfFile, false)
 
     QFont editorFont() const;
     void setEditorFont(const QFont &font);

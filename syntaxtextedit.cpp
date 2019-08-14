@@ -136,11 +136,7 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     setWordWrap(settings.wordWrap());
     setIndentationMode(settings.indentMode());
 
-    // This feature, counter-intuitively, scrolls the document such that the
-    // cursor is in the center ONLY when moving the cursor -- it does NOT
-    // reposition the cursor when normal scrolling occurs.  Furthermore, this
-    // property is the only way to enable scrolling past the last line of
-    // the document.  TL;DR: This property is poorly named.
+    // See comment in SyntaxTextEdit::setScrollPastEndOfFile()
     setCenterOnScroll(settings.scrollPastEndOfFile());
 
     QTextOption opt = document()->defaultTextOption();
@@ -244,6 +240,23 @@ bool SyntaxTextEdit::showWhitespace() const
 {
     const QTextOption opt = document()->defaultTextOption();
     return !!(opt.flags() & QTextOption::ShowTabsAndSpaces);
+}
+
+void SyntaxTextEdit::setScrollPastEndOfFile(bool scroll)
+{
+    // This feature, counter-intuitively, scrolls the document such that the
+    // cursor is in the center ONLY when moving the cursor -- it does NOT
+    // reposition the cursor when normal scrolling occurs.  Furthermore, this
+    // property is the only way to enable scrolling past the last line of
+    // the document.  TL;DR: This property is poorly named.
+    setCenterOnScroll(scroll);
+
+    QTextPadSettings().setScrollPastEndOfFile(scroll);
+}
+
+bool SyntaxTextEdit::scrollPastEndOfFile() const
+{
+    return centerOnScroll();
 }
 
 void SyntaxTextEdit::setHighlightCurrentLine(bool show)

@@ -259,6 +259,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
     showWhitespaceAction->setCheckable(true);
     (void) viewMenu->addSeparator();
+    auto scrollPastEndOfFileAction = viewMenu->addAction(tr("Scroll &Past End of File"));
+    scrollPastEndOfFileAction->setCheckable(true);
+    (void) viewMenu->addSeparator();
     auto showCurrentLineAction = viewMenu->addAction(tr("Highlight &Current Line"));
     showCurrentLineAction->setCheckable(true);
     auto showMatchingBraces = viewMenu->addAction(tr("Match &Braces"));
@@ -282,6 +285,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
             m_editor, &SyntaxTextEdit::setShowLineNumbers);
     connect(showWhitespaceAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setShowWhitespace);
+    connect(scrollPastEndOfFileAction, &QAction::toggled,
+            m_editor, &SyntaxTextEdit::setScrollPastEndOfFile);
     connect(showCurrentLineAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setHighlightCurrentLine);
     connect(showMatchingBraces, &QAction::toggled,
@@ -398,6 +403,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     indentGuidesAction->setChecked(m_editor->showIndentGuides());
     showLineNumbersAction->setChecked(m_editor->showLineNumbers());
     showWhitespaceAction->setChecked(m_editor->showWhitespace());
+    scrollPastEndOfFileAction->setChecked(m_editor->scrollPastEndOfFile());
     showCurrentLineAction->setChecked(m_editor->highlightCurrentLine());
     showMatchingBraces->setChecked(m_editor->matchBraces());
     m_autoIndentAction->setChecked(m_editor->autoIndent());

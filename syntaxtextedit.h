@@ -46,6 +46,9 @@ public:
     void setShowWhitespace(bool show);
     bool showWhitespace() const;
 
+    void setScrollPastEndOfFile(bool scroll);
+    bool scrollPastEndOfFile() const;
+
     void setHighlightCurrentLine(bool show);
     bool highlightCurrentLine() const;
 
