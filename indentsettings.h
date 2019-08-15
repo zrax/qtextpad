@@ -28,7 +28,7 @@ class IndentSettingsDialog : public QDialog
     Q_OBJECT
 
 public:
-    IndentSettingsDialog(QWidget *parent);
+    explicit IndentSettingsDialog(QWidget *parent);
 
     void loadSettings(SyntaxTextEdit *editor);
     void applySettings(SyntaxTextEdit *editor);

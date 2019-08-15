@@ -246,7 +246,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto longLineAction = viewMenu->addAction(tr("Long Line &Margin"));
     longLineAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_M);
     longLineAction->setCheckable(true);
-    auto longLineSettingsAction = viewMenu->addAction(tr("Long Line Se&ttings..."));
+    auto longLineWidthAction = viewMenu->addAction(tr("Set Long Line Wi&dth..."));
     auto indentGuidesAction = viewMenu->addAction(tr("&Indentation Guides"));
     indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_T);
     indentGuidesAction->setCheckable(true);
@@ -276,7 +276,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(wordWrapAction, &QAction::toggled, m_editor, &SyntaxTextEdit::setWordWrap);
     connect(longLineAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setShowLongLineEdge);
-    //connect(longLineSettingsAction, &QAction::triggered, ...);
+    connect(longLineWidthAction, &QAction::triggered,
+            this, &QTextPadWindow::promptLongLineWidth);
     connect(indentGuidesAction, &QAction::toggled,
             m_editor, &SyntaxTextEdit::setShowIndentGuides);
     connect(showLineNumbersAction, &QAction::toggled,
@@ -998,6 +999,16 @@ void QTextPadWindow::promptTabSettings()
         dialog->applySettings(m_editor);
         updateIndentStatus();
     }
+}
+
+void QTextPadWindow::promptLongLineWidth()
+{
+    bool ok;
+    auto width = QInputDialog::getInt(this, tr("Long Line Width"),
+            tr("Set Long Line Margin Position (characters)"),
+            m_editor->longLineWidth(), 0, std::numeric_limits<int>::max(), 1, &ok);
+    if (ok)
+        m_editor->setLongLineWidth(width);
 }
 
 void QTextPadWindow::navigateToLine()

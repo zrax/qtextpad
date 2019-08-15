@@ -89,6 +89,7 @@ public slots:
     void updateIndentStatus();
     void chooseEditorFont();
     void promptTabSettings();
+    void promptLongLineWidth();
     void navigateToLine();
     void toggleFilePath(bool show);
 
