@@ -330,7 +330,7 @@ int SyntaxTextEdit::textColumn(const QString &block, int positionInBlock) const
 
 void SyntaxTextEdit::moveCursorTo(int line, int column)
 {
-    const auto block = document()->findBlockByLineNumber(line - 1);
+    const auto block = document()->findBlockByNumber(line - 1);
     if (!block.isValid() && line > 0) {
         // Just navigate to the end of the file if we don't have the requested
         // line number.
