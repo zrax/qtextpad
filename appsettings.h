@@ -83,8 +83,6 @@ public:
     SIMPLE_SETTING(bool, "Search/Escapes", searchEscapes, setSearchEscapes, false)
     SIMPLE_SETTING(bool, "Search/Wrap", searchWrap, setSearchWrap, true)
 
-    static QString version() { return QStringLiteral("0.9"); }
-
 private:
     QSettings m_settings;
 };

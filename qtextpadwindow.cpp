@@ -50,6 +50,7 @@
 #include "undocommands.h"
 #include "ftdetect.h"
 #include "charsets.h"
+#include "appversion.h"
 
 #define LARGE_FILE_SIZE     (10*1024*1024)  // 10 MiB
 #define DETECTION_SIZE      (      4*1024)
@@ -457,7 +458,7 @@ void QTextPadWindow::showAbout()
         "Copyright \u00A9 2019 Michael Hansen<br />"
         "<br />"
         "<a href=\"https://github.com/zrax/qtextpad\">https://github.com/zrax/qtextpad</a><br />"
-    ).arg(QTextPadSettings::version()));
+    ).arg(QTextPadVersion::versionString()));
     aboutText->setTextInteractionFlags(Qt::TextBrowserInteraction);
     aboutText->setOpenExternalLinks(true);
 

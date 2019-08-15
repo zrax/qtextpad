@@ -43,6 +43,24 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
 endif()
 
+set(APP_VERSION "unknown")
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    find_program(GIT_EXECUTABLE NAMES git git.cmd)
+    mark_as_advanced(GIT_EXECUTABLE)
+    if(GIT_EXECUTABLE)
+        execute_process(COMMAND ${GIT_EXECUTABLE} describe --dirty
+            OUTPUT_VARIABLE APP_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    endif()
+endif()
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/appversion.h" "\
+namespace QTextPadVersion\n\
+{\n\
+    inline QString versionString() { return QStringLiteral(\"${APP_VERSION}\"); }\n\
+}\n\
+")
+
 set(qtextpad_SOURCES
     main.cpp
     appsettings.cpp
@@ -80,6 +98,8 @@ endif()
 
 add_executable(qtextpad WIN32 MACOSX_BUNDLE
                ${qtextpad_SOURCES} ${qtextpad_HEADERS} ${qtextpad_RESOURCES})
+target_include_directories(qtextpad PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+
 target_link_libraries(qtextpad Qt5::Core Qt5::Widgets KF5::SyntaxHighlighting)
 
 if(${Magic_FOUND})
