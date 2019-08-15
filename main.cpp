@@ -23,6 +23,7 @@
 
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"
+#include "appsettings.h"
 
 // Determine if the default icon theme includes the necessary icons for
 // our toolbar.  If not, we need to use our own theme.
@@ -50,8 +51,8 @@ static void setDefaultIconTheme()
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    app.setApplicationName("qtextpad");
-    app.setApplicationVersion("1.0");
+    app.setApplicationName(QStringLiteral("qtextpad"));
+    app.setApplicationVersion(QTextPadSettings::version());
 
     QCommandLineParser parser;
     parser.setApplicationDescription(trMain("qtextpad - The lightweight Qt code and text editor"));

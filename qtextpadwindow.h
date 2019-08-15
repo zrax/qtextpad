@@ -93,6 +93,8 @@ public slots:
     void navigateToLine();
     void toggleFilePath(bool show);
 
+    void showAbout();
+
     // User-triggered actions that store commands in the Undo stack
     void changeEncoding(const QString &encoding);
     void changeLineEndingMode(LineEndingMode mode);
