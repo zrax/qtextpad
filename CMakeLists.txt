@@ -106,4 +106,10 @@ if(${Magic_FOUND})
     target_link_libraries(qtextpad ${Magic_LIBRARY})
 endif()
 
+if(WIN32)
+    install(TARGETS qtextpad RUNTIME DESTINATION .)
+else()
+    install(TARGETS qtextpad RUNTIME DESTINATION bin)
+endif()
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
