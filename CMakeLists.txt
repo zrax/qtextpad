@@ -43,7 +43,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
 endif()
 
-set(APP_VERSION "unknown")
+set(APP_VERSION "0.9-prerelease")
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     find_program(GIT_EXECUTABLE NAMES git git.cmd)
     mark_as_advanced(GIT_EXECUTABLE)
