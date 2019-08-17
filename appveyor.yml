@@ -1,0 +1,69 @@
+version: '0.9-{build}'
+
+image: Visual Studio 2017
+environment:
+  KF5_VERSION: 5.61
+  KF5_FULLVER: 5.61.0
+  QT_VERSION: 5.12.4
+  QT_MINGW: mingw73_64
+
+install:
+  # CMake's MinGW generator doesn't play nice with git's sh.exe
+  - ps: Get-Command sh.exe -All | Remove-Item
+
+before_build:
+  # Get required MinGW libs
+  - C:\msys64\usr\bin\pacman.exe -Sy --noconfirm mingw-w64-x86_64-file
+
+build_script:
+  - set PATH=%PATH%;C:\Qt\Tools\mingw730_64\bin;C:\Qt\%QT_VERSION%\%QT_MINGW%\bin
+  - mkdir build_deps && cd build_deps
+  - curl -LO https://download.kde.org/stable/frameworks/%KF5_VERSION%/extra-cmake-modules-%KF5_FULLVER%.zip
+  - curl -LO https://download.kde.org/stable/frameworks/%KF5_VERSION%/syntax-highlighting-%KF5_FULLVER%.zip
+  - cmake -E tar xf extra-cmake-modules-%KF5_FULLVER%.zip --format=zip
+  - mkdir extra-cmake-modules-%KF5_FULLVER%\build && cd extra-cmake-modules-%KF5_FULLVER%\build
+  - cmake -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH="C:/Qt/%QT_VERSION%/%QT_MINGW%"
+      -DCMAKE_INSTALL_PREFIX="C:/Qt/%QT_VERSION%/%QT_MINGW%"
+      -DCMAKE_BUILD_TYPE=Release ..
+  - cmake --build . --target install
+  - cd ..\..
+  - cmake -E tar xf syntax-highlighting-%KF5_FULLVER%.zip --format=zip
+  - mkdir syntax-highlighting-%KF5_FULLVER%\build && cd syntax-highlighting-%KF5_FULLVER%\build
+  - cmake -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH="C:/Qt/%QT_VERSION%/%QT_MINGW%"
+      -DCMAKE_INSTALL_PREFIX="C:/Qt/%QT_VERSION%/%QT_MINGW%"
+      -DCMAKE_BUILD_TYPE=Release ..
+  - cmake --build .
+  - cmake --build . --target install
+
+  - cd "%APPVEYOR_BUILD_FOLDER%"
+  - mkdir build && cd build
+  - cmake -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH="C:/Qt/%QT_VERSION%/%QT_MINGW%"
+      -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/dist/qtextpad-win64"
+      -DMagic_INCLUDE_DIR="C:/msys64/mingw64/include"
+      -DMagic_LIBRARY="C:/msys64/mingw64/lib/libmagic.dll.a"
+      -DCMAKE_BUILD_TYPE=Release ..
+  - cmake --build .
+
+after_build:
+  - cmake --build . --target install
+  - C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\windeployqt.exe
+      "%APPVEYOR_BUILD_FOLDER%\dist\qtextpad-win64\qtextpad.exe" --release
+  - cd "%APPVEYOR_BUILD_FOLDER%\dist"
+  - cmake -E copy C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\libKF5SyntaxHighlighting.dll
+      C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\Qt5Network.dll
+      C:\msys64\mingw64\bin\libmagic-1.dll
+      C:\msys64\mingw64\bin\libsystre-0.dll
+      C:\msys64\mingw64\bin\libtre-5.dll
+      C:\msys64\mingw64\bin\libintl-8.dll
+      C:\msys64\mingw64\bin\libiconv-2.dll
+      C:\msys64\mingw64\share\misc\magic.mgc
+      C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\data
+      qtextpad-win64
+  - cmake -E copy_directory C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\data qtextpad-win64\data
+  - cmake -E remove qtextpad-win64\D3Dcompiler_47.dll
+      qtextpad-win64\libGLESv2.dll qtextpad-win64\libEGL.dll
+      qtextpad-win64\opengl32sw.dll
+  - cmake -E tar cf ..\qtextpad-win64-%APPVEYOR_BUILD_VERSION%.zip --format=zip qtextpad-win64
+
+artifacts:
+  - path: qtextpad-win64-*.zip
