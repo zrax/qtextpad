@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=QTextPad
+Comment=Lightweight Qt Text Editor
+Exec=qtextpad %f
+Type=Application
+MimeType=text/plain;
+StartupNotify=true
+Icon=qtextpad
+Terminal=false
+Categories=Qt;Utility;TextEditor;
