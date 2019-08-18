@@ -43,7 +43,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
 endif()
 
-set(APP_VERSION "0.9-prerelease")
+set(APP_MAJOR 0)
+set(APP_MINOR 9)
+set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}-prerelease")
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     find_program(GIT_EXECUTABLE NAMES git git.cmd)
     mark_as_advanced(GIT_EXECUTABLE)
@@ -90,6 +92,11 @@ set(qtextpad_HEADERS
 set(qtextpad_RESOURCES
     qtextpad.qrc
 )
+
+if(WIN32)
+    configure_file(app_winrc.h.in app_winrc.h @ONLY)
+    list(APPEND qtextpad_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/qtextpad.rc")
+endif()
 
 if(${Magic_FOUND})
     add_definitions(-DHAVE_LIBMAGIC)

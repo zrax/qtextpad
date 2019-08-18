@@ -1,0 +1,37 @@
+#include "winver.h"
+#include "app_winrc.h"
+
+APP_ICON    ICON    DISCARDABLE     "icons/qtextpad.ico"
+
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION APP_FILE_VERSION_NUM
+    PRODUCTVERSION APP_PRODUCT_VERSION_NUM
+    FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+    FILEFLAGS 0x1L
+#else
+    FILEFLAGS 0x0L
+#endif
+    FILEOS 0x4L
+    FILETYPE 0x1L
+    FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Michael Hansen"
+            VALUE "FileVersion", APP_FILE_VERSION_STR
+            VALUE "FileDescription", "Lightweight Qt Text Editor"
+            VALUE "InternalName", "qtextpad"
+            VALUE "LegalCopyright", "Copyright (C) 2019 Michael Hansen"
+            VALUE "OriginalFilename", "qtextpad.exe"
+            VALUE "ProductName", "QTextPad"
+            VALUE "ProductVersion", APP_PRODUCT_VERSION_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
