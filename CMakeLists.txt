@@ -22,22 +22,21 @@ set(CMAKE_CXX_STANDARD 11)
 
 include(FeatureSummary)
 
-find_package(Qt5Core 5.4 REQUIRED)
-find_package(Qt5Widgets REQUIRED)
+find_package(Qt5 5.4 REQUIRED COMPONENTS Core Widgets)
 
 find_package(KF5SyntaxHighlighting REQUIRED)
 set_package_properties(KF5SyntaxHighlighting PROPERTIES
-        URL "https://community.kde.org/Frameworks"
-        DESCRIPTION "Syntax Highlighting framework for Qt5"
-        TYPE REQUIRED)
+    URL "https://community.kde.org/Frameworks"
+    DESCRIPTION "Syntax Highlighting framework for Qt5"
+    TYPE REQUIRED)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Magic)
 set_package_properties(Magic PROPERTIES
-        URL "https://www.darwinsys.com/file/"
-        DESCRIPTION "File type identification library"
-        TYPE RECOMMENDED
-        PURPOSE "Provides improved auto-detection of file types and encodings")
+    URL "https://www.darwinsys.com/file/"
+    DESCRIPTION "File type identification library"
+    TYPE RECOMMENDED
+    PURPOSE "Provides improved auto-detection of file types and encodings")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
@@ -63,54 +62,54 @@ namespace QTextPadVersion\n\
 }\n\
 ")
 
-set(qtextpad_SOURCES
-    main.cpp
-    appsettings.cpp
-    charsets.cpp
-    ftdetect.cpp
-    indentsettings.cpp
-    qtextpadwindow.cpp
-    searchdialog.cpp
-    settingspopup.cpp
-    syntaxtextedit.cpp
-    undocommands.cpp
-)
+add_executable(qtextpad WIN32 MACOSX_BUNDLE main.cpp)
+target_include_directories(qtextpad PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
-set(qtextpad_HEADERS
-    activationlabel.h
-    appsettings.h
-    charsets.h
-    ftdetect.h
-    indentsettings.h
-    qtextpadwindow.h
-    searchdialog.h
-    settingspopup.h
-    syntaxtextedit.h
-    undocommands.h
-)
+target_sources(qtextpad
+    PRIVATE
+        activationlabel.h
+        appsettings.h
+        appsettings.cpp
+        charsets.h
+        charsets.cpp
+        ftdetect.h
+        ftdetect.cpp
+        indentsettings.h
+        indentsettings.cpp
+        qtextpadwindow.h
+        qtextpadwindow.cpp
+        searchdialog.h
+        searchdialog.cpp
+        settingspopup.h
+        settingspopup.cpp
+        syntaxtextedit.h
+        syntaxtextedit.cpp
+        undocommands.h
+        undocommands.cpp
 
-set(qtextpad_RESOURCES
-    qtextpad.qrc
+        # AUTORCC:
+        qtextpad.qrc
 )
 
 if(WIN32)
     configure_file(app_winrc.h.in app_winrc.h @ONLY)
-    list(APPEND qtextpad_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/qtextpad.rc")
+    target_sources(qtextpad PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/qtextpad.rc")
 endif()
 
 if(${Magic_FOUND})
-    add_definitions(-DHAVE_LIBMAGIC)
+    target_compile_definitions(qtextpad PRIVATE HAVE_LIBMAGIC)
     include_directories(${Magic_INCLUDE_DIR})
 endif()
 
-add_executable(qtextpad WIN32 MACOSX_BUNDLE
-               ${qtextpad_SOURCES} ${qtextpad_HEADERS} ${qtextpad_RESOURCES})
-target_include_directories(qtextpad PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-
-target_link_libraries(qtextpad Qt5::Core Qt5::Widgets KF5::SyntaxHighlighting)
+target_link_libraries(qtextpad
+    PRIVATE
+        Qt5::Core
+        Qt5::Widgets
+        KF5::SyntaxHighlighting
+)
 
 if(${Magic_FOUND})
-    target_link_libraries(qtextpad ${Magic_LIBRARY})
+    target_link_libraries(qtextpad PRIVATE ${Magic_LIBRARY})
 endif()
 
 if(APPLE)
