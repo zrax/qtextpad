@@ -36,7 +36,7 @@ static void setDefaultIconTheme()
         "edit-find", "edit-find-replace",
     };
     bool defaultThemeOk = true;
-    for (const auto name : iconNames) {
+    for (const auto &name : iconNames) {
         if (!QIcon::hasThemeIcon(name)) {
             defaultThemeOk = false;
             break;

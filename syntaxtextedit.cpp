@@ -295,7 +295,7 @@ void SyntaxTextEdit::updateTabMetrics()
     // on many fonts.  Hack from QtCreator: Set it in the text option instead
     const qreal tabWidth = QFontMetricsF(font()).width(QString(m_tabCharSize, ' '));
     QTextOption opt = document()->defaultTextOption();
-#if QT_VERSION_CHECK(5, 10, 0)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     opt.setTabStopDistance(tabWidth);
 #else
     opt.setTabStop(tabWidth);
