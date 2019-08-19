@@ -19,8 +19,6 @@
 #include <QTextCodec>
 #include <QCoreApplication>
 
-#define trCharsets(text) QCoreApplication::translate("QTextPadCharsets", text)
-
 // Greatly simplified version from KCharsets with no Latin-1 fallback
 QTextCodec *QTextPadCharsets::codecForName(const QString &name)
 {
@@ -54,35 +52,35 @@ QTextPadCharsets::QTextPadCharsets()
 {
     m_encodingCache.reserve(17);
     m_encodingCache.append(QStringList {
-        trCharsets("Arabic"),
+        tr("Arabic"),
         "ISO-8859-6",
         "windows-1256",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Baltic"),
+        tr("Baltic"),
         "ISO-8859-4",
         "ISO-8859-13",
         "windows-1257",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Central European"),
+        tr("Central European"),
         "ISO-8859-2",
         "ISO-8859-3",
         "ISO-8859-10",
         "windows-1250",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Chinese Simplified"),
+        tr("Chinese Simplified"),
         "GB18030",
         "GBK",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Chinese Traditional"),
+        tr("Chinese Traditional"),
         "Big5",
         "Big5-HKSCS",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Cyrillic"),
+        tr("Cyrillic"),
         "IBM866",
         "ISO-8859-5",
         "KOI8-R",
@@ -90,21 +88,21 @@ QTextPadCharsets::QTextPadCharsets()
         "windows-1251",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Eastern European"),
+        tr("Eastern European"),
         "ISO-8859-16",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Greek"),
+        tr("Greek"),
         "ISO-8859-7",
         "windows-1253",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Hebrew"),
+        tr("Hebrew"),
         "ISO-8859-8",
         "windows-1255",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Indic"),
+        tr("Indic"),
         "iscii-bng",
         "iscii-dev",
         "iscii-gjr",
@@ -116,26 +114,26 @@ QTextPadCharsets::QTextPadCharsets()
         "iscii-tml",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Japanese"),
+        tr("Japanese"),
         "EUC-JP",
         "ISO-2022-JP",
         "Shift_JIS",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Korean"),
+        tr("Korean"),
         "windows-949",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Thai"),
+        tr("Thai"),
         "TIS-620",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Turkish"),
+        tr("Turkish"),
         "ISO-8859-9",
         "windows-1254",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Western European"),
+        tr("Western European"),
         "IBM850",
         "ISO-8859-1",
         "ISO-8859-14",
@@ -144,13 +142,13 @@ QTextPadCharsets::QTextPadCharsets()
         "windows-1252",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Other"),
+        tr("Other"),
         "macintosh",
         "TSCII",
         "windows-1258",
     });
     m_encodingCache.append(QStringList {
-        trCharsets("Unicode"),
+        tr("Unicode"),
         "UTF-7",
         "UTF-8",
         "UTF-16LE",

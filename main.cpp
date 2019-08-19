@@ -15,6 +15,8 @@
  */
 
 #include <QApplication>
+#include <QTranslator>
+#include <QLibraryInfo>
 #include <QCommandLineParser>
 #include <QIcon>
 
@@ -46,29 +48,39 @@ static void setDefaultIconTheme()
         QIcon::setThemeName(QStringLiteral("qtextpad"));
 }
 
-#define trMain(text) QCoreApplication::translate("main", text)
-
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("qtextpad"));
     app.setApplicationVersion(QTextPadVersion::versionString());
 
+    QTranslator qtTranslator;
+    if (qtTranslator.load(QStringLiteral("qt_") + QLocale::system().name(),
+                          QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+        QCoreApplication::installTranslator(&qtTranslator);
+
+    QTranslator appTranslator;
+    if (appTranslator.load(QStringLiteral("qtextedit_") + QLocale::system().name()))
+        QCoreApplication::installTranslator(&appTranslator);
+
     QCommandLineParser parser;
-    parser.setApplicationDescription(trMain("qtextpad - The lightweight Qt code and text editor"));
+    parser.setApplicationDescription(
+            QCoreApplication::translate("main", "qtextpad - The lightweight Qt code and text editor"));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument("filename", trMain("A document to open at startup"),
-                                 trMain("[filename]"));
-    parser.addPositionalArgument("line", trMain("Move the cursor to the specified line"),
-                                 trMain("[+line]"));
+    parser.addPositionalArgument("filename",
+            QCoreApplication::translate("main", "A document to open at startup"),
+            QCoreApplication::translate("main", "[filename]"));
+    parser.addPositionalArgument("line",
+            QCoreApplication::translate("main", "Move the cursor to the specified line"),
+            QCoreApplication::translate("main", "[+line]"));
 
     const QCommandLineOption encodingOption(QStringList() << "e" << "encoding",
-            trMain("Specify the encoding of the file (default: detect)"),
-            trMain("encoding"));
+            QCoreApplication::translate("main", "Specify the encoding of the file (default: detect)"),
+            QCoreApplication::translate("main", "encoding"));
     const QCommandLineOption syntaxOption(QStringList() << "S" << "syntax",
-            trMain("Specify the syntax definition to use for the file (default: detect)"),
-            trMain("syntax"));
+            QCoreApplication::translate("main", "Specify the syntax definition to use for the file (default: detect)"),
+            QCoreApplication::translate("main", "syntax"));
     parser.addOption(encodingOption);
     parser.addOption(syntaxOption);
 
@@ -98,15 +110,15 @@ int main(int argc, char *argv[])
             QStringList parts = arg.split(QLatin1Char(','));
             startupLine = parts.at(0).midRef(1).toInt(&ok, 0);
             if (!ok) {
-                qWarning(trMain("Invalid startup line parameter: '%s'").toLocal8Bit().constData(),
-                         arg.toLocal8Bit().constData());
+                qWarning("%s", QCoreApplication::translate("main", "Invalid startup line parameter: '%1'")
+                               .arg(arg).toLocal8Bit().constData());
                 startupLine = -1;
             }
             if (parts.size() > 1) {
                 startupCol = parts.at(1).toInt(&ok, 0);
                 if (!ok) {
-                    qWarning(trMain("Invalid startup line parameter: '%s'").toLocal8Bit().constData(),
-                             arg.toLocal8Bit().constData());
+                    qWarning("%s", QCoreApplication::translate("main", "Invalid startup line parameter: '%1'")
+                                   .arg(arg).toLocal8Bit().constData());
                     startupCol = -1;
                 }
             }
@@ -127,8 +139,8 @@ int main(int argc, char *argv[])
             if (syntaxDef.isValid()) {
                 win.setSyntax(syntaxDef);
             } else {
-                qDebug(trMain("Invalid syntax definition specified: %s").toLocal8Bit().constData(),
-                       parser.value(syntaxOption).toLocal8Bit().constData());
+                qDebug("%s", QCoreApplication::translate("main", "Invalid syntax definition specified: %1")
+                             .arg(parser.value(syntaxOption)).toLocal8Bit().constData());
             }
         }
     }

@@ -18,12 +18,15 @@
 #define _CHARSETS_H
 
 #include <QStringList>
+#include <QCoreApplication>
 
 class QTextCodec;
 
 // Simplified version of KCharsets with more standard names and fewer duplicates
 class QTextPadCharsets
 {
+    Q_DECLARE_TR_FUNCTIONS(QTextPadCharsets)
+
 public:
     static QTextCodec *codecForName(const QString &name);
 

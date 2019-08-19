@@ -547,7 +547,7 @@ void QTextPadWindow::setEncoding(const QString &codecName)
         m_setEncodingActions->checkedAction()->setChecked(false);
 
     if (!QTextPadCharsets::codecForName(codecName)) {
-        qWarning(tr("Invalid codec selected").toLocal8Bit().constData());
+        qWarning("Invalid codec selected");
         m_encodingButton->setText(tr("Invalid (%1)").arg(codecName));
     } else {
         // Use the passed name for UI consistency
@@ -696,7 +696,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     if (!textEncoding.isEmpty()) {
         codec = QTextPadCharsets::codecForName(textEncoding);
         if (!codec) {
-            qDebug(tr("Invalid manually-specified encoding: %s").toLocal8Bit().constData(),
+            qDebug("Invalid manually-specified encoding: %s",
                    textEncoding.toLocal8Bit().constData());
         }
     }
