@@ -536,6 +536,8 @@ void QTextPadWindow::setTheme(const KSyntaxHighlighting::Theme &theme)
             break;
         }
     }
+
+    QTextPadSettings().setEditorTheme(theme.name());
 }
 
 void QTextPadWindow::setEncoding(const QString &codecName)

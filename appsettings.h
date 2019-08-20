@@ -62,8 +62,8 @@ public:
     QFont editorFont() const;
     void setEditorFont(const QFont &font);
 
-    QString editorTheme() const { return m_settings.value("Theme").toString(); }
-    void setEditorTheme(const QString &theme) { m_settings.setValue("Theme", theme); }
+    QString editorTheme() const { return m_settings.value("Editor/Theme").toString(); }
+    void setEditorTheme(const QString &theme) { m_settings.setValue("Editor/Theme", theme); }
 
     QSize windowSize() const;
     void setWindowSize(const QSize &size) { m_settings.setValue("WindowSize", size); }
