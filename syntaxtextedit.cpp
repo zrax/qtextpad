@@ -19,6 +19,7 @@
 #include <QScrollBar>
 #include <QTextBlock>
 #include <QPainter>
+#include <QPrinter>
 #include <QRegularExpression>
 #include <QStack>
 
@@ -980,4 +981,31 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
             block = block.next();
         }
     }
+}
+
+void SyntaxTextEdit::printDocument(QPrinter *printer)
+{
+    // Override settings for printing
+    auto displayTheme = m_highlighter->theme();
+    auto printingTheme = syntaxRepo()->theme(QStringLiteral("Printing"));
+    if (!printingTheme.isValid())
+        printingTheme = syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
+    if (printingTheme.isValid())
+        setTheme(printingTheme);
+
+    auto displayOption = document()->defaultTextOption();
+    auto printOption = displayOption;
+    printOption.setFlags(printOption.flags() & ~QTextOption::ShowTabsAndSpaces);
+    document()->setDefaultTextOption(printOption);
+
+    auto displayWrapMode = wordWrapMode();
+    setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+
+    // Let the document handle its own print formatting
+    print(printer);
+
+    // Restore display settings
+    setWordWrapMode(displayWrapMode);
+    document()->setDefaultTextOption(displayOption);
+    setTheme(displayTheme);
 }

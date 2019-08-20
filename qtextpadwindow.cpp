@@ -29,6 +29,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
+#include <QPrintDialog>
+#include <QPrintPreviewDialog>
 #include <QDialogButtonBox>
 #include <QClipboard>
 #include <QUndoStack>
@@ -36,6 +38,7 @@
 #include <QTextCodec>
 #include <QTimer>
 #include <QFileInfo>
+#include <QPrinter>
 
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
@@ -156,8 +159,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(saveAction, &QAction::triggered, this, &QTextPadWindow::saveDocument);
     connect(saveAsAction, &QAction::triggered, this, &QTextPadWindow::saveDocumentAs);
     connect(saveCopyAction, &QAction::triggered, this, &QTextPadWindow::saveDocumentCopy);
-    //connect(printAction, &QAction::triggered, ...);
-    //connect(printPreviewAction, &QAction::triggered, ...);
+    connect(printAction, &QAction::triggered, this, &QTextPadWindow::printDocument);
+    connect(printPreviewAction, &QAction::triggered, this, &QTextPadWindow::printPreviewDocument);
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
 
     QMenu *editMenu = menuBar()->addMenu(tr("&Edit"));
@@ -883,6 +886,27 @@ void QTextPadWindow::reloadDocumentEncoding(const QString &textEncoding)
         setEncoding(oldEncoding);
 }
 
+void QTextPadWindow::printDocument()
+{
+    QPrinter printer;
+    printer.setDocName(documentTitle());
+
+    QPrintDialog printDialog(&printer, this);
+    if (printDialog.exec() == QDialog::Accepted)
+        m_editor->printDocument(&printer);
+}
+
+void QTextPadWindow::printPreviewDocument()
+{
+    QPrinter printer;
+    printer.setDocName(documentTitle());
+
+    QPrintPreviewDialog previewDialog(&printer, this);
+    connect(&previewDialog, &QPrintPreviewDialog::paintRequested,
+            m_editor, &SyntaxTextEdit::printDocument);
+    previewDialog.exec();
+}
+
 void QTextPadWindow::editorContextMenu(const QPoint &pos)
 {
     std::unique_ptr<QMenu> menu(new QMenu(m_editor));
@@ -1166,7 +1190,7 @@ void QTextPadWindow::populateSyntaxMenu()
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
     const auto syntaxDefs = syntaxRepo->definitions();
     QMap<QString, QMenu *> groupMenus;
-    for (const auto def : syntaxDefs) {
+    for (const auto &def : syntaxDefs) {
         if (def.isHidden() || def == SyntaxTextEdit::nullSyntax())
             continue;
 
@@ -1189,7 +1213,7 @@ void QTextPadWindow::populateThemeMenu()
 
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
     const auto themeDefs = syntaxRepo->themes();
-    for (const auto theme : themeDefs) {
+    for (const auto &theme : themeDefs) {
         auto item = m_themeMenu->addAction(theme.translatedName());
         item->setCheckable(true);
         item->setActionGroup(m_themeActions);

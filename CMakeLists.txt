@@ -22,7 +22,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include(FeatureSummary)
 
-find_package(Qt5 5.4 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt5 5.4 REQUIRED COMPONENTS Core Widgets PrintSupport)
 
 find_package(KF5SyntaxHighlighting REQUIRED)
 set_package_properties(KF5SyntaxHighlighting PROPERTIES
@@ -105,6 +105,7 @@ target_link_libraries(qtextpad
     PRIVATE
         Qt5::Core
         Qt5::Widgets
+        Qt5::PrintSupport
         KF5::SyntaxHighlighting
 )
 

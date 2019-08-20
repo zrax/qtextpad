@@ -28,6 +28,8 @@ namespace KSyntaxHighlighting
 
 class WhitespaceSyntaxHighlighter;
 
+class QPrinter;
+
 class SyntaxTextEdit : public QPlainTextEdit
 {
     Q_OBJECT
@@ -110,6 +112,8 @@ public slots:
     void zoomIn();      // Hides QPlainTextEdit::zoomIn(int = 1)
     void zoomOut();     // Hides QPlainTextEdit::zoomOut(int = 1)
     void zoomReset();
+
+    void printDocument(QPrinter *printer);
 
 private slots:
     void updateMargins();

@@ -81,6 +81,8 @@ public slots:
     bool loadDocument();
     bool reloadDocument();
     void reloadDocumentEncoding(const QString &textEncoding);
+    void printDocument();
+    void printPreviewDocument();
 
     void editorContextMenu(const QPoint& pos);
     void updateCursorPosition();
