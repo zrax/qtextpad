@@ -694,7 +694,8 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
             return false;
     }
 
-    auto detect = FileDetection::detect(file.read(DETECTION_SIZE), filename);
+    auto detectBuffer = file.read(DETECTION_SIZE);
+    auto detect = FileDetection::detect(detectBuffer, filename);
     setLineEndingMode(detect.lineEndings());
 
     QTextCodec *codec = Q_NULLPTR;
@@ -709,9 +710,9 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         codec = detect.textCodec();
     setEncoding(codec->name());
 
-    file.seek(detect.bomOffset());
     auto decoder = codec->makeDecoder();
     QStringList pieces;
+    pieces << decoder->toUnicode(detectBuffer.mid(detect.bomOffset()));
     for ( ;; ) {
         const auto buffer = file.read(DECODE_BLOCK_SIZE);
         if (buffer.size() == 0)
