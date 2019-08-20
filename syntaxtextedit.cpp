@@ -986,6 +986,10 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
 void SyntaxTextEdit::printDocument(QPrinter *printer)
 {
     // Override settings for printing
+    auto displayFont = font();
+    setFont(defaultFont());
+    updateTabMetrics();
+
     auto displayTheme = m_highlighter->theme();
     auto printingTheme = syntaxRepo()->theme(QStringLiteral("Printing"));
     if (!printingTheme.isValid())
@@ -1008,4 +1012,6 @@ void SyntaxTextEdit::printDocument(QPrinter *printer)
     setWordWrapMode(displayWrapMode);
     document()->setDefaultTextOption(displayOption);
     setTheme(displayTheme);
+    setFont(displayFont);
+    updateTabMetrics();
 }
