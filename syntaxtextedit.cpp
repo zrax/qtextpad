@@ -462,9 +462,6 @@ QFont SyntaxTextEdit::defaultFont() const
 
 void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
 {
-    auto syntaxDef = m_highlighter->definition();
-    m_highlighter->setDefinition(nullSyntax());
-
     QPalette pal = palette();
     pal.setColor(QPalette::Text, theme.textColor(KSyntaxHighlighting::Theme::Normal));
     pal.setColor(QPalette::Base, theme.editorColor(KSyntaxHighlighting::Theme::BackgroundColor));
@@ -486,7 +483,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     m_errorBg = theme.editorColor(KSyntaxHighlighting::Theme::MarkError);
 
     m_highlighter->setTheme(theme);
-    m_highlighter->setDefinition(syntaxDef);
+    m_highlighter->rehighlight();
 }
 
 void SyntaxTextEdit::setSyntax(const KSyntaxHighlighting::Definition &syntax)
