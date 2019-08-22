@@ -693,18 +693,24 @@ void SyntaxTextEdit::indentSelection()
             }
         }
 
-        const int spaces = m_indentWidth - (leadingIndent % m_indentWidth);
         cursor.movePosition(QTextCursor::StartOfLine);
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor,
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor,
                             startOfLine);
+        cursor.removeSelectedText();
+
+        const int indent = leadingIndent + (m_indentationMode == IndentTabs
+                                            ? m_tabCharSize : m_indentWidth);
         if (m_indentationMode == IndentSpaces) {
-            cursor.insertText(QString(spaces, ' '));
+            cursor.insertText(QString(indent, ' '));
         } else {
-            // TODO: Handle mixed
-            cursor.insertText(QString(spaces / m_tabCharSize, '\t'));
+            const int tabs = indent / m_tabCharSize;
+            const int spaces = indent % m_tabCharSize;
+            cursor.insertText(QString(tabs, '\t'));
+            cursor.insertText(QString(spaces, ' '));
         }
 
-        cursor.movePosition(QTextCursor::NextBlock);
+        if (!cursor.movePosition(QTextCursor::NextBlock))
+            break;
     } while (cursor.blockNumber() <= endBlock);
 
     cursor.endEditBlock();
@@ -734,23 +740,27 @@ void SyntaxTextEdit::outdentSelection()
                 break;
             }
         }
-        if ((leadingIndent % m_tabCharSize) != 0)
-            leadingIndent -= (leadingIndent % m_tabCharSize);
-        else if (leadingIndent > 0)
-            leadingIndent -= m_tabCharSize;
 
         cursor.movePosition(QTextCursor::StartOfLine);
         cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor,
                             startOfLine);
         cursor.removeSelectedText();
-        if (m_indentationMode == IndentSpaces) {
-            cursor.insertText(QString(leadingIndent, ' '));
-        } else {
-            // TODO: Handle mixed
-            cursor.insertText(QString(leadingIndent / m_tabCharSize, '\t'));
+
+        const int indent = leadingIndent - (m_indentationMode == IndentTabs
+                                            ? m_tabCharSize : m_indentWidth);
+        if (indent > 0) {
+            if (m_indentationMode == IndentSpaces) {
+                cursor.insertText(QString(indent, ' '));
+            } else {
+                const int tabs = indent / m_tabCharSize;
+                const int spaces = indent % m_tabCharSize;
+                cursor.insertText(QString(tabs, '\t'));
+                cursor.insertText(QString(spaces, ' '));
+            }
         }
 
-        cursor.movePosition(QTextCursor::NextBlock);
+        if (!cursor.movePosition(QTextCursor::NextBlock))
+            break;
     } while (cursor.blockNumber() <= endBlock);
 
     cursor.endEditBlock();
@@ -793,6 +803,8 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
     case Qt::Key_Tab:
         if (haveSelection()) {
             indentSelection();
+        } else if (m_indentationMode == IndentTabs) {
+            textCursor().insertText(QStringLiteral("\t"));
         } else if (m_indentationMode == IndentSpaces) {
             QTextCursor cursor = textCursor();
             const QString blockText = cursor.block().text();
@@ -807,8 +819,44 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
             const int spaces = m_indentWidth - (vpos % m_indentWidth);
             cursor.insertText(QString(spaces, ' '));
         } else {
-            // TODO: Handle mixed
-            textCursor().insertText(QStringLiteral("\t"));
+            QTextCursor cursor = textCursor();
+            const QString blockText = cursor.block().text();
+            const QStringRef cursorText = blockText.leftRef(cursor.positionInBlock());
+            int vpos = 0, cpos = 0;
+            int wsvStart = 0, wscStart = 0;
+            for (const auto ch : cursorText) {
+                cpos += 1;
+                if (ch == QLatin1Char('\t')) {
+                    vpos += (m_tabCharSize - (vpos % m_tabCharSize));
+                } else {
+                    vpos += 1;
+                    if (ch != QLatin1Char(' ')) {
+                        wsvStart = vpos;
+                        wscStart = cpos;
+                    }
+                }
+            }
+
+            // Fix up only the current block of whitespace up to the
+            // cursor position.  This most closely matches vim's mixed
+            // indentation (softtabstop+noexpandtab)
+            cursor.beginEditBlock();
+            cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor,
+                                cpos - wscStart);
+            cursor.removeSelectedText();
+
+            const int indentTo = vpos + m_indentWidth - (vpos % m_indentWidth);
+            vpos = wsvStart;
+            const int alignTo = m_tabCharSize - (vpos % m_tabCharSize);
+            if (vpos + alignTo <= indentTo) {
+                cursor.insertText(QStringLiteral("\t"));
+                vpos += alignTo;
+            }
+            const int tabs = (indentTo - vpos) / m_tabCharSize;
+            const int spaces = (indentTo - vpos) % m_tabCharSize;
+            cursor.insertText(QString(tabs, '\t'));
+            cursor.insertText(QString(spaces, ' '));
+            cursor.endEditBlock();
         }
         e->accept();
         break;
