@@ -817,16 +817,11 @@ void QTextPadWindow::newDocument()
 
 bool QTextPadWindow::saveDocument()
 {
-    QString path = m_openFilename;
-    if (path.isEmpty()) {
-        path = QFileDialog::getSaveFileName(this, tr("Save File"));
-        if (path.isEmpty())
-            return false;
-    }
-    if (!saveDocumentTo(path))
+    if (m_openFilename.isEmpty())
+        return saveDocumentAs();
+    if (!saveDocumentTo(m_openFilename))
         return false;
 
-    m_openFilename = path;
     m_undoStack->setClean();
     updateTitle();
     return true;
@@ -834,7 +829,13 @@ bool QTextPadWindow::saveDocument()
 
 bool QTextPadWindow::saveDocumentAs()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save File As"));
+    QString startPath;
+    if (!m_openFilename.isEmpty()) {
+        QFileInfo fi(m_openFilename);
+        startPath = fi.absoluteFilePath();
+    }
+
+    QString path = QFileDialog::getSaveFileName(this, tr("Save File As"), startPath);
     if (path.isEmpty())
         return false;
     if (!saveDocumentTo(path))
@@ -848,7 +849,13 @@ bool QTextPadWindow::saveDocumentAs()
 
 bool QTextPadWindow::saveDocumentCopy()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save Copy As"));
+    QString startPath;
+    if (!m_openFilename.isEmpty()) {
+        QFileInfo fi(m_openFilename);
+        startPath = fi.absolutePath();
+    }
+
+    QString path = QFileDialog::getSaveFileName(this, tr("Save Copy As"), startPath);
     if (path.isEmpty())
         return false;
     return saveDocumentTo(path);
