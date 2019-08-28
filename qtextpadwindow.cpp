@@ -671,7 +671,8 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         return false;
     }
 
-    QTextPadSettings().addRecentFile(filename, m_textEncoding);
+    const QTextCursor cursor = m_editor->textCursor();
+    QTextPadSettings().addRecentFile(filename, m_textEncoding, cursor.blockNumber() + 1);
     populateRecentFiles();
 
     return true;
@@ -735,8 +736,12 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     if (definition.isValid())
         setSyntax(definition);
 
+    auto prevLine = QTextPadSettings().recentFilePosition(filename);
+    if (prevLine)
+        gotoLine(prevLine);
+
     m_openFilename = filename;
-    QTextPadSettings().addRecentFile(filename, textEncoding);
+    QTextPadSettings().addRecentFile(filename, textEncoding, prevLine);
     populateRecentFiles();
 
     m_undoStack->clear();
@@ -765,6 +770,11 @@ void QTextPadWindow::gotoLine(int line, int column)
 
 bool QTextPadWindow::promptForSave()
 {
+    if (!m_openFilename.isEmpty()) {
+        const QTextCursor cursor = m_editor->textCursor();
+        QTextPadSettings().setRecentFilePosition(m_openFilename, cursor.blockNumber() + 1);
+    }
+
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Would you like to save your changes first?")
@@ -1166,13 +1176,11 @@ void QTextPadWindow::populateRecentFiles()
 
     auto recentFiles = QTextPadSettings().recentFiles();
     for (const auto &recent : recentFiles) {
-        auto fileInfo = recent.split(QLatin1Char('\0'));
-        QFileInfo info(fileInfo.first());
+        QFileInfo info(recent.m_path);
         const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
         auto recentFileAction = m_recentFiles->addAction(label);
-        connect(recentFileAction, &QAction::triggered, [this, fileInfo]() {
-            const QString encoding = fileInfo.size() > 1 ? fileInfo.at(1) : QString();
-            loadDocumentFrom(fileInfo.first(), encoding);
+        connect(recentFileAction, &QAction::triggered, [this, recent]() {
+            loadDocumentFrom(recent.m_path, recent.m_encoding);
         });
     }
 

@@ -20,9 +20,35 @@
 #include <QFileInfo>
 #include <QFont>
 #include <QSize>
+#include <QDataStream>
 
 #define RECENT_FILES        10
 #define RECENT_SEARCHES     20
+
+QDataStream &operator<<(QDataStream &out, const RecentFile &file)
+{
+    out << file.m_path
+        << file.m_encoding
+        << file.m_line;
+    return out;
+}
+
+QDataStream &operator>>(QDataStream &in, RecentFile &file)
+{
+    in >> file.m_path;
+    in >> file.m_encoding;
+    in >> file.m_line;
+    return in;
+}
+
+struct RegisterMetaType_RecentFile
+{
+    RegisterMetaType_RecentFile()
+    {
+        qRegisterMetaTypeStreamOperators<RecentFile>("RecentFile");
+    }
+};
+static RegisterMetaType_RecentFile _autoreg_RecentFile;
 
 QTextPadSettings::QTextPadSettings()
     : m_settings(QSettings::IniFormat, QSettings::UserScope,
@@ -39,9 +65,16 @@ QString QTextPadSettings::settingsDir() const
     return settingsFile.absolutePath();
 }
 
-QStringList QTextPadSettings::recentFiles() const
+QList<RecentFile> QTextPadSettings::recentFiles() const
 {
-    return m_settings.value("RecentFiles", QStringList{}).toStringList();
+    QList<RecentFile> recentList;
+    recentList.reserve(RECENT_FILES);
+    for (int i = 0; i < RECENT_FILES; ++i) {
+        auto key = QStringLiteral("RecentFile_%1").arg(i, 2, 10, QLatin1Char('0'));
+        if (m_settings.contains(key))
+            recentList << m_settings.value(key).value<RecentFile>();
+    }
+    return recentList;
 }
 
 #ifdef Q_OS_WIN
@@ -50,31 +83,61 @@ QStringList QTextPadSettings::recentFiles() const
 #define FILE_COMPARE_CS Qt::CaseSensitive
 #endif
 
-void QTextPadSettings::addRecentFile(const QString &filename, const QString &encoding)
+static void commitRecentFiles(QSettings &settings, const QList<RecentFile> &files)
+{
+    for (int i = 0; i < RECENT_FILES; ++i) {
+        if (i >= files.size())
+            break;
+        auto key = QStringLiteral("RecentFile_%1").arg(i, 2, 10, QLatin1Char('0'));
+        settings.setValue(key, QVariant::fromValue(files.at(i)));
+    }
+}
+
+void QTextPadSettings::addRecentFile(const QString &filename, const QString &encoding,
+                                     unsigned int line)
 {
     auto files = recentFiles();
-    QString absFilename = QFileInfo(filename).absoluteFilePath();
+    const QString absFilename = QFileInfo(filename).absoluteFilePath();
     auto iter = files.begin();
     while (iter != files.end()) {
-        auto fileInfo = iter->split(QLatin1Char('\0'));
-        if (fileInfo.first().compare(absFilename, FILE_COMPARE_CS) == 0) {
+        if (iter->m_path.compare(absFilename, FILE_COMPARE_CS) == 0) {
             iter = files.erase(iter);
         } else {
             ++iter;
         }
     }
-    if (!encoding.isEmpty())
-        files.prepend(absFilename + QLatin1Char('\0') + encoding);
-    else
-        files.prepend(absFilename);
-    while (files.size() > RECENT_FILES)
-        files.removeLast();
-    m_settings.setValue("RecentFiles", QVariant::fromValue(files));
+    files.prepend({absFilename, encoding, line});
+    commitRecentFiles(m_settings, files);
 }
 
 void QTextPadSettings::clearRecentFiles()
 {
-    m_settings.setValue("RecentFiles", QStringList{});
+    for (int i = 0; i < RECENT_FILES; ++i) {
+        auto key = QStringLiteral("RecentFile_%1").arg(i, 2, 10, QLatin1Char('0'));
+        m_settings.remove(key);
+    }
+}
+
+unsigned int QTextPadSettings::recentFilePosition(const QString &filename)
+{
+    auto files = recentFiles();
+    const QString absFilename = QFileInfo(filename).absoluteFilePath();
+    for (const auto &file : files) {
+        if (file.m_path.compare(absFilename, FILE_COMPARE_CS) == 0)
+            return file.m_line;
+    }
+    return 0;
+}
+
+void QTextPadSettings::setRecentFilePosition(const QString &filename, unsigned int line)
+{
+    auto files = recentFiles();
+    const QString absFilename = QFileInfo(filename).absoluteFilePath();
+    for (auto &file : files) {
+        if (file.m_path.compare(absFilename, FILE_COMPARE_CS) == 0)
+            file.m_line = line;
+    }
+    commitRecentFiles(m_settings, files);
 }
 
 QFont QTextPadSettings::editorFont() const
