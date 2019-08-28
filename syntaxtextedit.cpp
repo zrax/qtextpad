@@ -359,6 +359,34 @@ void SyntaxTextEdit::moveCursorTo(int line, int column)
     setTextCursor(cursor);
 }
 
+void SyntaxTextEdit::moveLines(QTextCursor::MoveOperation op)
+{
+    auto cursor = textCursor();
+
+    cursor.beginEditBlock();
+    int startPos = cursor.position();
+    int endPos = cursor.anchor();
+    cursor.setPosition(qMin(startPos, endPos));
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    cursor.setPosition(qMax(startPos, endPos), QTextCursor::KeepAnchor);
+    if (startPos == endPos || !cursor.atBlockStart())
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+
+    const auto moveText = cursor.selectedText();
+    cursor.removeSelectedText();
+    const int positionStart = cursor.position();
+    cursor.movePosition(op);
+    const int postionDelta = cursor.position() - positionStart;
+    cursor.insertText(moveText);
+
+    cursor.setPosition(endPos + postionDelta);
+    if (startPos != endPos)
+        cursor.setPosition(startPos + postionDelta, QTextCursor::KeepAnchor);
+    cursor.endEditBlock();
+
+    setTextCursor(cursor);
+}
+
 void SyntaxTextEdit::setAutoIndent(bool ai)
 {
     if (ai)
@@ -909,8 +937,12 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
     case Qt::Key_Up:
         if (e->modifiers() & Qt::ControlModifier) {
-            auto scrollBar = verticalScrollBar();
-            scrollBar->setValue(scrollBar->value() - 1);
+            if (e->modifiers() & Qt::ShiftModifier) {
+                moveLines(QTextCursor::PreviousBlock);
+            } else {
+                auto scrollBar = verticalScrollBar();
+                scrollBar->setValue(scrollBar->value() - 1);
+            }
         } else {
             QPlainTextEdit::keyPressEvent(e);
         }
@@ -918,8 +950,12 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
     case Qt::Key_Down:
         if (e->modifiers() & Qt::ControlModifier) {
-            auto scrollBar = verticalScrollBar();
-            scrollBar->setValue(scrollBar->value() + 1);
+            if (e->modifiers() & Qt::ShiftModifier) {
+                moveLines(QTextCursor::NextBlock);
+            } else {
+                auto scrollBar = verticalScrollBar();
+                scrollBar->setValue(scrollBar->value() + 1);
+            }
         } else {
             QPlainTextEdit::keyPressEvent(e);
         }

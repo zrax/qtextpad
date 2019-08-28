@@ -72,6 +72,8 @@ public:
     int textColumn(const QString &block, int positionInBlock) const;
     void moveCursorTo(int line, int column = 0);
 
+    void moveLines(QTextCursor::MoveOperation op);
+
     void setAutoIndent(bool ai);
     bool autoIndent() const;
 
