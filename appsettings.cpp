@@ -27,7 +27,8 @@
 
 QDataStream &operator<<(QDataStream &out, const RecentFile &file)
 {
-    out << file.m_path
+    out << uint8_t(1)
+        << file.m_path
         << file.m_encoding
         << file.m_line;
     return out;
@@ -35,6 +36,8 @@ QDataStream &operator<<(QDataStream &out, const RecentFile &file)
 
 QDataStream &operator>>(QDataStream &in, RecentFile &file)
 {
+    uint8_t version;
+    in >> version;
     in >> file.m_path;
     in >> file.m_encoding;
     in >> file.m_line;
