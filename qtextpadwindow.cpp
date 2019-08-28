@@ -737,11 +737,11 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         setSyntax(definition);
 
     auto prevLine = QTextPadSettings().recentFilePosition(filename);
-    if (prevLine)
+    if (prevLine > 0)
         gotoLine(prevLine);
 
     m_openFilename = filename;
-    QTextPadSettings().addRecentFile(filename, textEncoding, prevLine);
+    QTextPadSettings().addRecentFile(filename, m_textEncoding, prevLine);
     populateRecentFiles();
 
     m_undoStack->clear();
@@ -881,7 +881,7 @@ bool QTextPadWindow::loadDocument()
         QFileInfo fi(m_openFilename);
         startPath = fi.absolutePath();
     }
-    QString path = QFileDialog::getOpenFileName(this, tr("Load File"), startPath);
+    QString path = QFileDialog::getOpenFileName(this, tr("Open File"), startPath);
     if (path.isEmpty())
         return false;
 

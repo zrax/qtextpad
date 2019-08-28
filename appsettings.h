@@ -27,10 +27,8 @@ struct RecentFile
 {
     QString m_path;
     QString m_encoding;
-    unsigned int m_line;
+    int m_line;
 };
-
-Q_DECLARE_METATYPE(RecentFile)
 
 class QTextPadSettings
 {
@@ -40,11 +38,11 @@ public:
 
     QList<RecentFile> recentFiles() const;
     void addRecentFile(const QString &filename, const QString &encoding,
-                       unsigned int line);
+                       int line);
     void clearRecentFiles();
 
-    unsigned int recentFilePosition(const QString &filename);
-    void setRecentFilePosition(const QString &filename, unsigned int line);
+    int recentFilePosition(const QString &filename);
+    void setRecentFilePosition(const QString &filename, int line);
 
     SIMPLE_SETTING(bool, "ShowToolBar", showToolBar, setShowToolBar, true)
     SIMPLE_SETTING(bool, "ShowStatusBar", showStatusBar, setShowStatusBar, true)

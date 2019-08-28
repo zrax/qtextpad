@@ -25,34 +25,6 @@
 #define RECENT_FILES        10
 #define RECENT_SEARCHES     20
 
-QDataStream &operator<<(QDataStream &out, const RecentFile &file)
-{
-    out << uint8_t(1)
-        << file.m_path
-        << file.m_encoding
-        << file.m_line;
-    return out;
-}
-
-QDataStream &operator>>(QDataStream &in, RecentFile &file)
-{
-    uint8_t version;
-    in >> version;
-    in >> file.m_path;
-    in >> file.m_encoding;
-    in >> file.m_line;
-    return in;
-}
-
-struct RegisterMetaType_RecentFile
-{
-    RegisterMetaType_RecentFile()
-    {
-        qRegisterMetaTypeStreamOperators<RecentFile>("RecentFile");
-    }
-};
-static RegisterMetaType_RecentFile _autoreg_RecentFile;
-
 QTextPadSettings::QTextPadSettings()
     : m_settings(QSettings::IniFormat, QSettings::UserScope,
                  QStringLiteral("QTextPad"), QStringLiteral("qtextpad"))
@@ -73,9 +45,15 @@ QList<RecentFile> QTextPadSettings::recentFiles() const
     QList<RecentFile> recentList;
     recentList.reserve(RECENT_FILES);
     for (int i = 0; i < RECENT_FILES; ++i) {
-        auto key = QStringLiteral("RecentFile_%1").arg(i, 2, 10, QLatin1Char('0'));
-        if (m_settings.contains(key))
-            recentList << m_settings.value(key).value<RecentFile>();
+        const auto keySuffix = QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
+        const auto key = QStringLiteral("RecentFiles/Path") + keySuffix;
+        if (m_settings.contains(key)) {
+            RecentFile fileInfo;
+            fileInfo.m_path = m_settings.value(key).toString();
+            fileInfo.m_encoding = m_settings.value(QStringLiteral("RecentFiles/Encoding") + keySuffix).toString();
+            fileInfo.m_line = m_settings.value(QStringLiteral("RecentFiles/Line") + keySuffix).toInt();
+            recentList << fileInfo;
+        }
     }
     return recentList;
 }
@@ -88,16 +66,23 @@ QList<RecentFile> QTextPadSettings::recentFiles() const
 
 static void commitRecentFiles(QSettings &settings, const QList<RecentFile> &files)
 {
+    settings.beginGroup(QStringLiteral("RecentFiles"));
     for (int i = 0; i < RECENT_FILES; ++i) {
         if (i >= files.size())
             break;
-        auto key = QStringLiteral("RecentFile_%1").arg(i, 2, 10, QLatin1Char('0'));
-        settings.setValue(key, QVariant::fromValue(files.at(i)));
+        const auto &fileInfo = files.at(i);
+        const auto keySuffix = QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
+        settings.setValue(QStringLiteral("Path") + keySuffix, fileInfo.m_path);
+        if (!fileInfo.m_encoding.isEmpty())
+            settings.setValue(QStringLiteral("Encoding") + keySuffix, fileInfo.m_encoding);
+        if (fileInfo.m_line > 0)
+            settings.setValue(QStringLiteral("Line") + keySuffix, fileInfo.m_line);
     }
+    settings.endGroup();
 }
 
 void QTextPadSettings::addRecentFile(const QString &filename, const QString &encoding,
-                                     unsigned int line)
+                                     int line)
 {
     auto files = recentFiles();
     const QString absFilename = QFileInfo(filename).absoluteFilePath();
@@ -115,13 +100,17 @@ void QTextPadSettings::addRecentFile(const QString &filename, const QString &enc
 
 void QTextPadSettings::clearRecentFiles()
 {
+    m_settings.beginGroup(QStringLiteral("RecentFiles"));
     for (int i = 0; i < RECENT_FILES; ++i) {
-        auto key = QStringLiteral("RecentFile_%1").arg(i, 2, 10, QLatin1Char('0'));
-        m_settings.remove(key);
+        const auto keySuffix = QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
+        m_settings.remove(QStringLiteral("Path") + keySuffix);
+        m_settings.remove(QStringLiteral("Encoding") + keySuffix);
+        m_settings.remove(QStringLiteral("Line") + keySuffix);
     }
+    m_settings.endGroup();
 }
 
-unsigned int QTextPadSettings::recentFilePosition(const QString &filename)
+int QTextPadSettings::recentFilePosition(const QString &filename)
 {
     auto files = recentFiles();
     const QString absFilename = QFileInfo(filename).absoluteFilePath();
@@ -132,7 +121,7 @@ unsigned int QTextPadSettings::recentFilePosition(const QString &filename)
     return 0;
 }
 
-void QTextPadSettings::setRecentFilePosition(const QString &filename, unsigned int line)
+void QTextPadSettings::setRecentFilePosition(const QString &filename, int line)
 {
     auto files = recentFiles();
     const QString absFilename = QFileInfo(filename).absoluteFilePath();
