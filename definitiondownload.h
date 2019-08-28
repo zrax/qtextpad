@@ -14,6 +14,13 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _DEFINITIONDOWNLOAD_H
+#define _DEFINITIONDOWNLOAD_H
+
+#include <ksyntaxhighlighting_version.h>
+
+#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
+
 #include <QDialog>
 
 class QPlainTextEdit;
@@ -41,3 +48,7 @@ private:
     QPlainTextEdit *m_status;
     QDialogButtonBox *m_buttonBox;
 };
+
+#endif // SyntaxHighlighting_VERSION check
+
+#endif // _DEFINITIONDOWNLOAD_H

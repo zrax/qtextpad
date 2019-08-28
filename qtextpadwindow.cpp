@@ -1225,6 +1225,7 @@ void QTextPadWindow::populateSyntaxMenu()
         connect(item, &QAction::triggered, [this, def]() { setSyntax(def); });
     }
 
+#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
     (void) m_syntaxMenu->addSeparator();
     auto updateAction = m_syntaxMenu->addAction(tr("Update Definitions"));
     connect(updateAction, &QAction::triggered, this, [this]() {
@@ -1234,6 +1235,7 @@ void QTextPadWindow::populateSyntaxMenu()
         downloadDialog->raise();
         downloadDialog->activateWindow();
     });
+#endif
 }
 
 void QTextPadWindow::populateThemeMenu()

@@ -20,9 +20,12 @@
 #include <QCommandLineParser>
 #include <QIcon>
 
+#include <ksyntaxhighlighting_version.h>
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
+#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
 #include <KSyntaxHighlighting/DefinitionDownloader>
+#endif
 
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"
@@ -87,12 +90,15 @@ int main(int argc, char *argv[])
     parser.addOption(encodingOption);
     parser.addOption(syntaxOption);
 
+#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
     const QCommandLineOption updateOption(QStringList{QStringLiteral("update-definitions")},
             QCoreApplication::translate("main", "Download updated syntax definitions from the internet and exit."));
     parser.addOption(updateOption);
+#endif
 
     parser.process(app);
 
+#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
     if (parser.isSet(updateOption)) {
         // Handle this before any GUI objects are created
         KSyntaxHighlighting::Repository syntaxRepo;
@@ -106,6 +112,7 @@ int main(int argc, char *argv[])
         downloader.start();
         return app.exec();
     }
+#endif
 
     setDefaultIconTheme();
 

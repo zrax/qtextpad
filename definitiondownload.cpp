@@ -16,6 +16,8 @@
 
 #include "definitiondownload.h"
 
+#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
+
 #include <QPlainTextEdit>
 #include <QDialogButtonBox>
 #include <QPushButton>
@@ -82,3 +84,5 @@ void DefinitionDownloadDialog::closeEvent(QCloseEvent *e)
     if (!m_buttonBox->button(QDialogButtonBox::Close)->isEnabled())
         e->ignore();
 }
+
+#endif // SyntaxHighlighting_VERSION check
