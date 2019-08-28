@@ -22,6 +22,7 @@
 
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
+#include <KSyntaxHighlighting/DefinitionDownloader>
 
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"
@@ -32,10 +33,12 @@
 static void setDefaultIconTheme()
 {
     const QString iconNames[] = {
-        "document-new", "document-open", "document-save",
-        "edit-undo", "edit-redo",
-        "edit-cut", "edit-copy", "edit-paste",
-        "edit-find", "edit-find-replace",
+        QStringLiteral("document-new"), QStringLiteral("document-open"),
+        QStringLiteral("document-save"),
+        QStringLiteral("edit-undo"), QStringLiteral("edit-redo"),
+        QStringLiteral("edit-cut"), QStringLiteral("edit-copy"),
+        QStringLiteral("edit-paste"),
+        QStringLiteral("edit-find"), QStringLiteral("edit-find-replace"),
     };
     bool defaultThemeOk = true;
     for (const auto &name : iconNames) {
@@ -75,27 +78,45 @@ int main(int argc, char *argv[])
             QCoreApplication::translate("main", "Move the cursor to the specified line"),
             QCoreApplication::translate("main", "[+line]"));
 
-    const QCommandLineOption encodingOption(QStringList() << "e" << "encoding",
+    const QCommandLineOption encodingOption(QStringList{QStringLiteral("e"), QStringLiteral("encoding")},
             QCoreApplication::translate("main", "Specify the encoding of the file (default: detect)"),
             QCoreApplication::translate("main", "encoding"));
-    const QCommandLineOption syntaxOption(QStringList() << "S" << "syntax",
+    const QCommandLineOption syntaxOption(QStringList{QStringLiteral("S"), QStringLiteral("syntax")},
             QCoreApplication::translate("main", "Specify the syntax definition to use for the file (default: detect)"),
             QCoreApplication::translate("main", "syntax"));
     parser.addOption(encodingOption);
     parser.addOption(syntaxOption);
 
+    const QCommandLineOption updateOption(QStringList{QStringLiteral("update-definitions")},
+            QCoreApplication::translate("main", "Download updated syntax definitions from the internet and exit."));
+    parser.addOption(updateOption);
+
     parser.process(app);
+
+    if (parser.isSet(updateOption)) {
+        // Handle this before any GUI objects are created
+        KSyntaxHighlighting::Repository syntaxRepo;
+        KSyntaxHighlighting::DefinitionDownloader downloader(&syntaxRepo);
+        QObject::connect(&downloader, &KSyntaxHighlighting::DefinitionDownloader::informationMessage,
+                         [](const QString &msg) {
+            printf("%s\n", qPrintable(msg));
+        });
+        QObject::connect(&downloader, &KSyntaxHighlighting::DefinitionDownloader::done,
+                         []() { QCoreApplication::exit(0); });
+        downloader.start();
+        return app.exec();
+    }
 
     setDefaultIconTheme();
 
     // TODO: Make a unique icon for QTextPad?
     // This one is borrowed from Oxygen
     QIcon appIcon;
-    appIcon.addFile(":/icons/qtextpad-64.png", QSize(64, 64));
-    appIcon.addFile(":/icons/qtextpad-48.png", QSize(48, 48));
-    appIcon.addFile(":/icons/qtextpad-32.png", QSize(32, 32));
-    appIcon.addFile(":/icons/qtextpad-16.png", QSize(16, 16));
-    appIcon.addFile(":/icons/qtextpad-128.png", QSize(128, 128));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-64.png"), QSize(64, 64));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-48.png"), QSize(48, 48));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-32.png"), QSize(32, 32));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-16.png"), QSize(16, 16));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
     app.setWindowIcon(appIcon);
 
     QTextPadWindow win;
@@ -110,15 +131,15 @@ int main(int argc, char *argv[])
             QStringList parts = arg.split(QLatin1Char(','));
             startupLine = parts.at(0).midRef(1).toInt(&ok, 0);
             if (!ok) {
-                qWarning("%s", QCoreApplication::translate("main", "Invalid startup line parameter: '%1'")
-                               .arg(arg).toLocal8Bit().constData());
+                qWarning("%s", qPrintable(
+                    QCoreApplication::translate("main", "Invalid startup line parameter: '%1'").arg(arg)));
                 startupLine = -1;
             }
             if (parts.size() > 1) {
                 startupCol = parts.at(1).toInt(&ok, 0);
                 if (!ok) {
-                    qWarning("%s", QCoreApplication::translate("main", "Invalid startup line parameter: '%1'")
-                                   .arg(arg).toLocal8Bit().constData());
+                    qWarning("%s", qPrintable(
+                        QCoreApplication::translate("main", "Invalid startup line parameter: '%1'").arg(arg)));
                     startupCol = -1;
                 }
             }
@@ -139,8 +160,9 @@ int main(int argc, char *argv[])
             if (syntaxDef.isValid()) {
                 win.setSyntax(syntaxDef);
             } else {
-                qDebug("%s", QCoreApplication::translate("main", "Invalid syntax definition specified: %1")
-                             .arg(parser.value(syntaxOption)).toLocal8Bit().constData());
+                qDebug("%s", qPrintable(
+                    QCoreApplication::translate("main", "Invalid syntax definition specified: %1")
+                            .arg(parser.value(syntaxOption))));
             }
         }
     }

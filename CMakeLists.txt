@@ -72,6 +72,8 @@ target_sources(qtextpad
         appsettings.cpp
         charsets.h
         charsets.cpp
+        definitiondownload.h
+        definitiondownload.cpp
         ftdetect.h
         ftdetect.cpp
         indentsettings.h

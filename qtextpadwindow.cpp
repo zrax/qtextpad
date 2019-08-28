@@ -48,6 +48,7 @@
 #include "syntaxtextedit.h"
 #include "settingspopup.h"
 #include "searchdialog.h"
+#include "definitiondownload.h"
 #include "indentsettings.h"
 #include "appsettings.h"
 #include "undocommands.h"
@@ -1223,6 +1224,16 @@ void QTextPadWindow::populateSyntaxMenu()
         item->setData(QVariant::fromValue(def));
         connect(item, &QAction::triggered, [this, def]() { setSyntax(def); });
     }
+
+    (void) m_syntaxMenu->addSeparator();
+    auto updateAction = m_syntaxMenu->addAction(tr("Update Definitions"));
+    connect(updateAction, &QAction::triggered, this, [this]() {
+        auto downloadDialog = new DefinitionDownloadDialog(SyntaxTextEdit::syntaxRepo(), this);
+        downloadDialog->setAttribute(Qt::WA_DeleteOnClose);
+        downloadDialog->show();
+        downloadDialog->raise();
+        downloadDialog->activateWindow();
+    });
 }
 
 void QTextPadWindow::populateThemeMenu()
