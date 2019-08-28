@@ -824,6 +824,16 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         return;
     }
 
+    if ((e->matches(QKeySequence::Cut) || e->matches(QKeySequence::Copy))
+            && !haveSelection()) {
+        // Support Cut and Copy with no selection, defaulting to the
+        // entire current line.
+        auto cursor = textCursor();
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        setTextCursor(cursor);
+    }
+
     switch (e->key()) {
     case Qt::Key_Tab:
         if (haveSelection()) {
