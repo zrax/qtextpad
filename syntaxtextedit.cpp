@@ -693,6 +693,29 @@ void SyntaxTextEdit::resizeEvent(QResizeEvent *e)
     m_lineMargin->setGeometry(rect);
 }
 
+void SyntaxTextEdit::cutLines()
+{
+    if (!haveSelection()) {
+        auto cursor = textCursor();
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        setTextCursor(cursor);
+    }
+    cut();
+}
+
+
+void SyntaxTextEdit::copyLines()
+{
+    if (!haveSelection()) {
+        auto cursor = textCursor();
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        setTextCursor(cursor);
+    }
+    copy();
+}
+
 void SyntaxTextEdit::indentSelection()
 {
     QTextCursor cursor = textCursor();
@@ -824,14 +847,13 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         return;
     }
 
-    if ((e->matches(QKeySequence::Cut) || e->matches(QKeySequence::Copy))
-            && !haveSelection()) {
-        // Support Cut and Copy with no selection, defaulting to the
-        // entire current line.
-        auto cursor = textCursor();
-        cursor.movePosition(QTextCursor::StartOfBlock);
-        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-        setTextCursor(cursor);
+    // Custom versions of Cut and Copy
+    if (e->matches(QKeySequence::Cut)) {
+        cutLines();
+        return;
+    } else if (e->matches(QKeySequence::Copy)) {
+        copyLines();
+        return;
     }
 
     switch (e->key()) {

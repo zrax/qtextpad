@@ -207,8 +207,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     connect(undoAction, &QAction::triggered, m_undoStack, &QUndoStack::undo);
     connect(redoAction, &QAction::triggered, m_undoStack, &QUndoStack::redo);
-    connect(cutAction, &QAction::triggered, m_editor, &QPlainTextEdit::cut);
-    connect(copyAction, &QAction::triggered, m_editor, &QPlainTextEdit::copy);
+    connect(cutAction, &QAction::triggered, m_editor, &SyntaxTextEdit::cutLines);
+    connect(copyAction, &QAction::triggered, m_editor, &SyntaxTextEdit::copyLines);
     connect(pasteAction, &QAction::triggered, m_editor, &QPlainTextEdit::paste);
     connect(clearAction, &QAction::triggered, m_editor, &SyntaxTextEdit::deleteSelection);
     connect(selectAllAction, &QAction::triggered, m_editor, &QPlainTextEdit::selectAll);
@@ -225,10 +225,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     undoAction->setEnabled(false);
     connect(m_undoStack, &QUndoStack::canRedoChanged, redoAction, &QAction::setEnabled);
     redoAction->setEnabled(false);
-    connect(m_editor, &QPlainTextEdit::copyAvailable, cutAction, &QAction::setEnabled);
-    cutAction->setEnabled(false);
-    connect(m_editor, &QPlainTextEdit::copyAvailable, copyAction, &QAction::setEnabled);
-    copyAction->setEnabled(false);
     connect(m_editor, &QPlainTextEdit::copyAvailable, clearAction, &QAction::setEnabled);
     clearAction->setEnabled(false);
 

@@ -109,6 +109,8 @@ signals:
     void parentRedo();
 
 public slots:
+    void cutLines();
+    void copyLines();
     void indentSelection();
     void outdentSelection();
     void zoomIn();      // Hides QPlainTextEdit::zoomIn(int = 1)
