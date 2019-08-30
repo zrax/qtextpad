@@ -161,6 +161,24 @@ void SyntaxTextEdit::deleteSelection()
     cursor.removeSelectedText();
 }
 
+void SyntaxTextEdit::deleteLines()
+{
+    QTextCursor cursor = textCursor();
+    if (haveSelection()) {
+        const int startPos = cursor.selectionStart();
+        const int endPos = cursor.selectionEnd();
+        cursor.setPosition(startPos);
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+        if (!cursor.atBlockStart())
+            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    } else {
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    }
+    cursor.removeSelectedText();
+}
+
 int SyntaxTextEdit::lineMarginWidth()
 {
     if (!showLineNumbers())
@@ -704,7 +722,6 @@ void SyntaxTextEdit::cutLines()
     cut();
 }
 
-
 void SyntaxTextEdit::copyLines()
 {
     if (!haveSelection()) {
@@ -871,7 +888,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         }
         int cursorPos = cursor.positionInBlock();
         cursor.movePosition(QTextCursor::StartOfLine);
-        if (cursorPos != leadingIndent)
+        if (cursor.positionInBlock() == 0 && cursorPos != leadingIndent)
             cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, leadingIndent);
         setTextCursor(cursor);
 
@@ -1011,6 +1028,21 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
                 auto scrollBar = verticalScrollBar();
                 scrollBar->setValue(scrollBar->value() + 1);
             }
+        } else {
+            QPlainTextEdit::keyPressEvent(e);
+        }
+        break;
+
+    case Qt::Key_D:
+        if (e->modifiers() & Qt::ControlModifier) {
+            // Default of Ctrl+D is the same as "Del"; This means we can
+            // repurpose it for "Delete Line"
+            auto cursor = textCursor();
+            cursor.beginEditBlock();
+            cursor.movePosition(QTextCursor::StartOfBlock);
+            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+            cursor.removeSelectedText();
+            cursor.endEditBlock();
         } else {
             QPlainTextEdit::keyPressEvent(e);
         }

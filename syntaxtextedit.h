@@ -39,6 +39,7 @@ public:
 
     bool haveSelection() const;
     void deleteSelection();
+    void deleteLines();
 
     int lineMarginWidth();
     void paintLineNumbers(QPaintEvent *e);

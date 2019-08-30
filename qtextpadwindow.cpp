@@ -184,6 +184,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto clearAction = editMenu->addAction(ICON("edit-delete"), tr("&Delete"));
     clearAction->setShortcut(QKeySequence::Delete);
     m_editorContextActions << clearAction;
+    auto deleteLinesAction = editMenu->addAction(tr("De&lete Line(s)"));
+    deleteLinesAction->setShortcut(Qt::CTRL + Qt::Key_D);
     m_editorContextActions << editMenu->addSeparator();
     auto selectAllAction = editMenu->addAction(tr("Select &All"));
     selectAllAction->setShortcut(QKeySequence::SelectAll);
@@ -202,7 +204,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto replaceAction = editMenu->addAction(ICON("edit-find-replace"), tr("R&eplace..."));
     replaceAction->setShortcut(QKeySequence::Replace);
     (void) editMenu->addSeparator();
-    auto gotoAction = editMenu->addAction(ICON("go-jump"), tr("Go to &line..."));
+    auto gotoAction = editMenu->addAction(ICON("go-jump"), tr("&Go to line..."));
     gotoAction->setShortcut(Qt::CTRL | Qt::Key_J);
 
     connect(undoAction, &QAction::triggered, m_undoStack, &QUndoStack::undo);
@@ -211,6 +213,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(copyAction, &QAction::triggered, m_editor, &SyntaxTextEdit::copyLines);
     connect(pasteAction, &QAction::triggered, m_editor, &QPlainTextEdit::paste);
     connect(clearAction, &QAction::triggered, m_editor, &SyntaxTextEdit::deleteSelection);
+    connect(deleteLinesAction, &QAction::triggered, m_editor, &SyntaxTextEdit::deleteLines);
     connect(selectAllAction, &QAction::triggered, m_editor, &QPlainTextEdit::selectAll);
     connect(m_overwriteModeAction, &QAction::toggled,
             this, &QTextPadWindow::setOverwriteMode);
