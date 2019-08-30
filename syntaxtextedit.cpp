@@ -1044,21 +1044,6 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         }
         break;
 
-    case Qt::Key_D:
-        if (e->modifiers() & Qt::ControlModifier) {
-            // Default of Ctrl+D is the same as "Del"; This means we can
-            // repurpose it for "Delete Line"
-            auto cursor = textCursor();
-            cursor.beginEditBlock();
-            cursor.movePosition(QTextCursor::StartOfBlock);
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-            cursor.removeSelectedText();
-            cursor.endEditBlock();
-        } else {
-            QPlainTextEdit::keyPressEvent(e);
-        }
-        break;
-
     default:
         QPlainTextEdit::keyPressEvent(e);
         break;
