@@ -74,6 +74,7 @@ public:
     void moveCursorTo(int line, int column = 0);
 
     void moveLines(QTextCursor::MoveOperation op);
+    void smartHome(QTextCursor::MoveMode mode);
 
     void setAutoIndent(bool ai);
     bool autoIndent() const;

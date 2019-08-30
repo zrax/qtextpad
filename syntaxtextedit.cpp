@@ -405,6 +405,27 @@ void SyntaxTextEdit::moveLines(QTextCursor::MoveOperation op)
     setTextCursor(cursor);
 }
 
+void SyntaxTextEdit::smartHome(QTextCursor::MoveMode moveMode)
+{
+    auto cursor = textCursor();
+
+    int leadingIndent = 0;
+    const QString blockText = cursor.block().text();
+    for (const auto ch : blockText) {
+        if (ch.isSpace())
+            leadingIndent += 1;
+        else
+            break;
+    }
+    int cursorPos = cursor.positionInBlock();
+    cursor.movePosition(QTextCursor::StartOfLine, moveMode);
+    if (cursor.positionInBlock() == 0 && cursorPos != leadingIndent)
+        cursor.movePosition(QTextCursor::NextCharacter, moveMode, leadingIndent);
+
+    setTextCursor(cursor);
+    updateCursor();
+}
+
 void SyntaxTextEdit::setAutoIndent(bool ai)
 {
     if (ai)
@@ -875,24 +896,13 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         return;
     }
 
+    // "Smart" home key
     if (e->matches(QKeySequence::MoveToStartOfLine)) {
-        // "Smart" home key
-        auto cursor = textCursor();
-        int leadingIndent = 0;
-        const QString blockText = cursor.block().text();
-        for (const auto ch : blockText) {
-            if (ch.isSpace())
-                leadingIndent += 1;
-            else
-                break;
-        }
-        int cursorPos = cursor.positionInBlock();
-        cursor.movePosition(QTextCursor::StartOfLine);
-        if (cursor.positionInBlock() == 0 && cursorPos != leadingIndent)
-            cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, leadingIndent);
-        setTextCursor(cursor);
-
-        updateCursor();
+        smartHome(QTextCursor::MoveAnchor);
+        return;
+    }
+    if (e->matches(QKeySequence::SelectStartOfLine)) {
+        smartHome(QTextCursor::KeepAnchor);
         return;
     }
 
