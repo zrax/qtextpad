@@ -149,12 +149,6 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     document()->setDefaultTextOption(opt);
 }
 
-bool SyntaxTextEdit::haveSelection() const
-{
-    const QTextCursor cursor = textCursor();
-    return cursor.anchor() != cursor.position();
-}
-
 void SyntaxTextEdit::deleteSelection()
 {
     QTextCursor cursor = textCursor();
@@ -164,7 +158,7 @@ void SyntaxTextEdit::deleteSelection()
 void SyntaxTextEdit::deleteLines()
 {
     QTextCursor cursor = textCursor();
-    if (haveSelection()) {
+    if (cursor.hasSelection()) {
         const int startPos = cursor.selectionStart();
         const int endPos = cursor.selectionEnd();
         cursor.setPosition(startPos);
@@ -735,8 +729,8 @@ void SyntaxTextEdit::resizeEvent(QResizeEvent *e)
 
 void SyntaxTextEdit::cutLines()
 {
-    if (!haveSelection()) {
-        auto cursor = textCursor();
+    auto cursor = textCursor();
+    if (!cursor.hasSelection()) {
         cursor.movePosition(QTextCursor::StartOfBlock);
         cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
         setTextCursor(cursor);
@@ -746,8 +740,8 @@ void SyntaxTextEdit::cutLines()
 
 void SyntaxTextEdit::copyLines()
 {
-    if (!haveSelection()) {
-        auto cursor = textCursor();
+    auto cursor = textCursor();
+    if (!cursor.hasSelection()) {
         cursor.movePosition(QTextCursor::StartOfBlock);
         cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
         setTextCursor(cursor);
@@ -909,7 +903,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
     switch (e->key()) {
     case Qt::Key_Tab:
-        if (haveSelection()) {
+        if (textCursor().hasSelection()) {
             indentSelection();
         } else if (m_indentationMode == IndentTabs) {
             textCursor().insertText(QStringLiteral("\t"));

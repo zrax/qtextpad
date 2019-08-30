@@ -205,7 +205,7 @@ void SearchDialog::showReplace(bool show)
     for (auto widget : m_replaceWidgets)
         widget->setVisible(show);
 
-    if (editor()->haveSelection()) {
+    if (editor()->textCursor().hasSelection()) {
         if (show) {
             m_inSelection->setChecked(true);
         } else {
