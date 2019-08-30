@@ -842,7 +842,8 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
     if (e->matches(QKeySequence::Undo)) {
         emit parentUndo();
         return;
-    } else if (e->matches(QKeySequence::Redo)) {
+    }
+    if (e->matches(QKeySequence::Redo)) {
         emit parentRedo();
         return;
     }
@@ -851,8 +852,30 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
     if (e->matches(QKeySequence::Cut)) {
         cutLines();
         return;
-    } else if (e->matches(QKeySequence::Copy)) {
+    }
+    if (e->matches(QKeySequence::Copy)) {
         copyLines();
+        return;
+    }
+
+    if (e->matches(QKeySequence::MoveToStartOfLine)) {
+        // "Smart" home key
+        auto cursor = textCursor();
+        int leadingIndent = 0;
+        const QString blockText = cursor.block().text();
+        for (const auto ch : blockText) {
+            if (ch.isSpace())
+                leadingIndent += 1;
+            else
+                break;
+        }
+        int cursorPos = cursor.positionInBlock();
+        cursor.movePosition(QTextCursor::StartOfLine);
+        if (cursorPos != leadingIndent)
+            cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, leadingIndent);
+        setTextCursor(cursor);
+
+        updateCursor();
         return;
     }
 
