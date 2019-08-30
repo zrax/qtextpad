@@ -533,6 +533,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     pal.setColor(QPalette::Text, theme.textColor(KSyntaxHighlighting::Theme::Normal));
     pal.setColor(QPalette::Base, theme.editorColor(KSyntaxHighlighting::Theme::BackgroundColor));
     pal.setColor(QPalette::Highlight, theme.editorColor(KSyntaxHighlighting::Theme::TextSelection));
+    pal.setBrush(QPalette::HighlightedText, Qt::NoBrush);
     setPalette(pal);
 
     bool darkTheme = pal.color(QPalette::Base).lightness() < 128;
