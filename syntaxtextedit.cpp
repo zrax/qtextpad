@@ -421,6 +421,27 @@ void SyntaxTextEdit::smartHome(QTextCursor::MoveMode moveMode)
     updateCursor();
 }
 
+void SyntaxTextEdit::smartEnd(QTextCursor::MoveMode moveMode)
+{
+    auto cursor = textCursor();
+
+    const QString blockText = cursor.block().text();
+    int trailingEnd = 0;
+    for (auto it = blockText.crbegin(); it != blockText.crend(); ++it) {
+        if (it->isSpace())
+            trailingEnd += 1;
+        else
+            break;
+    }
+    int cursorPos = cursor.positionInBlock();
+    cursor.movePosition(QTextCursor::EndOfLine, moveMode);
+    if (cursor.positionInBlock() == cursorPos)
+        cursor.movePosition(QTextCursor::PreviousCharacter, moveMode, trailingEnd);
+
+    setTextCursor(cursor);
+    updateCursor();
+}
+
 void SyntaxTextEdit::setAutoIndent(bool ai)
 {
     if (ai)
@@ -932,13 +953,21 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         return;
     }
 
-    // "Smart" home key
+    // "Smart" home/end keys
     if (e->matches(QKeySequence::MoveToStartOfLine)) {
         smartHome(QTextCursor::MoveAnchor);
         return;
     }
     if (e->matches(QKeySequence::SelectStartOfLine)) {
         smartHome(QTextCursor::KeepAnchor);
+        return;
+    }
+    if (e->matches(QKeySequence::MoveToEndOfLine)) {
+        smartEnd(QTextCursor::MoveAnchor);
+        return;
+    }
+    if (e->matches(QKeySequence::SelectEndOfLine)) {
+        smartEnd(QTextCursor::KeepAnchor);
         return;
     }
 
