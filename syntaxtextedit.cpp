@@ -1092,12 +1092,8 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
     case Qt::Key_Up:
         if (e->modifiers() & Qt::ControlModifier) {
-            if (e->modifiers() & Qt::ShiftModifier) {
-                moveLines(QTextCursor::PreviousBlock);
-            } else {
-                auto scrollBar = verticalScrollBar();
-                scrollBar->setValue(scrollBar->value() - 1);
-            }
+            auto scrollBar = verticalScrollBar();
+            scrollBar->setValue(scrollBar->value() - 1);
         } else {
             QPlainTextEdit::keyPressEvent(e);
         }
@@ -1105,12 +1101,8 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
     case Qt::Key_Down:
         if (e->modifiers() & Qt::ControlModifier) {
-            if (e->modifiers() & Qt::ShiftModifier) {
-                moveLines(QTextCursor::NextBlock);
-            } else {
-                auto scrollBar = verticalScrollBar();
-                scrollBar->setValue(scrollBar->value() + 1);
-            }
+            auto scrollBar = verticalScrollBar();
+            scrollBar->setValue(scrollBar->value() + 1);
         } else {
             QPlainTextEdit::keyPressEvent(e);
         }

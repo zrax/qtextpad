@@ -195,11 +195,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_overwriteModeAction->setShortcut(Qt::Key_Insert);
     m_overwriteModeAction->setCheckable(true);
     (void) editMenu->addSeparator();
-    auto upcaseAction = editMenu->addAction(tr("Uppercase"));
-    upcaseAction->setShortcut(Qt::CTRL | Qt::Key_U);
-    auto downcaseAction = editMenu->addAction(tr("Lowercase"));
-    downcaseAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_U);
-    (void) editMenu->addSeparator();
     auto findAction = editMenu->addAction(ICON("edit-find"), tr("&Find..."));
     findAction->setShortcut(QKeySequence::Find);
     auto findNextAction = editMenu->addAction(tr("Find &Next"));
@@ -222,8 +217,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(selectAllAction, &QAction::triggered, m_editor, &QPlainTextEdit::selectAll);
     connect(m_overwriteModeAction, &QAction::toggled,
             this, &QTextPadWindow::setOverwriteMode);
-    connect(upcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::upcaseSelection);
-    connect(downcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::downcaseSelection);
 
     connect(findAction, &QAction::triggered, [this]() { SearchDialog::create(this, false); });
     connect(findNextAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, false); });
@@ -307,6 +300,26 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(zoomInAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomIn);
     connect(zoomOutAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomOut);
     connect(zoomResetAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomReset);
+
+    QMenu *toolsMenu = menuBar()->addMenu(tr("&Tools"));
+    auto linesUpAction = toolsMenu->addAction(tr("Move Lines U&p"));
+    linesUpAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Up);
+    auto linesDownAction = toolsMenu->addAction(tr("Move Lines &Down"));
+    linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
+    (void) toolsMenu->addSeparator();
+    auto upcaseAction = toolsMenu->addAction(tr("&Uppercase"));
+    upcaseAction->setShortcut(Qt::CTRL | Qt::Key_U);
+    auto downcaseAction = toolsMenu->addAction(tr("&Lowercase"));
+    downcaseAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_U);
+
+    connect(linesUpAction, &QAction::triggered, m_editor, [this](bool) {
+        m_editor->moveLines(QTextCursor::PreviousBlock);
+    });
+    connect(linesDownAction, &QAction::triggered, m_editor, [this](bool) {
+        m_editor->moveLines(QTextCursor::NextBlock);
+    });
+    connect(upcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::upcaseSelection);
+    connect(downcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::downcaseSelection);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
     auto fontAction = settingsMenu->addAction(tr("Editor &Font..."));
