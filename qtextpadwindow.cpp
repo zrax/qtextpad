@@ -138,7 +138,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_recentFiles = fileMenu->addMenu(tr("Open &Recent"));
     populateRecentFiles();
     m_reloadAction = fileMenu->addAction(ICON("view-refresh"), tr("Re&load"));
-    m_reloadAction->setShortcut(QKeySequence::Refresh);
+    m_reloadAction->setShortcut(Qt::Key_F5);
     m_loadEncodingMenu = fileMenu->addMenu(tr("Reload with &Encoding"));
     (void) fileMenu->addSeparator();
     auto saveAction = fileMenu->addAction(ICON("document-save"), tr("&Save"));
@@ -203,14 +203,14 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto findAction = editMenu->addAction(ICON("edit-find"), tr("&Find..."));
     findAction->setShortcut(QKeySequence::Find);
     auto findNextAction = editMenu->addAction(tr("Find &Next"));
-    findNextAction->setShortcut(QKeySequence::FindNext);
+    findNextAction->setShortcut(Qt::Key_F3);
     auto findPrevAction = editMenu->addAction(tr("Find Pre&vious"));
-    findPrevAction->setShortcut(QKeySequence::FindPrevious);
+    findPrevAction->setShortcut(Qt::SHIFT | Qt::Key_F3);
     auto replaceAction = editMenu->addAction(ICON("edit-find-replace"), tr("R&eplace..."));
     replaceAction->setShortcut(Qt::CTRL | Qt::Key_H);
     (void) editMenu->addSeparator();
     auto gotoAction = editMenu->addAction(ICON("go-jump"), tr("&Go to line..."));
-    gotoAction->setShortcut(Qt::CTRL | Qt::Key_J);
+    gotoAction->setShortcut(Qt::CTRL | Qt::Key_G);
 
     connect(undoAction, &QAction::triggered, m_undoStack, &QUndoStack::undo);
     connect(redoAction, &QAction::triggered, m_undoStack, &QUndoStack::redo);
