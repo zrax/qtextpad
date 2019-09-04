@@ -97,6 +97,12 @@ SearchDialog::SearchDialog(QWidget *parent)
     m_wrapSearch = new QCheckBox(tr("Wrap Aro&und"), this);
     m_wrapSearch->setChecked(settings.searchWrap());
 
+    m_toggleReplace = new QLabel(this);
+    m_toggleReplace->setOpenExternalLinks(false);
+    connect(m_toggleReplace, &QLabel::linkActivated, this, [this](const QString &) {
+        showReplace(!m_replaceWidgets.front()->isVisible());
+    });
+
     // QDialogButtonBox insists on rearranging buttons depending on your platform,
     // which would be fine if we only had standard actions, but most of our
     // action buttons here are custom.
@@ -105,7 +111,7 @@ SearchDialog::SearchDialog(QWidget *parent)
     auto buttonLayout = new QVBoxLayout(buttonBox);
     buttonLayout->setMargin(0);
     buttonLayout->setSpacing(5);
-    auto findNext = new QPushButton(tr("&Find Next"), this);
+    auto findNext = new QPushButton(tr("Find &Next"), this);
     buttonLayout->addWidget(findNext);
     auto findPrev = new QPushButton(tr("Find &Previous"), this);
     buttonLayout->addWidget(findPrev);
@@ -133,7 +139,7 @@ SearchDialog::SearchDialog(QWidget *parent)
     layout->setMargin(10);
     layout->setVerticalSpacing(5);
     layout->setHorizontalSpacing(10);
-    auto searchLabel = new QLabel(tr("F&ind:"), this);
+    auto searchLabel = new QLabel(tr("&Find:"), this);
     searchLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     searchLabel->setBuddy(m_searchText);
     layout->addWidget(searchLabel, 0, 0);
@@ -151,12 +157,10 @@ SearchDialog::SearchDialog(QWidget *parent)
     layout->addWidget(m_regex, 5, 1);
     layout->addWidget(m_escapes, 6, 1);
     layout->addWidget(m_wrapSearch, 3, 2);
+    layout->addWidget(m_toggleReplace, 6, 2);
     layout->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding),
                     layout->rowCount(), 0, 1, 3);
     layout->addWidget(buttonBox, 0, layout->columnCount(), layout->rowCount(), 1);
-
-    // Causes the sizeHint to use the minimal size when first shown
-    showReplace(false);
 }
 
 SearchDialog::~SearchDialog()
@@ -210,6 +214,10 @@ void SearchDialog::showReplace(bool show)
 
     for (auto widget : m_replaceWidgets)
         widget->setVisible(show);
+
+    m_toggleReplace->setText(show ? tr("<a href=\"#\">Switch to Find</a>")
+                                  : tr("<a href=\"#\">Switch to Replace</a>"));
+    adjustSize();
 }
 
 QString translateCharEscape(const QStringRef &digits, int *advance)

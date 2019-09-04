@@ -21,6 +21,7 @@
 #include <QList>
 #include <QTextCursor>
 
+class QLabel;
 class QComboBox;
 class QCheckBox;
 class QTextCursor;
@@ -64,6 +65,7 @@ private:
     QCheckBox *m_regex;
     QCheckBox *m_escapes;
     QCheckBox *m_wrapSearch;
+    QLabel *m_toggleReplace;
     QList<QWidget *> m_replaceWidgets;
     QTextCursor m_replaceCursor;
 };
