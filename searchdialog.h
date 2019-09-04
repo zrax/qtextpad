@@ -46,12 +46,14 @@ private slots:
     void searchBackward();
     void replaceCurrent();
     void replaceAll();
+    void replaceInSelection();
 
 private:
     explicit SearchDialog(QWidget *parent);
 
     void syncSearchSettings(bool saveRecent);
     static QTextCursor performSearch(const QTextCursor &start, bool reverse);
+    void performReplaceAll(bool inSelection);
 
     SyntaxTextEdit *editor();
 
@@ -62,7 +64,6 @@ private:
     QCheckBox *m_regex;
     QCheckBox *m_escapes;
     QCheckBox *m_wrapSearch;
-    QCheckBox *m_inSelection;
     QList<QWidget *> m_replaceWidgets;
     QTextCursor m_replaceCursor;
 };
