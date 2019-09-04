@@ -971,6 +971,58 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         return;
     }
 
+    // Handle newline insertion
+    if (e->matches(QKeySequence::InsertParagraphSeparator)) {
+        QTextCursor undoCursor = textCursor();
+        undoCursor.beginEditBlock();
+
+        QPlainTextEdit::keyPressEvent(e);
+
+        // Simple auto-indent: Just copy the previous non-empty line's
+        // leading whitespace
+        if (autoIndent()) {
+            QTextCursor scanCursor = textCursor();
+            int startOfLine = 0;
+            while (scanCursor.blockNumber() > 0 && startOfLine == 0) {
+                scanCursor.movePosition(QTextCursor::PreviousBlock);
+
+                const QString blockText = scanCursor.block().text();
+                for (const auto ch : blockText) {
+                    if (ch.isSpace())
+                        startOfLine += 1;
+                    else
+                        break;
+                }
+                if (startOfLine == 0 && !blockText.isEmpty()) {
+                    // No leading whitespace, but line is not empty.
+                    // Therefore, current leading indent level is 0.
+                    break;
+                }
+            }
+            if (startOfLine != 0) {
+                const QString leadingIndent = scanCursor.block().text().left(startOfLine);
+                textCursor().insertText(leadingIndent);
+            }
+        }
+        undoCursor.endEditBlock();
+
+        updateCursor();
+        return;
+    }
+    if (e->matches(QKeySequence::InsertLineSeparator)) {
+        QTextCursor undoCursor = textCursor();
+
+        // Don't allow QPlainTextEdit to insert a soft break :(
+        QKeyEvent retnEvent(e->type(), Qt::Key_Enter, Qt::NoModifier,
+                            e->nativeScanCode(), e->nativeVirtualKey(),
+                            e->nativeModifiers(), e->text(),
+                            e->isAutoRepeat(), e->count());
+        QPlainTextEdit::keyPressEvent(&retnEvent);
+
+        updateCursor();
+        return;
+    }
+
     switch (e->key()) {
     case Qt::Key_Tab:
         if (textCursor().hasSelection()) {
@@ -1036,50 +1088,6 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
     case Qt::Key_Backtab:
         outdentSelection();
         e->accept();
-        break;
-
-    case Qt::Key_Return:
-    case Qt::Key_Enter:
-        {
-            QTextCursor undoCursor = textCursor();
-            undoCursor.beginEditBlock();
-
-            // Don't allow QPlainTextEdit to insert a soft break :(
-            QKeyEvent retnEvent(e->type(), e->key(),
-                                e->modifiers() & ~Qt::ShiftModifier,
-                                e->nativeScanCode(), e->nativeVirtualKey(),
-                                e->nativeModifiers(), e->text(),
-                                e->isAutoRepeat(), e->count());
-            QPlainTextEdit::keyPressEvent(&retnEvent);
-
-            // Simple auto-indent: Just copy the previous non-empty line's
-            // leading whitespace
-            if ((e->modifiers() & Qt::ShiftModifier) == 0 && autoIndent()) {
-                QTextCursor scanCursor = textCursor();
-                int startOfLine = 0;
-                while (scanCursor.blockNumber() > 0 && startOfLine == 0) {
-                    scanCursor.movePosition(QTextCursor::PreviousBlock);
-
-                    const QString blockText = scanCursor.block().text();
-                    for (const auto ch : blockText) {
-                        if (ch.isSpace())
-                            startOfLine += 1;
-                        else
-                            break;
-                    }
-                    if (startOfLine == 0 && !blockText.isEmpty()) {
-                        // No leading whitespace, but line is not empty.
-                        // Therefore, current leading indent level is 0.
-                        break;
-                    }
-                }
-                if (startOfLine != 0) {
-                    const QString leadingIndent = scanCursor.block().text().left(startOfLine);
-                    textCursor().insertText(leadingIndent);
-                }
-            }
-            undoCursor.endEditBlock();
-        }
         break;
 
     case Qt::Key_Up:
