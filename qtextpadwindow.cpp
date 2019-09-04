@@ -144,7 +144,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto saveAction = fileMenu->addAction(ICON("document-save"), tr("&Save"));
     saveAction->setShortcut(QKeySequence::Save);
     auto saveAsAction = fileMenu->addAction(ICON("document-save-as"), tr("Save &As..."));
-    saveAsAction->setShortcut(QKeySequence::SaveAs);
+    saveAsAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     auto saveCopyAction = fileMenu->addAction(ICON("document-save-as"), tr("Save &Copy..."));
     (void) fileMenu->addSeparator();
     auto printAction = fileMenu->addAction(ICON("document-print"), tr("&Print..."));
@@ -207,7 +207,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto findPrevAction = editMenu->addAction(tr("Find Pre&vious"));
     findPrevAction->setShortcut(QKeySequence::FindPrevious);
     auto replaceAction = editMenu->addAction(ICON("edit-find-replace"), tr("R&eplace..."));
-    replaceAction->setShortcut(QKeySequence::Replace);
+    replaceAction->setShortcut(Qt::CTRL | Qt::Key_H);
     (void) editMenu->addSeparator();
     auto gotoAction = editMenu->addAction(ICON("go-jump"), tr("&Go to line..."));
     gotoAction->setShortcut(Qt::CTRL | Qt::Key_J);
