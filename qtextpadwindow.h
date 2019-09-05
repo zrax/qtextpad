@@ -18,6 +18,7 @@
 #define _QTEXTPADWINDOW_H
 
 #include <QMainWindow>
+#include <QLocale>
 
 class SyntaxTextEdit;
 class ActivationLabel;
@@ -94,6 +95,8 @@ public slots:
     void promptLongLineWidth();
     void navigateToLine();
     void toggleFilePath(bool show);
+
+    void insertDateTime(QLocale::FormatType type);
 
     void showAbout();
 

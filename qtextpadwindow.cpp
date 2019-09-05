@@ -39,6 +39,7 @@
 #include <QTimer>
 #include <QFileInfo>
 #include <QPrinter>
+#include <QDateTime>
 
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
@@ -138,7 +139,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_recentFiles = fileMenu->addMenu(tr("Open &Recent"));
     populateRecentFiles();
     m_reloadAction = fileMenu->addAction(ICON("view-refresh"), tr("Re&load"));
-    m_reloadAction->setShortcut(Qt::Key_F5);
+    m_reloadAction->setShortcut(Qt::CTRL | Qt::Key_R);
     m_loadEncodingMenu = fileMenu->addMenu(tr("Reload with &Encoding"));
     (void) fileMenu->addSeparator();
     auto saveAction = fileMenu->addAction(ICON("document-save"), tr("&Save"));
@@ -302,6 +303,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(zoomResetAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomReset);
 
     QMenu *toolsMenu = menuBar()->addMenu(tr("&Tools"));
+    auto insertDTL = toolsMenu->addAction(tr("Insert &Date/Time (Long)"));
+    insertDTL->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_F5);
+    auto insertDTS = toolsMenu->addAction(tr("Insert D&ate/Time (Short)"));
+    insertDTS->setShortcut(Qt::CTRL | Qt::Key_F5);
+    (void) toolsMenu->addSeparator();
     auto upcaseAction = toolsMenu->addAction(tr("&Uppercase"));
     upcaseAction->setShortcut(Qt::CTRL | Qt::Key_U);
     auto downcaseAction = toolsMenu->addAction(tr("&Lowercase"));
@@ -312,6 +318,12 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto linesDownAction = toolsMenu->addAction(tr("Move Lines &Down"));
     linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
 
+    connect(insertDTL, &QAction::triggered, this, [this](bool) {
+        insertDateTime(QLocale::LongFormat);
+    });
+    connect(insertDTS, &QAction::triggered, this, [this](bool) {
+        insertDateTime(QLocale::ShortFormat);
+    });
     connect(upcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::upcaseSelection);
     connect(downcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::downcaseSelection);
     connect(linesUpAction, &QAction::triggered, m_editor, [this](bool) {
@@ -1174,6 +1186,13 @@ void QTextPadWindow::toggleFilePath(bool show)
 {
     QTextPadSettings().setShowFilePath(show);
     updateTitle();
+}
+
+void QTextPadWindow::insertDateTime(QLocale::FormatType type)
+{
+    auto cursor = m_editor->textCursor();
+    const auto now = QDateTime::currentDateTime();
+    cursor.insertText(now.toString(QLocale().dateTimeFormat(type)));
 }
 
 void QTextPadWindow::closeEvent(QCloseEvent *e)
