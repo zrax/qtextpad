@@ -22,7 +22,6 @@
 #include <QPrinter>
 #include <QRegularExpression>
 #include <QStack>
-#include <QLocale>
 
 #include <KSyntaxHighlighting/Theme>
 #include <KSyntaxHighlighting/Definition>
@@ -889,46 +888,6 @@ void SyntaxTextEdit::outdentSelection()
     } while (cursor.blockNumber() <= endBlock);
 
     cursor.endEditBlock();
-}
-
-template <typename Modify>
-void modifySelection(SyntaxTextEdit *editor, Modify &&modify)
-{
-    auto cursor = editor->textCursor();
-    cursor.beginEditBlock();
-
-    int selectStart = -1, selectEnd = -1;
-    if (cursor.hasSelection()) {
-        selectStart = cursor.position();
-        selectEnd = cursor.anchor();
-    } else {
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
-    }
-
-    QString newText = modify(cursor.selectedText());
-    cursor.removeSelectedText();
-    cursor.insertText(newText);
-    cursor.endEditBlock();
-
-    if (selectEnd >= 0) {
-        cursor.setPosition(selectEnd);
-        cursor.setPosition(selectStart, QTextCursor::KeepAnchor);
-        editor->setTextCursor(cursor);
-    }
-}
-
-void SyntaxTextEdit::upcaseSelection()
-{
-    modifySelection(this, [](const QString &selectedText) {
-        return QLocale().toUpper(selectedText);
-    });
-}
-
-void SyntaxTextEdit::downcaseSelection()
-{
-    modifySelection(this, [](const QString &selectedText) {
-        return QLocale().toLower(selectedText);
-    });
 }
 
 void SyntaxTextEdit::zoomIn()

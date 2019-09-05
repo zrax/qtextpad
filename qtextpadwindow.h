@@ -97,6 +97,8 @@ public slots:
     void toggleFilePath(bool show);
 
     void insertDateTime(QLocale::FormatType type);
+    void upcaseSelection();
+    void downcaseSelection();
 
     void showAbout();
 

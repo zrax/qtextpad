@@ -115,8 +115,6 @@ public slots:
     void copyLines();
     void indentSelection();
     void outdentSelection();
-    void upcaseSelection();
-    void downcaseSelection();
 
     void zoomIn();      // Hides QPlainTextEdit::zoomIn(int = 1)
     void zoomOut();     // Hides QPlainTextEdit::zoomOut(int = 1)

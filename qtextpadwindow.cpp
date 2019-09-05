@@ -324,12 +324,12 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(insertDTS, &QAction::triggered, this, [this](bool) {
         insertDateTime(QLocale::ShortFormat);
     });
-    connect(upcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::upcaseSelection);
-    connect(downcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::downcaseSelection);
-    connect(linesUpAction, &QAction::triggered, m_editor, [this](bool) {
+    connect(upcaseAction, &QAction::triggered, this, &QTextPadWindow::upcaseSelection);
+    connect(downcaseAction, &QAction::triggered, this, &QTextPadWindow::downcaseSelection);
+    connect(linesUpAction, &QAction::triggered, this, [this](bool) {
         m_editor->moveLines(QTextCursor::PreviousBlock);
     });
-    connect(linesDownAction, &QAction::triggered, m_editor, [this](bool) {
+    connect(linesDownAction, &QAction::triggered, this, [this](bool) {
         m_editor->moveLines(QTextCursor::NextBlock);
     });
 
@@ -1193,6 +1193,46 @@ void QTextPadWindow::insertDateTime(QLocale::FormatType type)
     auto cursor = m_editor->textCursor();
     const auto now = QDateTime::currentDateTime();
     cursor.insertText(now.toString(QLocale().dateTimeFormat(type)));
+}
+
+template <typename Modify>
+void modifySelection(SyntaxTextEdit *editor, Modify &&modify)
+{
+    auto cursor = editor->textCursor();
+    cursor.beginEditBlock();
+
+    int selectStart = -1, selectEnd = -1;
+    if (cursor.hasSelection()) {
+        selectStart = cursor.position();
+        selectEnd = cursor.anchor();
+    } else {
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+    }
+
+    QString newText = modify(cursor.selectedText());
+    cursor.removeSelectedText();
+    cursor.insertText(newText);
+    cursor.endEditBlock();
+
+    if (selectEnd >= 0) {
+        cursor.setPosition(selectEnd);
+        cursor.setPosition(selectStart, QTextCursor::KeepAnchor);
+        editor->setTextCursor(cursor);
+    }
+}
+
+void QTextPadWindow::upcaseSelection()
+{
+    modifySelection(m_editor, [](const QString &selectedText) {
+        return QLocale().toUpper(selectedText);
+    });
+}
+
+void QTextPadWindow::downcaseSelection()
+{
+    modifySelection(m_editor, [](const QString &selectedText) {
+        return QLocale().toLower(selectedText);
+    });
 }
 
 void QTextPadWindow::closeEvent(QCloseEvent *e)
