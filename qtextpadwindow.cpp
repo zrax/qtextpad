@@ -302,24 +302,24 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(zoomResetAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomReset);
 
     QMenu *toolsMenu = menuBar()->addMenu(tr("&Tools"));
-    auto linesUpAction = toolsMenu->addAction(tr("Move Lines U&p"));
-    linesUpAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Up);
-    auto linesDownAction = toolsMenu->addAction(tr("Move Lines &Down"));
-    linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
-    (void) toolsMenu->addSeparator();
     auto upcaseAction = toolsMenu->addAction(tr("&Uppercase"));
     upcaseAction->setShortcut(Qt::CTRL | Qt::Key_U);
     auto downcaseAction = toolsMenu->addAction(tr("&Lowercase"));
     downcaseAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_U);
+    (void) toolsMenu->addSeparator();
+    auto linesUpAction = toolsMenu->addAction(tr("Move Lines U&p"));
+    linesUpAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Up);
+    auto linesDownAction = toolsMenu->addAction(tr("Move Lines &Down"));
+    linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
 
+    connect(upcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::upcaseSelection);
+    connect(downcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::downcaseSelection);
     connect(linesUpAction, &QAction::triggered, m_editor, [this](bool) {
         m_editor->moveLines(QTextCursor::PreviousBlock);
     });
     connect(linesDownAction, &QAction::triggered, m_editor, [this](bool) {
         m_editor->moveLines(QTextCursor::NextBlock);
     });
-    connect(upcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::upcaseSelection);
-    connect(downcaseAction, &QAction::triggered, m_editor, &SyntaxTextEdit::downcaseSelection);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
     auto fontAction = settingsMenu->addAction(tr("Editor &Font..."));

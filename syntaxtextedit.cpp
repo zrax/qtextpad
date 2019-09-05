@@ -375,27 +375,49 @@ void SyntaxTextEdit::moveCursorTo(int line, int column)
 void SyntaxTextEdit::moveLines(QTextCursor::MoveOperation op)
 {
     auto cursor = textCursor();
-
-    cursor.beginEditBlock();
     int startPos = cursor.position();
     int endPos = cursor.anchor();
     cursor.setPosition(qMin(startPos, endPos));
     cursor.movePosition(QTextCursor::StartOfBlock);
     cursor.setPosition(qMax(startPos, endPos), QTextCursor::KeepAnchor);
-    if (startPos == endPos || !cursor.atBlockStart())
-        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    bool moveFromEndOfDocument = false;
+    bool moveToEndOfDocument = false;
+    if (startPos == endPos || !cursor.atBlockStart()) {
+        if (!cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor)) {
+            moveFromEndOfDocument = true;
+            cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        }
+    }
 
+    if (cursor.anchor() == 0 && op == QTextCursor::PreviousBlock)
+        return;
+    if (moveFromEndOfDocument && cursor.atEnd() && op == QTextCursor::NextBlock)
+        return;
+
+    cursor.beginEditBlock();
     const auto moveText = cursor.selectedText();
     cursor.removeSelectedText();
     const int positionStart = cursor.position();
-    cursor.movePosition(op);
+    if ((!cursor.movePosition(op) && op == QTextCursor::NextBlock) || cursor.atEnd()) {
+        cursor.movePosition(QTextCursor::End);
+        cursor.insertBlock();
+        moveToEndOfDocument = true;
+    }
     const int postionDelta = cursor.position() - positionStart;
+
     cursor.insertText(moveText);
+    if (moveFromEndOfDocument)
+        cursor.insertBlock();
+    if (moveFromEndOfDocument || moveToEndOfDocument) {
+        // Remove the extra newline from the displaced line
+        cursor.movePosition(QTextCursor::End);
+        cursor.deletePreviousChar();
+    }
+    cursor.endEditBlock();
 
     cursor.setPosition(endPos + postionDelta);
     if (startPos != endPos)
         cursor.setPosition(startPos + postionDelta, QTextCursor::KeepAnchor);
-    cursor.endEditBlock();
 
     setTextCursor(cursor);
 }
