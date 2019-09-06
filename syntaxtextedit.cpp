@@ -374,8 +374,9 @@ void SyntaxTextEdit::moveCursorTo(int line, int column)
 void SyntaxTextEdit::moveLines(QTextCursor::MoveOperation op)
 {
     auto cursor = textCursor();
-    int startPos = cursor.position();
-    int endPos = cursor.anchor();
+
+    const int startPos = cursor.position();
+    const int endPos = cursor.anchor();
     cursor.setPosition(qMin(startPos, endPos));
     cursor.movePosition(QTextCursor::StartOfBlock);
     cursor.setPosition(qMax(startPos, endPos), QTextCursor::KeepAnchor);

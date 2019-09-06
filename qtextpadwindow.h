@@ -99,6 +99,7 @@ public slots:
     void insertDateTime(QLocale::FormatType type);
     void upcaseSelection();
     void downcaseSelection();
+    void joinLines();
 
     void showAbout();
 

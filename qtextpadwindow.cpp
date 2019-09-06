@@ -317,6 +317,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     linesUpAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Up);
     auto linesDownAction = toolsMenu->addAction(tr("Move Lines &Down"));
     linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
+    auto joinLinesAction = toolsMenu->addAction(tr("&Join Lines"));
+    joinLinesAction->setShortcut(Qt::CTRL | Qt::Key_J);
 
     connect(insertDTL, &QAction::triggered, this, [this](bool) {
         insertDateTime(QLocale::LongFormat);
@@ -332,6 +334,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(linesDownAction, &QAction::triggered, this, [this](bool) {
         m_editor->moveLines(QTextCursor::NextBlock);
     });
+    connect(joinLinesAction, &QAction::triggered, this, &QTextPadWindow::joinLines);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
     auto fontAction = settingsMenu->addAction(tr("Editor &Font..."));
@@ -1233,6 +1236,83 @@ void QTextPadWindow::downcaseSelection()
     modifySelection(m_editor, [](const QString &selectedText) {
         return QLocale().toLower(selectedText);
     });
+}
+
+// Why doesn't Qt provide these?
+static inline QString trimLeft(const QString &text)
+{
+    const QChar *begin = text.constData();
+    const QChar *end = begin + text.size();
+    while (begin < end && begin->isSpace())
+        ++begin;
+    return QString(begin, static_cast<int>(end - begin));
+}
+
+static inline QString trimRight(const QString &text)
+{
+    const QChar *begin = text.constData();
+    const QChar *end = begin + text.size();
+    while (begin < end && end[-1].isSpace())
+        --end;
+    return QString(begin, static_cast<int>(end - begin));
+}
+
+static void joinText(QString &out, const QString &line)
+{
+    if (line.isEmpty())
+        return;
+
+    if (!out.isEmpty())
+        out.append(QLatin1Char(' '));
+    out.append(line);
+}
+
+void QTextPadWindow::joinLines()
+{
+    auto cursor = m_editor->textCursor();
+
+    const int startPos = cursor.position();
+    const int endPos = cursor.anchor();
+    cursor.setPosition(qMin(startPos, endPos));
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    auto startBlock = cursor.block();
+    cursor.setPosition(qMax(startPos, endPos), QTextCursor::KeepAnchor);
+    cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    auto endBlock = cursor.block();
+
+    // Join requires at least two blocks
+    if (startBlock == endBlock) {
+        if (!cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor))
+            return;
+        cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        endBlock = cursor.block();
+    }
+
+    QString joined;
+    const int selectionSize = cursor.selectionEnd() - cursor.selectionStart();
+    joined.reserve(selectionSize);
+    joined.append(trimRight(startBlock.text()));
+    for (auto block = startBlock.next(); block < endBlock; block = block.next())
+        joinText(joined, block.text().trimmed());
+    joinText(joined, trimLeft(endBlock.text()));
+
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
+    cursor.insertText(joined);
+    cursor.endEditBlock();
+
+    // TODO: Not perfect, but easier than adjusting the cursor based on
+    // reformatted line content...
+    if (startPos == endPos) {
+        cursor.setPosition(startPos);
+    } else if (startPos > endPos) {
+        cursor.setPosition(endPos);
+        cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    } else {
+        cursor.movePosition(QTextCursor::EndOfBlock);
+        cursor.setPosition(startPos, QTextCursor::KeepAnchor);
+    }
+    m_editor->setTextCursor(cursor);
 }
 
 void QTextPadWindow::closeEvent(QCloseEvent *e)
