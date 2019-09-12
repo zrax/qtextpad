@@ -280,6 +280,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     zoomOutAction->setShortcut(QKeySequence::ZoomOut);
     auto zoomResetAction = viewMenu->addAction(ICON("zoom-original"), tr("Reset &Zoom"));
     zoomResetAction->setShortcut(Qt::CTRL | Qt::Key_0);
+    (void) viewMenu->addSeparator();
+    m_fullScreenAction = viewMenu->addAction(ICON("view-fullscreen"), tr("&Full Screen"));
+    m_fullScreenAction->setShortcut(Qt::Key_F11);
+    m_fullScreenAction->setCheckable(true);
 
     connect(wordWrapAction, &QAction::toggled, m_editor, &SyntaxTextEdit::setWordWrap);
     connect(longLineAction, &QAction::toggled,
@@ -301,6 +305,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(zoomInAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomIn);
     connect(zoomOutAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomOut);
     connect(zoomResetAction, &QAction::triggered, m_editor, &SyntaxTextEdit::zoomReset);
+    connect(m_fullScreenAction, &QAction::toggled, this, &QTextPadWindow::toggleFullScreen);
 
     QMenu *toolsMenu = menuBar()->addMenu(tr("&Tools"));
     auto insertDTL = toolsMenu->addAction(tr("Insert &Date/Time (Long)"));
@@ -539,6 +544,17 @@ void QTextPadWindow::showAbout()
     layout->addWidget(buttons, 2, 0, 1, 2);
 
     aboutDialog.exec();
+}
+
+void QTextPadWindow::toggleFullScreen(bool fullScreen)
+{
+    if (fullScreen) {
+        m_fullScreenAction->setIcon(ICON("view-restore"));
+        showFullScreen();
+    } else {
+        m_fullScreenAction->setIcon(ICON("view-fullscreen"));
+        showNormal();
+    }
 }
 
 void QTextPadWindow::setSyntax(const KSyntaxHighlighting::Definition &syntax)
@@ -1322,10 +1338,12 @@ void QTextPadWindow::closeEvent(QCloseEvent *e)
         return;
     }
 
-    QTextPadSettings settings;
-    settings.setWindowSize(size());
-    settings.setShowToolBar(m_toolBar->isVisible());
-    settings.setShowStatusBar(statusBar()->isVisible());
+    if ((windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) == 0) {
+        QTextPadSettings settings;
+        settings.setWindowSize(size());
+        settings.setShowToolBar(m_toolBar->isVisible());
+        settings.setShowStatusBar(statusBar()->isVisible());
+    }
     e->accept();
 }
 

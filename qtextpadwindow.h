@@ -102,6 +102,7 @@ public slots:
     void joinLines();
 
     void showAbout();
+    void toggleFullScreen(bool fullScreen);
 
     // User-triggered actions that store commands in the Undo stack
     void changeEncoding(const QString &encoding);
@@ -128,6 +129,7 @@ private:
     QAction *m_overwriteModeAction;
     QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
+    QAction *m_fullScreenAction;
     QActionGroup *m_loadEncodingActions;
     QActionGroup *m_themeActions;
     QActionGroup *m_syntaxActions;

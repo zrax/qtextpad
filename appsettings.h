@@ -99,7 +99,6 @@ private:
 };
 
 /* Helper for loading theme icons */
-#define ICON(name)  QIcon::fromTheme(QStringLiteral(name), \
-                                     QIcon(QStringLiteral(":/icons/" name ".png")))
+#define ICON(name)  QIcon::fromTheme(QStringLiteral(name))
 
 #endif // _APPSETTINGS_H
