@@ -43,7 +43,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 endif()
 
 set(APP_MAJOR 1)
-set(APP_MINOR 0)
+set(APP_MINOR 1)
 set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}-prerelease")
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     find_program(GIT_EXECUTABLE NAMES git git.cmd)
