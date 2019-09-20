@@ -19,6 +19,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QComboBox>
+#include <QLineEdit>
 #include <QCheckBox>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -182,9 +183,10 @@ SearchDialog *SearchDialog::create(QTextPadWindow *parent, bool replace)
         s_instance->activateWindow();
     }
 
-    if (!replace && parent->editor()->textCursor().hasSelection()) {
+    if (parent->editor()->textCursor().hasSelection()) {
         QTextCursor cursor = parent->editor()->textCursor();
         s_instance->m_searchText->setCurrentText(cursor.selectedText());
+        s_instance->m_searchText->lineEdit()->selectAll();
     }
 
     return s_instance;
