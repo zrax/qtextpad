@@ -139,7 +139,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_recentFiles = fileMenu->addMenu(tr("Open &Recent"));
     populateRecentFiles();
     m_reloadAction = fileMenu->addAction(ICON("view-refresh"), tr("Re&load"));
-    m_reloadAction->setShortcut(Qt::CTRL | Qt::Key_R);
+    m_reloadAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_R);
     m_loadEncodingMenu = fileMenu->addMenu(tr("Reload with &Encoding"));
     (void) fileMenu->addSeparator();
     auto saveAction = fileMenu->addAction(ICON("document-save"), tr("&Save"));
@@ -840,6 +840,11 @@ bool QTextPadWindow::promptForSave()
 
 bool QTextPadWindow::promptForDiscard()
 {
+    if (!m_openFilename.isEmpty()) {
+        const QTextCursor cursor = m_editor->textCursor();
+        QTextPadSettings().setRecentFilePosition(m_openFilename, cursor.blockNumber() + 1);
+    }
+
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Are you sure you want to discard your changes?")
