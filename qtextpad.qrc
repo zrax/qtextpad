@@ -32,6 +32,7 @@
         <file>icons/qtextpad/16x16/actions/view-fullscreen.png</file>
         <file>icons/qtextpad/16x16/actions/view-refresh.png</file>
         <file>icons/qtextpad/16x16/actions/view-restore.png</file>
+        <file>icons/qtextpad/16x16/actions/window-new.png</file>
         <file>icons/qtextpad/16x16/actions/zoom-in.png</file>
         <file>icons/qtextpad/16x16/actions/zoom-original.png</file>
         <file>icons/qtextpad/16x16/actions/zoom-out.png</file>
@@ -54,6 +55,7 @@
         <file>icons/qtextpad/22x22/actions/view-fullscreen.png</file>
         <file>icons/qtextpad/22x22/actions/view-refresh.png</file>
         <file>icons/qtextpad/22x22/actions/view-restore.png</file>
+        <file>icons/qtextpad/22x22/actions/window-new.png</file>
         <file>icons/qtextpad/22x22/actions/zoom-in.png</file>
         <file>icons/qtextpad/22x22/actions/zoom-original.png</file>
         <file>icons/qtextpad/22x22/actions/zoom-out.png</file>

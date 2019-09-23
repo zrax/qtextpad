@@ -40,6 +40,7 @@
 #include <QFileInfo>
 #include <QPrinter>
 #include <QDateTime>
+#include <QProcess>
 
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
@@ -133,6 +134,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto newAction = fileMenu->addAction(ICON("document-new"), tr("&New"));
     newAction->setShortcut(QKeySequence::New);
+    auto newWindowAction = fileMenu->addAction(ICON("window-new"), tr("New &Window"));
+    newWindowAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_N);
     (void) fileMenu->addSeparator();
     auto openAction = fileMenu->addAction(ICON("document-open"), tr("&Open..."));
     openAction->setShortcut(QKeySequence::Open);
@@ -150,12 +153,15 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     (void) fileMenu->addSeparator();
     auto printAction = fileMenu->addAction(ICON("document-print"), tr("&Print..."));
     printAction->setShortcut(QKeySequence::Print);
-    auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Previe&w"));
+    auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Pre&view"));
     (void) fileMenu->addSeparator();
     auto quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
 
     connect(newAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
+    connect(newWindowAction, &QAction::triggered, this, [](bool) {
+        QProcess::startDetached(QCoreApplication::applicationFilePath());
+    });
     connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
     connect(m_reloadAction, &QAction::triggered, this, &QTextPadWindow::reloadDocument);
     connect(saveAction, &QAction::triggered, this, &QTextPadWindow::saveDocument);
