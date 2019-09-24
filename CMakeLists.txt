@@ -44,15 +44,18 @@ endif()
 
 set(APP_MAJOR 1)
 set(APP_MINOR 1)
-set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}-prerelease")
+set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}-pre")
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     find_program(GIT_EXECUTABLE NAMES git git.cmd)
     mark_as_advanced(GIT_EXECUTABLE)
     if(GIT_EXECUTABLE)
         execute_process(COMMAND ${GIT_EXECUTABLE} describe --dirty
-            OUTPUT_VARIABLE APP_VERSION
+            OUTPUT_VARIABLE APP_VERSION_GIT
             OUTPUT_STRIP_TRAILING_WHITESPACE
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        if(NOT "${APP_VERSION_GIT}" STREQUAL "${APP_VERSION}")
+            set(APP_VERSION "${APP_VERSION} (${APP_VERSION_GIT})")
+        endif()
     endif()
 endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/appversion.h" "\
