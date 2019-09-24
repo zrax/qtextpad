@@ -192,7 +192,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     clearAction->setShortcut(QKeySequence::Delete);
     m_editorContextActions << clearAction;
     auto deleteLinesAction = editMenu->addAction(tr("De&lete Line(s)"));
-    deleteLinesAction->setShortcut(Qt::CTRL + Qt::Key_D);
+    deleteLinesAction->setShortcut(Qt::CTRL | Qt::Key_D);
     m_editorContextActions << editMenu->addSeparator();
     auto selectAllAction = editMenu->addAction(tr("Select &All"));
     selectAllAction->setShortcut(QKeySequence::SelectAll);
@@ -266,7 +266,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     indentGuidesAction->setCheckable(true);
     (void) viewMenu->addSeparator();
     auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
-    showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_N);
+    showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_L);
     showLineNumbersAction->setCheckable(true);
     auto showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
     showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
@@ -326,7 +326,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     (void) toolsMenu->addSeparator();
     auto linesUpAction = toolsMenu->addAction(tr("Move Lines U&p"));
     linesUpAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Up);
-    auto linesDownAction = toolsMenu->addAction(tr("Move Lines &Down"));
+    auto linesDownAction = toolsMenu->addAction(tr("Move Lines Do&wn"));
     linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
     auto joinLinesAction = toolsMenu->addAction(tr("&Join Lines"));
     joinLinesAction->setShortcut(Qt::CTRL | Qt::Key_J);
