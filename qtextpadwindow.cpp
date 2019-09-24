@@ -1368,6 +1368,8 @@ void QTextPadWindow::populateRecentFiles()
         const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
         auto recentFileAction = m_recentFiles->addAction(label);
         connect(recentFileAction, &QAction::triggered, [this, recent]() {
+            if (!promptForSave())
+                return;
             loadDocumentFrom(recent.m_path, recent.m_encoding);
         });
     }
