@@ -97,6 +97,7 @@ public:
     void setDefaultFont(const QFont &font);
     void setTheme(const KSyntaxHighlighting::Theme &theme);
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
+    QString syntaxName() const;
 
     QFont defaultFont() const;
 

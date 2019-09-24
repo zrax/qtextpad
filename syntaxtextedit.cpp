@@ -597,6 +597,11 @@ void SyntaxTextEdit::setSyntax(const KSyntaxHighlighting::Definition &syntax)
     m_highlighter->setDefinition(syntax);
 }
 
+QString SyntaxTextEdit::syntaxName() const
+{
+    return m_highlighter->definition().name();
+}
+
 void SyntaxTextEdit::updateMargins()
 {
     setViewportMargins(lineMarginWidth(), 0, 0, 0);

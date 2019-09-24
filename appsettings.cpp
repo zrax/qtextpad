@@ -20,10 +20,18 @@
 #include <QFileInfo>
 #include <QFont>
 #include <QSize>
-#include <QDataStream>
+#include <QDir>
+#include <QLockFile>
 
 #define RECENT_FILES        10
 #define RECENT_SEARCHES     20
+#define FM_CACHE_SIZE       50
+
+#ifdef Q_OS_WIN
+#define FILE_COMPARE_CS Qt::CaseInsensitive
+#else
+#define FILE_COMPARE_CS Qt::CaseSensitive
+#endif
 
 QTextPadSettings::QTextPadSettings()
     : m_settings(QSettings::IniFormat, QSettings::UserScope,
@@ -40,96 +48,142 @@ QString QTextPadSettings::settingsDir() const
     return settingsFile.absolutePath();
 }
 
-QList<RecentFile> QTextPadSettings::recentFiles() const
+QStringList QTextPadSettings::recentFiles() const
 {
-    QList<RecentFile> recentList;
+    QStringList recentList;
     recentList.reserve(RECENT_FILES);
     for (int i = 0; i < RECENT_FILES; ++i) {
-        const auto keySuffix = QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
-        const auto key = QStringLiteral("RecentFiles/Path") + keySuffix;
-        if (m_settings.contains(key)) {
-            RecentFile fileInfo;
-            fileInfo.m_path = m_settings.value(key).toString();
-            fileInfo.m_encoding = m_settings.value(QStringLiteral("RecentFiles/Encoding") + keySuffix).toString();
-            fileInfo.m_line = m_settings.value(QStringLiteral("RecentFiles/Line") + keySuffix).toInt();
-            recentList << fileInfo;
-        }
+        const auto key = QStringLiteral("RecentFiles/Path_%1").arg(i, 2, 10, QLatin1Char('0'));
+        if (m_settings.contains(key))
+            recentList << m_settings.value(key).toString();
     }
     return recentList;
 }
 
-#ifdef Q_OS_WIN
-#define FILE_COMPARE_CS Qt::CaseInsensitive
-#else
-#define FILE_COMPARE_CS Qt::CaseSensitive
-#endif
-
-static void commitRecentFiles(QSettings &settings, const QList<RecentFile> &files)
-{
-    settings.beginGroup(QStringLiteral("RecentFiles"));
-    for (int i = 0; i < RECENT_FILES; ++i) {
-        if (i >= files.size())
-            break;
-        const auto &fileInfo = files.at(i);
-        const auto keySuffix = QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
-        settings.setValue(QStringLiteral("Path") + keySuffix, fileInfo.m_path);
-        if (!fileInfo.m_encoding.isEmpty())
-            settings.setValue(QStringLiteral("Encoding") + keySuffix, fileInfo.m_encoding);
-        if (fileInfo.m_line > 0)
-            settings.setValue(QStringLiteral("Line") + keySuffix, fileInfo.m_line);
-    }
-    settings.endGroup();
-}
-
-void QTextPadSettings::addRecentFile(const QString &filename, const QString &encoding,
-                                     int line)
+void QTextPadSettings::addRecentFile(const QString &filename)
 {
     auto files = recentFiles();
     const QString absFilename = QFileInfo(filename).absoluteFilePath();
     auto iter = files.begin();
     while (iter != files.end()) {
-        if (iter->m_path.compare(absFilename, FILE_COMPARE_CS) == 0) {
+        if (iter->compare(absFilename, FILE_COMPARE_CS) == 0) {
             iter = files.erase(iter);
         } else {
             ++iter;
         }
     }
-    files.prepend({absFilename, encoding, line});
-    commitRecentFiles(m_settings, files);
+    files.prepend(absFilename);
+
+    for (int i = 0; i < RECENT_FILES; ++i) {
+        if (i >= files.size())
+            break;
+        const auto &filePath = files.at(i);
+        const auto keySuffix = QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
+        m_settings.setValue(QStringLiteral("RecentFiles/Path") + keySuffix, filePath);
+
+        // Clean up settings from older versions of qtextpad
+        m_settings.remove(QStringLiteral("RecentFiles/Encoding") + keySuffix);
+        m_settings.remove(QStringLiteral("RecentFiles/Line") + keySuffix);
+    }
 }
 
 void QTextPadSettings::clearRecentFiles()
 {
-    m_settings.beginGroup(QStringLiteral("RecentFiles"));
     for (int i = 0; i < RECENT_FILES; ++i) {
         const auto keySuffix = QStringLiteral("_%1").arg(i, 2, 10, QLatin1Char('0'));
-        m_settings.remove(QStringLiteral("Path") + keySuffix);
-        m_settings.remove(QStringLiteral("Encoding") + keySuffix);
-        m_settings.remove(QStringLiteral("Line") + keySuffix);
+        m_settings.remove(QStringLiteral("RecentFiles/Path") + keySuffix);
+
+        // Also clean up settings from older versions of qtextpad
+        m_settings.remove(QStringLiteral("RecentFiles/Encoding") + keySuffix);
+        m_settings.remove(QStringLiteral("RecentFiles/Line") + keySuffix);
     }
-    m_settings.endGroup();
 }
 
-int QTextPadSettings::recentFilePosition(const QString &filename)
+static QString fmCacheFileName()
 {
-    auto files = recentFiles();
-    const QString absFilename = QFileInfo(filename).absoluteFilePath();
-    for (const auto &file : files) {
-        if (file.m_path.compare(absFilename, FILE_COMPARE_CS) == 0)
-            return file.m_line;
+    QDir cacheDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    if (!cacheDir.exists()) {
+        if (!cacheDir.mkpath(QStringLiteral(".")))
+            qWarning("Could not create cache directory %s.", qPrintable(cacheDir.absolutePath()));
     }
-    return 0;
+
+    return cacheDir.absoluteFilePath(QStringLiteral("fmcache.list"));
 }
 
-void QTextPadSettings::setRecentFilePosition(const QString &filename, int line)
+static QByteArray fmEncode(QString value)
 {
-    auto files = recentFiles();
+    return value.replace(QLatin1Char('%'), QLatin1String("%25"))
+            .replace(QLatin1Char(':'), QLatin1String("%3A")).toUtf8();
+}
+
+static QString fmDecode(const QByteArray &value)
+{
+    return QString::fromUtf8(value)
+            .replace(QLatin1String("%3A"), QLatin1String(":"))
+            .replace(QLatin1String("%25"), QLatin1String("%"));
+}
+
+FileModes QTextPadSettings::fileModes(const QString &filename)
+{
     const QString absFilename = QFileInfo(filename).absoluteFilePath();
-    for (auto &file : files) {
-        if (file.m_path.compare(absFilename, FILE_COMPARE_CS) == 0)
-            file.m_line = line;
+
+    QFile cacheFile(fmCacheFileName());
+    if (cacheFile.open(QIODevice::ReadOnly)) {
+        for ( ;; ) {
+            QByteArray line = cacheFile.readLine();
+            if (line.isEmpty())
+                break;
+            const auto parts = line.trimmed().split(':');
+
+            if (fmDecode(parts.first()).compare(absFilename, FILE_COMPARE_CS) == 0) {
+                FileModes modes;
+                if (parts.size() > 1)
+                    modes.encoding = fmDecode(parts[1]);
+                if (parts.size() > 2)
+                    modes.syntax = fmDecode(parts[2]);
+                modes.lineNum = (parts.size() > 3) ? parts[3].toInt() : 0;
+                return modes;
+            }
+        }
     }
-    commitRecentFiles(m_settings, files);
+
+    return { QString(), QString(), 0 };
+}
+
+void QTextPadSettings::setFileModes(const QString &filename, const QString &encoding,
+                                    const QString &syntax, int lineNum)
+{
+    const QString absFilename = QFileInfo(filename).absoluteFilePath();
+
+    QLockFile lockFile(fmCacheFileName() + QStringLiteral(".lock"));
+    if (!lockFile.lock())
+        qWarning("Could not acquire lock for %s.", qPrintable(fmCacheFileName()));
+
+    QFile cacheFile(fmCacheFileName());
+    QList<QByteArray> lines;
+    lines << (fmEncode(absFilename) + ':' + fmEncode(encoding) + ':'
+              + fmEncode(syntax) + ':' + QByteArray::number(lineNum)) + '\n';
+    if (cacheFile.open(QIODevice::ReadOnly)) {
+        while (lines.size() < FM_CACHE_SIZE) {
+            const QByteArray line = cacheFile.readLine();
+            if (line.isEmpty())
+                break;
+
+            const auto parts = line.split(':');
+            if (fmDecode(parts.first()).compare(absFilename, FILE_COMPARE_CS) == 0)
+                continue;
+            lines << line;
+        }
+        cacheFile.close();
+    }
+
+    if (!cacheFile.open(QIODevice::WriteOnly)) {
+        qWarning("Could not open %s for writing.", qPrintable(fmCacheFileName()));
+        return;
+    }
+    for (const auto &line : lines)
+        cacheFile.write(line);
+    cacheFile.close();
 }
 
 QFont QTextPadSettings::editorFont() const

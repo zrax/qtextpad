@@ -23,11 +23,11 @@
     type get() const { return m_settings.value(name, defaultValue).value<type>(); } \
     void set(type value) { m_settings.setValue(name, value); }
 
-struct RecentFile
+struct FileModes
 {
-    QString m_path;
-    QString m_encoding;
-    int m_line;
+    QString encoding;
+    QString syntax;
+    int lineNum;
 };
 
 class QTextPadSettings
@@ -36,13 +36,13 @@ public:
     QTextPadSettings();
     QString settingsDir() const;
 
-    QList<RecentFile> recentFiles() const;
-    void addRecentFile(const QString &filename, const QString &encoding,
-                       int line);
+    QStringList recentFiles() const;
+    void addRecentFile(const QString &filename);
     void clearRecentFiles();
 
-    int recentFilePosition(const QString &filename);
-    void setRecentFilePosition(const QString &filename, int line);
+    static FileModes fileModes(const QString &filename);
+    static void setFileModes(const QString &filename, const QString &encoding,
+                             const QString &syntax, int lineNum);
 
     SIMPLE_SETTING(bool, "ShowToolBar", showToolBar, setShowToolBar, true)
     SIMPLE_SETTING(bool, "ShowStatusBar", showStatusBar, setShowStatusBar, true)

@@ -729,7 +729,9 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
     }
 
     const QTextCursor cursor = m_editor->textCursor();
-    QTextPadSettings().addRecentFile(filename, m_textEncoding, cursor.blockNumber() + 1);
+    QTextPadSettings::setFileModes(filename, m_textEncoding, m_editor->syntaxName(),
+                                   cursor.blockNumber() + 1);
+    QTextPadSettings().addRecentFile(filename);
     populateRecentFiles();
 
     return true;
@@ -752,16 +754,19 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
             return false;
     }
 
+    const auto fileModes = QTextPadSettings::fileModes(filename);
+    const QString codecName = textEncoding.isEmpty() ? fileModes.encoding : textEncoding;
+
     auto detectBuffer = file.read(DETECTION_SIZE);
     auto detect = FileDetection::detect(detectBuffer, filename);
     setLineEndingMode(detect.lineEndings());
 
     QTextCodec *codec = Q_NULLPTR;
-    if (!textEncoding.isEmpty()) {
-        codec = QTextPadCharsets::codecForName(textEncoding);
+    if (!codecName.isEmpty()) {
+        codec = QTextPadCharsets::codecForName(codecName);
         if (!codec) {
             qDebug("Invalid manually-specified encoding: %s",
-                   textEncoding.toLocal8Bit().constData());
+                   codecName.toLocal8Bit().constData());
         }
     }
     if (!codec)
@@ -784,21 +789,25 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     m_editor->setPlainText(pieces.join(QString()));
     m_editor->document()->clearUndoRedoStacks();
 
+    KSyntaxHighlighting::Definition definition;
+    if (!fileModes.syntax.isEmpty())
+        definition = SyntaxTextEdit::syntaxRepo()->definitionForName(fileModes.syntax);
     // If libmagic finds a match, it's probably more likely to be correct
     // than the filename match, which is easily fooled
     // (e.g. idle3.6 is not a Troff Mandoc file)
-    auto definition = FileDetection::definitionForFileMagic(filename);
+    if (!definition.isValid())
+        definition = FileDetection::definitionForFileMagic(filename);
     if (!definition.isValid())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
     if (definition.isValid())
         setSyntax(definition);
 
-    auto prevLine = QTextPadSettings().recentFilePosition(filename);
-    if (prevLine > 0)
-        gotoLine(prevLine);
+    if (fileModes.lineNum > 0)
+        gotoLine(fileModes.lineNum);
 
     m_openFilename = filename;
-    QTextPadSettings().addRecentFile(filename, m_textEncoding, prevLine);
+    QTextPadSettings::setFileModes(filename, m_textEncoding, definition.name(), fileModes.lineNum);
+    QTextPadSettings().addRecentFile(filename);
     populateRecentFiles();
 
     m_undoStack->clear();
@@ -829,7 +838,8 @@ bool QTextPadWindow::promptForSave()
 {
     if (!m_openFilename.isEmpty()) {
         const QTextCursor cursor = m_editor->textCursor();
-        QTextPadSettings().setRecentFilePosition(m_openFilename, cursor.blockNumber() + 1);
+        QTextPadSettings::setFileModes(m_openFilename, m_textEncoding,
+                                       m_editor->syntaxName(), cursor.blockNumber() + 1);
     }
 
     if (isDocumentModified()) {
@@ -848,7 +858,8 @@ bool QTextPadWindow::promptForDiscard()
 {
     if (!m_openFilename.isEmpty()) {
         const QTextCursor cursor = m_editor->textCursor();
-        QTextPadSettings().setRecentFilePosition(m_openFilename, cursor.blockNumber() + 1);
+        QTextPadSettings::setFileModes(m_openFilename, m_textEncoding,
+                                       m_editor->syntaxName(), cursor.blockNumber() + 1);
     }
 
     if (isDocumentModified()) {
@@ -956,7 +967,7 @@ bool QTextPadWindow::reloadDocument()
         return true;
     if (!promptForDiscard())
         return false;
-    return loadDocumentFrom(m_openFilename, m_textEncoding);
+    return loadDocumentFrom(m_openFilename);
 }
 
 void QTextPadWindow::reloadDocumentEncoding(const QString &textEncoding)
@@ -1364,13 +1375,13 @@ void QTextPadWindow::populateRecentFiles()
 
     auto recentFiles = QTextPadSettings().recentFiles();
     for (const auto &recent : recentFiles) {
-        QFileInfo info(recent.m_path);
+        QFileInfo info(recent);
         const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
         auto recentFileAction = m_recentFiles->addAction(label);
         connect(recentFileAction, &QAction::triggered, [this, recent]() {
             if (!promptForSave())
                 return;
-            loadDocumentFrom(recent.m_path, recent.m_encoding);
+            loadDocumentFrom(recent);
         });
     }
 
