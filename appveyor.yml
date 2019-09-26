@@ -2,8 +2,8 @@ version: '1.1-{build}'
 
 image: Visual Studio 2017
 environment:
-  KF5_VERSION: 5.61
-  KF5_FULLVER: 5.61.0
+  KF5_VERSION: 5.62
+  KF5_FULLVER: 5.62.0
   QT_VERSION: 5.12.4
   QT_MINGW: mingw73_64
 
