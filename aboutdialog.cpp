@@ -18,9 +18,16 @@
 
 #include <QLabel>
 #include <QPushButton>
+#include <QTabWidget>
 #include <QDialogButtonBox>
 #include <QGridLayout>
 #include <QMessageBox>
+
+#include <ksyntaxhighlighting_version.h>
+
+#ifdef HAVE_LIBMAGIC
+#   include <magic.h>
+#endif
 
 #include "appversion.h"
 
@@ -60,9 +67,34 @@ AboutDialog::AboutDialog(QWidget *parent)
         "along with QTextPad.  If not, see "
         "&lt;<a href=\"http://www.gnu.org/licenses/\">http://www.gnu.org/licenses/</a>&gt;."
     ));
+    licenseText->setMargin(10);
+    licenseText->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     licenseText->setWordWrap(true);
     licenseText->setTextInteractionFlags(Qt::TextBrowserInteraction);
     licenseText->setOpenExternalLinks(true);
+
+    auto libVersions = new QLabel(this);
+    libVersions->setText(tr(
+        "<b>Built with:</b><ul>"
+        "<li>Qt %1</li>"
+        "<li>KSyntaxHighlighting %2</li>"
+#ifdef HAVE_LIBMAGIC
+        "<li>libmagic %3.%4</li>"
+#endif
+        "<li>Oxygen Icons</li>"
+        "</ul>")
+        .arg(qVersion()).arg(SyntaxHighlighting_VERSION_STRING)
+#ifdef HAVE_LIBMAGIC
+        .arg(MAGIC_VERSION / 100).arg(MAGIC_VERSION % 100)
+#endif
+        );
+    libVersions->setMargin(10);
+    libVersions->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    libVersions->setWordWrap(true);
+
+    auto detailTabs = new QTabWidget(this);
+    detailTabs->addTab(licenseText, tr("&License"));
+    detailTabs->addTab(libVersions, tr("Library &Versions"));
 
     auto buttons = new QDialogButtonBox(this);
     buttons->setStandardButtons(QDialogButtonBox::Close);
@@ -79,6 +111,6 @@ AboutDialog::AboutDialog(QWidget *parent)
     layout->setSpacing(10);
     layout->addWidget(iconLabel, 0, 0);
     layout->addWidget(aboutText, 0, 1);
-    layout->addWidget(licenseText, 1, 0, 1, 2);
+    layout->addWidget(detailTabs, 1, 0, 1, 2);
     layout->addWidget(buttons, 2, 0, 1, 2);
 }
