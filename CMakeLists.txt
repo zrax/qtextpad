@@ -70,6 +70,8 @@ target_include_directories(qtextpad PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(qtextpad
     PRIVATE
+        aboutdialog.h
+        aboutdialog.cpp
         activationlabel.h
         appsettings.h
         appsettings.cpp
