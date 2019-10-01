@@ -299,6 +299,9 @@ void SyntaxTextEdit::setTabWidth(int width)
 void SyntaxTextEdit::setIndentWidth(int width)
 {
     m_indentWidth = width;
+    if (showIndentGuides())
+        viewport()->update();
+
     QTextPadSettings().setIndentWidth(width);
 }
 
