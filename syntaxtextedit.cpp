@@ -327,6 +327,8 @@ void SyntaxTextEdit::setIndentationMode(int mode)
     } else {
         m_indentationMode = static_cast<IndentationMode>(mode);
     }
+    if (showIndentGuides())
+        viewport()->update();
 
     // Save the real indentation mode
     QTextPadSettings().setIndentMode(static_cast<int>(m_indentationMode));
@@ -1167,7 +1169,9 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         p.setPen(m_indentGuideFg);
         QTextBlock block = firstVisibleBlock();
         const QFontMetricsF fm(font());
-        const qreal indentLine = fm.width(QString(m_indentWidth, ' '));
+        const int guideWidth = (m_indentationMode == IndentTabs
+                                ? m_tabCharSize : m_indentWidth);
+        const qreal indentLine = fm.width(QString(guideWidth, ' '));
         const qreal lineOffset = contentOffset().x() + document()->documentMargin();
         while (block.isValid()) {
             QString blockText = block.text();
@@ -1190,7 +1194,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
             }
             QRectF blockRect = blockBoundingGeometry(block);
             blockRect.translate(contentOffset());
-            wsColumn = (wsColumn + m_indentWidth - 1) / m_indentWidth;
+            wsColumn = (wsColumn + guideWidth - 1) / guideWidth;
             for (int i = 1; i < wsColumn; ++i) {
                 const qreal lineX = (indentLine * i) + lineOffset;
                 p.drawLine(QPointF(lineX, blockRect.top()),
