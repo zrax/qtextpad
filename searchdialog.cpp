@@ -36,6 +36,7 @@ static SearchDialog *s_instance = Q_NULLPTR;
 struct SessionSettings
 {
     QString searchText;
+    QRegularExpressionMatch regexMatch;
     bool caseSensitive, wholeWord, regex, escapes;
     bool wrapSearch;
     SyntaxTextEdit *editor;
@@ -269,15 +270,8 @@ QString translateCharEscape(const QStringRef &digits, int *advance)
             return QString(QChar(static_cast<ushort>(ch)));
         }
     } else {
-        // Octal codes can be 1, 2, or 3 characters long...
-        QByteArray number = digits.mid(0, 3).toLatin1();
-        char *end;
-        ulong ch = strtoul(number.constData(), &end, 8);
-        *advance = static_cast<int>(end - number.constData());
-        if (*advance == 0 || ch > 0xFFU)
-            return QString();
-        *advance -= 1;      // The first digit was already accounted for
-        return QString(QChar::fromLatin1(static_cast<char>(ch)));
+        // Octal no longer supported
+        throw std::runtime_error("Unsupported character escape prefix");
     }
 }
 
@@ -325,14 +319,6 @@ QString translateEscapes(const QString &text)
         case '"':
             result.append(next);
             break;
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':   // Octal code
         case 'x':   // Hex byte
         case 'u':   // Unicode character (16-bit)
         case 'U':   // Unicode character (32-bit)
@@ -354,6 +340,36 @@ QString translateEscapes(const QString &text)
             result.append(QLatin1Char('\\'));
             result.append(next);
             break;
+        }
+    }
+
+    result.append(text.midRef(start));
+    return result;
+}
+
+static QString regexReplace(const QString &text)
+{
+    QString result;
+    result.reserve(text.size());
+    int start = 0;
+    for ( ;; ) {
+        int pos = text.indexOf(QLatin1Char('\\'), start);
+        if (pos < 0 || pos + 1 >= text.size())
+            break;
+
+        result.append(text.midRef(start, pos - start));
+        QChar next = text.at(pos + 1);
+        if (next.unicode() >= '0' && next.unicode() <= '9') {
+            // We support up to 99 replacements...
+            QByteArray number = text.midRef(pos + 1, 2).toLatin1();
+            char *end;
+            ulong ref = strtoul(number.constData(), &end, 10);
+            result.append(session()->regexMatch.capturedRef(ref));
+            start = pos + 1 + (end - number.constData());
+        } else {
+            result.append(QLatin1Char('\\'));
+            result.append(next);
+            start = pos + 2;
         }
     }
 
@@ -419,9 +435,10 @@ QTextCursor SearchDialog::performSearch(const QTextCursor &start, bool reverse)
         QRegularExpression::PatternOptions csOption = session()->caseSensitive
                         ? QRegularExpression::NoPatternOption
                         : QRegularExpression::CaseInsensitiveOption;
-        return document->find(QRegularExpression(text, csOption),
-                              start, searchOptions);
-
+        const QRegularExpression re(text, csOption);
+        QTextCursor cursor = document->find(re, start, searchOptions);
+        session()->regexMatch = re.match(cursor.selectedText());
+        return cursor;
     } else {
         return document->find(text, start, searchOptions);
     }
@@ -482,7 +499,10 @@ void SearchDialog::replaceCurrent()
 
     m_replaceCursor.beginEditBlock();
     m_replaceCursor.removeSelectedText();
-    m_replaceCursor.insertText(replaceText);
+    if (m_regex->isChecked())
+        m_replaceCursor.insertText(regexReplace(replaceText));
+    else
+        m_replaceCursor.insertText(replaceText);
     m_replaceCursor.endEditBlock();
 
     m_replaceCursor = searchNext(Q_NULLPTR, false);
@@ -524,7 +544,10 @@ void SearchDialog::performReplaceAll(bool inSelection)
             break;
 
         replaceCursor.removeSelectedText();
-        replaceCursor.insertText(replaceText);
+        if (m_regex->isChecked())
+            replaceCursor.insertText(regexReplace(replaceText));
+        else
+            replaceCursor.insertText(replaceText);
         replaceCursor = performSearch(replaceCursor, false);
         ++replacements;
     }
