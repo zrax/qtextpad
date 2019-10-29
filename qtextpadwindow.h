@@ -69,6 +69,7 @@ public:
     bool loadDocumentFrom(const QString &filename,
                           const QString &textEncoding = QString());
     bool isDocumentModified() const;
+    bool documentExists() const;
 
     void gotoLine(int line, int column = 0);
 
@@ -76,6 +77,7 @@ public slots:
     bool promptForSave();
     bool promptForDiscard();
     void newDocument();
+    void resetEditor();
     bool saveDocument();
     bool saveDocumentAs();
     bool saveDocumentCopy();
@@ -115,6 +117,7 @@ protected:
 private:
     SyntaxTextEdit *m_editor;
     QString m_openFilename;
+    bool m_newFile;
     QString m_textEncoding;
 
     QToolBar *m_toolBar;

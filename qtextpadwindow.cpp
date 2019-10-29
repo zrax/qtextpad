@@ -116,7 +116,7 @@ protected:
 };
 
 QTextPadWindow::QTextPadWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent), m_newFile(false)
 {
     m_editor = new SyntaxTextEdit(this);
     setCentralWidget(m_editor);
@@ -684,6 +684,22 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
 bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &textEncoding)
 {
     QFile file(filename);
+    if (!file.exists()) {
+        // Creating a new file
+        resetEditor();
+
+        KSyntaxHighlighting::Definition definition =
+                SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
+        if (definition.isValid())
+            setSyntax(definition);
+
+        m_openFilename = filename;
+        m_newFile = true;
+        updateTitle();
+
+        return true;
+    }
+
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::critical(this, QString(),
                               tr("Cannot open file %1 for reading").arg(filename));
@@ -733,6 +749,8 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     m_editor->setPlainText(pieces.join(QString()));
     m_editor->document()->clearUndoRedoStacks();
 
+    m_newFile = false;
+
     KSyntaxHighlighting::Definition definition;
     if (!fileModes.syntax.isEmpty())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForName(fileModes.syntax);
@@ -773,6 +791,12 @@ void QTextPadWindow::addUndoCommand(QUndoCommand *command)
     m_undoStack->push(command);
 }
 
+bool QTextPadWindow::documentExists() const
+{
+    // Checking m_newFile is faster than asking the file system...
+    return !m_openFilename.isEmpty() && !m_newFile;
+}
+
 void QTextPadWindow::gotoLine(int line, int column)
 {
     m_editor->moveCursorTo(line, column);
@@ -780,7 +804,7 @@ void QTextPadWindow::gotoLine(int line, int column)
 
 bool QTextPadWindow::promptForSave()
 {
-    if (!m_openFilename.isEmpty()) {
+    if (documentExists()) {
         const QTextCursor cursor = m_editor->textCursor();
         QTextPadSettings::setFileModes(m_openFilename, m_textEncoding,
                                        m_editor->syntaxName(), cursor.blockNumber() + 1);
@@ -800,7 +824,7 @@ bool QTextPadWindow::promptForSave()
 
 bool QTextPadWindow::promptForDiscard()
 {
-    if (!m_openFilename.isEmpty()) {
+    if (documentExists()) {
         const QTextCursor cursor = m_editor->textCursor();
         QTextPadSettings::setFileModes(m_openFilename, m_textEncoding,
                                        m_editor->syntaxName(), cursor.blockNumber() + 1);
@@ -820,7 +844,12 @@ void QTextPadWindow::newDocument()
 {
     if (!promptForSave())
         return;
+    resetEditor();
+    updateTitle();
+}
 
+void QTextPadWindow::resetEditor()
+{
     m_editor->clear();
     m_editor->document()->clearUndoRedoStacks();
 
@@ -839,7 +868,6 @@ void QTextPadWindow::newDocument()
     m_reloadAction->setEnabled(false);
     m_loadEncodingMenu->setEnabled(false);
     m_utfBOMAction->setChecked(false);
-    updateTitle();
 }
 
 bool QTextPadWindow::saveDocument()
@@ -849,6 +877,7 @@ bool QTextPadWindow::saveDocument()
     if (!saveDocumentTo(m_openFilename))
         return false;
 
+    m_newFile = false;
     m_undoStack->setClean();
     updateTitle();
     return true;
@@ -869,6 +898,7 @@ bool QTextPadWindow::saveDocumentAs()
         return false;
 
     m_openFilename = path;
+    m_newFile = false;
     m_undoStack->setClean();
     updateTitle();
     return true;
@@ -907,7 +937,7 @@ bool QTextPadWindow::loadDocument()
 
 bool QTextPadWindow::reloadDocument()
 {
-    if (m_openFilename.isEmpty())
+    if (!documentExists())
         return true;
     if (!promptForDiscard())
         return false;
@@ -916,7 +946,7 @@ bool QTextPadWindow::reloadDocument()
 
 void QTextPadWindow::reloadDocumentEncoding(const QString &textEncoding)
 {
-    Q_ASSERT(!m_openFilename.isEmpty());
+    Q_ASSERT(documentExists());
 
     const QString oldEncoding = m_textEncoding;
     if (!promptForDiscard() || !loadDocumentFrom(m_openFilename, textEncoding))
@@ -992,6 +1022,8 @@ void QTextPadWindow::updateTitle()
         QFileInfo fi(m_openFilename);
         title += QStringLiteral(" [%1]").arg(fi.absolutePath());
     }
+    if (m_newFile)
+        title += QStringLiteral(" (New File) ");
     title += QStringLiteral(" \u2013 qtextpad");  // n-dash
     if (isDocumentModified())
         title = QStringLiteral("* ") + title;
@@ -1091,7 +1123,7 @@ void QTextPadWindow::chooseEditorFont()
 
 void QTextPadWindow::changeEncoding(const QString &encoding)
 {
-    if (m_openFilename.isEmpty()) {
+    if (!documentExists()) {
         // Don't save changes in the undo stack if we are creating a new file
         setEncoding(encoding);
     } else {
@@ -1102,7 +1134,7 @@ void QTextPadWindow::changeEncoding(const QString &encoding)
 
 void QTextPadWindow::changeLineEndingMode(LineEndingMode mode)
 {
-    if (m_openFilename.isEmpty()) {
+    if (!documentExists()) {
         // Don't save changes in the undo stack if we are creating a new file
         setLineEndingMode(mode);
     } else {
@@ -1113,7 +1145,7 @@ void QTextPadWindow::changeLineEndingMode(LineEndingMode mode)
 
 void QTextPadWindow::changeUtfBOM()
 {
-    if (!m_openFilename.isEmpty()) {
+    if (documentExists()) {
         // Don't save changes in the undo stack if we are creating a new file
         auto command = new ChangeUtfBOMCommand(this);
         addUndoCommand(command);
