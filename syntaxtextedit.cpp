@@ -153,6 +153,8 @@ void SyntaxTextEdit::deleteSelection()
 {
     QTextCursor cursor = textCursor();
     cursor.removeSelectedText();
+    cursor.setVerticalMovementX(-1);
+    setTextCursor(cursor);
 }
 
 void SyntaxTextEdit::deleteLines()
@@ -171,6 +173,8 @@ void SyntaxTextEdit::deleteLines()
         cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
     }
     cursor.removeSelectedText();
+    cursor.setVerticalMovementX(-1);
+    setTextCursor(cursor);
 }
 
 int SyntaxTextEdit::lineMarginWidth()
@@ -945,6 +949,24 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         return;
     }
 
+    // Qt's default implementation doesn't correctly adjust the cursor
+    // X position after deleting a selection.
+    if (e->matches(QKeySequence::Delete)) {
+        QTextCursor cursor = textCursor();
+        cursor.deleteChar();
+        cursor.setVerticalMovementX(-1);
+        setTextCursor(cursor);
+        return;
+    }
+    if (e->matches(QKeySequence::Backspace)
+            || (e->key() == Qt::Key_Backspace && (e->modifiers() & ~Qt::ShiftModifier) == 0)) {
+        QTextCursor cursor = textCursor();
+        cursor.deletePreviousChar();
+        cursor.setVerticalMovementX(-1);
+        setTextCursor(cursor);
+        return;
+    }
+
     // "Smart" home/end keys
     if (e->matches(QKeySequence::MoveToStartOfLine)) {
         smartHome(QTextCursor::MoveAnchor);
@@ -1074,12 +1096,10 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
             cursor.insertText(QString(spaces, ' '));
             cursor.endEditBlock();
         }
-        e->accept();
         break;
 
     case Qt::Key_Backtab:
         outdentSelection();
-        e->accept();
         break;
 
     case Qt::Key_Up:

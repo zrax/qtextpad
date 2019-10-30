@@ -1023,7 +1023,7 @@ void QTextPadWindow::updateTitle()
         title += QStringLiteral(" [%1]").arg(fi.absolutePath());
     }
     if (m_newFile)
-        title += QStringLiteral(" (New File) ");
+        title += QStringLiteral(" (New File)");
     title += QStringLiteral(" \u2013 qtextpad");  // n-dash
     if (isDocumentModified())
         title = QStringLiteral("* ") + title;
