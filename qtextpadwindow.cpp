@@ -40,6 +40,7 @@
 #include <QPrinter>
 #include <QDateTime>
 #include <QProcess>
+#include <QFileSystemWatcher>
 
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
@@ -116,7 +117,7 @@ protected:
 };
 
 QTextPadWindow::QTextPadWindow(QWidget *parent)
-    : QMainWindow(parent), m_newFile(false)
+    : QMainWindow(parent), m_fileState()
 {
     m_editor = new SyntaxTextEdit(this);
     setCentralWidget(m_editor);
@@ -487,6 +488,31 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     newDocument();
 
     resize(settings.windowSize());
+
+    // Only check for modifications when the application is focused.  This
+    // prevents us from unexpectedly stealing focus from other applications.
+    m_fileWatcher = new QFileSystemWatcher(this);
+    connect(m_fileWatcher, &QFileSystemWatcher::fileChanged, this,
+            [this](const QString &) {
+        if (qApp->applicationState() == Qt::ApplicationActive)
+            checkForModifications();
+    });
+    connect(qApp, &QApplication::applicationStateChanged, this,
+            [this](Qt::ApplicationState state) {
+        if (state == Qt::ApplicationActive)
+            checkForModifications();
+    });
+}
+
+void QTextPadWindow::setOpenFilename(const QString &filename)
+{
+    if (!m_openFilename.isEmpty())
+        m_fileWatcher->removePath(m_openFilename);
+    m_openFilename = filename;
+    if (!m_openFilename.isEmpty()) {
+        if (!m_fileWatcher->addPath(m_openFilename))
+            qWarning("Could not add file system watch for %s", qPrintable(m_openFilename));
+    }
 }
 
 void QTextPadWindow::showAbout()
@@ -693,8 +719,8 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         if (definition.isValid())
             setSyntax(definition);
 
-        m_openFilename = filename;
-        m_newFile = true;
+        setOpenFilename(filename);
+        m_fileState = FS_New;
         updateTitle();
 
         return true;
@@ -749,8 +775,6 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     m_editor->setPlainText(pieces.join(QString()));
     m_editor->document()->clearUndoRedoStacks();
 
-    m_newFile = false;
-
     KSyntaxHighlighting::Definition definition;
     if (!fileModes.syntax.isEmpty())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForName(fileModes.syntax);
@@ -767,10 +791,13 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     if (fileModes.lineNum > 0)
         gotoLine(fileModes.lineNum);
 
-    m_openFilename = filename;
+    setOpenFilename(filename);
     QTextPadSettings::setFileModes(filename, m_textEncoding, definition.name(), fileModes.lineNum);
     QTextPadSettings().addRecentFile(filename);
     populateRecentFiles();
+
+    m_fileState = 0;
+    m_cachedModTime = QFileInfo(file).lastModified();
 
     m_undoStack->clear();
     m_undoStack->setClean();
@@ -793,13 +820,52 @@ void QTextPadWindow::addUndoCommand(QUndoCommand *command)
 
 bool QTextPadWindow::documentExists() const
 {
-    // Checking m_newFile is faster than asking the file system...
-    return !m_openFilename.isEmpty() && !m_newFile;
+    // Checking m_fileState is faster than asking the file system...
+    return !m_openFilename.isEmpty() && !(m_fileState & FS_New);
 }
 
 void QTextPadWindow::gotoLine(int line, int column)
 {
     m_editor->moveCursorTo(line, column);
+}
+
+void QTextPadWindow::checkForModifications()
+{
+    if (m_openFilename.isEmpty() || (m_fileState & FS_OutOfDate) != 0)
+        return;
+
+    QFileInfo info(m_openFilename);
+    if (!info.exists()) {
+        if (!(m_fileState & FS_New)) {
+            auto result = QMessageBox::warning(this, tr("File Deleted"),
+                    tr("File %1 was deleted by another program.").arg(m_openFilename),
+                    QMessageBox::Ignore | QMessageBox::Close);
+            if (result == QMessageBox::Close) {
+                close();
+            } else if (result == QMessageBox::Ignore) {
+                m_fileState = FS_New;
+                m_cachedModTime = QDateTime();
+                updateTitle();
+            }
+        }
+    } else if ((m_fileState & FS_New) != 0 || info.lastModified() != m_cachedModTime) {
+        QMessageBox msg(this);
+        msg.setIcon(QMessageBox::Warning);
+        msg.setWindowTitle(tr("File Modified"));
+        msg.setText(tr("File %1 was modified by another program.").arg(m_openFilename));
+        auto reloadButton = msg.addButton(tr("&Reload"), QMessageBox::AcceptRole);
+        auto ignoreButton = msg.addButton(QMessageBox::Ignore);
+        msg.setDefaultButton(reloadButton);
+
+        msg.exec();
+        if (msg.clickedButton() == reloadButton) {
+            if (!loadDocumentFrom(m_openFilename))
+                close();
+        } else if (msg.clickedButton() == ignoreButton) {
+            m_fileState = FS_OutOfDate;
+            updateTitle();
+        }
+    }
 }
 
 bool QTextPadWindow::promptForSave()
@@ -862,7 +928,8 @@ void QTextPadWindow::resetEditor()
     setLineEndingMode(LFOnly);
 #endif
 
-    m_openFilename = QString();
+    setOpenFilename(QString());
+    m_cachedModTime = QDateTime();
     m_undoStack->clear();
     m_undoStack->setClean();
     m_reloadAction->setEnabled(false);
@@ -877,7 +944,8 @@ bool QTextPadWindow::saveDocument()
     if (!saveDocumentTo(m_openFilename))
         return false;
 
-    m_newFile = false;
+    m_fileState = 0;
+    m_cachedModTime = QFileInfo(m_openFilename).lastModified();
     m_undoStack->setClean();
     updateTitle();
     return true;
@@ -897,8 +965,9 @@ bool QTextPadWindow::saveDocumentAs()
     if (!saveDocumentTo(path))
         return false;
 
-    m_openFilename = path;
-    m_newFile = false;
+    setOpenFilename(path);
+    m_fileState = 0;
+    m_cachedModTime = QFileInfo(path).lastModified();
     m_undoStack->setClean();
     updateTitle();
     return true;
@@ -1022,8 +1091,10 @@ void QTextPadWindow::updateTitle()
         QFileInfo fi(m_openFilename);
         title += QStringLiteral(" [%1]").arg(fi.absolutePath());
     }
-    if (m_newFile)
-        title += QStringLiteral(" (New File)");
+    if ((m_fileState & FS_OutOfDate) != 0)
+        title += tr(" (Not Current)");
+    else if ((m_fileState & FS_New) != 0)
+        title += tr(" (New File)");
     title += QStringLiteral(" \u2013 qtextpad");  // n-dash
     if (isDocumentModified())
         title = QStringLiteral("* ") + title;

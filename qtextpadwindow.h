@@ -18,6 +18,7 @@
 #define _QTEXTPADWINDOW_H
 
 #include <QMainWindow>
+#include <QDateTime>
 #include <QLocale>
 
 class SyntaxTextEdit;
@@ -28,6 +29,7 @@ class QMenu;
 class QActionGroup;
 class QUndoStack;
 class QUndoCommand;
+class QFileSystemWatcher;
 
 namespace KSyntaxHighlighting
 {
@@ -74,6 +76,7 @@ public:
     void gotoLine(int line, int column = 0);
 
 public slots:
+    void checkForModifications();
     bool promptForSave();
     bool promptForDiscard();
     void newDocument();
@@ -115,10 +118,20 @@ protected:
     void closeEvent(QCloseEvent *e) Q_DECL_OVERRIDE;
 
 private:
+    enum FileState
+    {
+        FS_New = 0x01,
+        FS_OutOfDate = 0x02,
+    };
+
     SyntaxTextEdit *m_editor;
-    QString m_openFilename;
-    bool m_newFile;
     QString m_textEncoding;
+
+    QString m_openFilename;
+    unsigned int m_fileState;
+    QFileSystemWatcher *m_fileWatcher;
+    QDateTime m_cachedModTime;
+    void setOpenFilename(const QString &filename);
 
     QToolBar *m_toolBar;
     QMenu *m_recentFiles;
