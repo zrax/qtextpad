@@ -1,10 +1,10 @@
 version: '1.2-{build}'
 
-image: Visual Studio 2017
+image: Visual Studio 2019
 environment:
-  KF5_VERSION: 5.62
-  KF5_FULLVER: 5.62.0
-  QT_VERSION: 5.12.4
+  KF5_VERSION: 5.63
+  KF5_FULLVER: 5.63.0
+  QT_VERSION: 5.12.5
   QT_MINGW: mingw73_64
 
 install:
