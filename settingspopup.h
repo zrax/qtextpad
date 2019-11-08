@@ -17,12 +17,34 @@
 #ifndef _SETTINGSPOPUP_H
 #define _SETTINGSPOPUP_H
 
-#include <QWidget>
+#include <QIcon>
+#include <QLineEdit>
 #include <KSyntaxHighlighting/Definition>
 
-class QLineEdit;
 class QTreeWidget;
 class QTreeWidgetItem;
+
+class TreeFilterEdit : public QLineEdit
+{
+    Q_OBJECT
+
+public:
+    TreeFilterEdit(QWidget *parent = Q_NULLPTR);
+
+    QSize sizeHint() const Q_DECL_OVERRIDE;
+
+signals:
+    void navigateDown();
+
+protected:
+    void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
+    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
+    void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
+
+private:
+    QIcon m_searchIcon;
+    QPoint m_iconPosition;
+};
 
 class FilteredTreePopup : public QWidget
 {
@@ -32,7 +54,7 @@ public:
     FilteredTreePopup(QWidget *parent = Q_NULLPTR);
 
     QSize sizeHint() const Q_DECL_OVERRIDE;
-    QLineEdit *filter() { return m_filter; }
+    TreeFilterEdit *filter() { return m_filter; }
     QTreeWidget *tree() { return m_tree; }
 
 public slots:
@@ -40,9 +62,10 @@ public slots:
 
 protected:
     void showEvent(QShowEvent *e) Q_DECL_OVERRIDE;
+    bool focusNextPrevChild(bool next) Q_DECL_OVERRIDE;
 
 private:
-    QLineEdit *m_filter;
+    TreeFilterEdit *m_filter;
     QTreeWidget *m_tree;
 };
 
@@ -57,7 +80,7 @@ signals:
     void syntaxSelected(const KSyntaxHighlighting::Definition &syntax);
 
 private slots:
-    void syntaxItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+    void syntaxItemChosen(QTreeWidgetItem *current, int column);
 
 private:
     QTreeWidgetItem *m_plainTextItem;
@@ -74,7 +97,7 @@ signals:
     void encodingSelected(const QString &codecName);
 
 private slots:
-    void encodingItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+    void encodingItemChosen(QTreeWidgetItem *current, int column);
 };
 
 // Needed for serializing Definition objects into QVariant

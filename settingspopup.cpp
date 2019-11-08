@@ -31,53 +31,63 @@
 #include "syntaxtextedit.h"
 #include "charsets.h"
 
-class DecoratedFilterEdit : public QLineEdit
+TreeFilterEdit::TreeFilterEdit(QWidget *parent)
+    : QLineEdit(parent)
 {
-public:
-    DecoratedFilterEdit(QWidget *parent = Q_NULLPTR)
-        : QLineEdit(parent)
-    {
-        m_searchIcon = QIcon(":/icons/syntax-filter.png");
-        setClearButtonEnabled(true);
-        resizeEvent(Q_NULLPTR);
+    m_searchIcon = QIcon(":/icons/syntax-filter.png");
+    setClearButtonEnabled(true);
+    resizeEvent(Q_NULLPTR);
+}
+
+QSize TreeFilterEdit::sizeHint() const
+{
+    QSize hint = QLineEdit::sizeHint();
+    hint.setHeight(qMin(hint.height(), 18));
+    return hint;
+}
+
+void TreeFilterEdit::paintEvent(QPaintEvent *event)
+{
+    QLineEdit::paintEvent(event);
+
+    QPainter painter(this);
+    QRect iconRect(m_iconPosition.x(), m_iconPosition.y(), 16, 16);
+    if (event->region().intersects(iconRect))
+        m_searchIcon.paint(&painter, iconRect);
+}
+
+void TreeFilterEdit::resizeEvent(QResizeEvent *event)
+{
+    if (event)
+        QLineEdit::resizeEvent(event);
+
+    const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+    setStyleSheet(QStringLiteral("QLineEdit { padding-left: %1px; }")
+                  .arg(frameWidth + 18));
+
+    m_iconPosition = QPoint(rect().left() + frameWidth + 1,
+                            (rect().bottom() - 16) / 2);
+}
+
+void TreeFilterEdit::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Down) {
+        emit navigateDown();
+        return;
     }
+    QLineEdit::keyPressEvent(event);
+}
 
-    QSize sizeHint() const Q_DECL_OVERRIDE
-    {
-        QSize hint = QLineEdit::sizeHint();
-        hint.setHeight(qMin(hint.height(), 18));
-        return hint;
+
+static QTreeWidgetItem *firstVisibleItem(QTreeWidgetItem *parent)
+{
+    for (int i = 0; i < parent->childCount(); ++i) {
+        QTreeWidgetItem *item = parent->child(i);
+        if (!item->isHidden())
+            return item;
     }
-
-protected:
-    void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE
-    {
-        QLineEdit::paintEvent(event);
-
-        QPainter painter(this);
-        QRect iconRect(m_iconPosition.x(), m_iconPosition.y(), 16, 16);
-        if (event->region().intersects(iconRect))
-            m_searchIcon.paint(&painter, iconRect);
-    }
-
-    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE
-    {
-        if (event)
-            QLineEdit::resizeEvent(event);
-
-        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-        setStyleSheet(QStringLiteral("QLineEdit { padding-left: %1px; }")
-                      .arg(frameWidth + 18));
-
-        m_iconPosition = QPoint(rect().left() + frameWidth + 1,
-                                (rect().bottom() - 16) / 2);
-    }
-
-private:
-    QIcon m_searchIcon;
-    QPoint m_iconPosition;
-};
-
+    return nullptr;
+}
 
 FilteredTreePopup::FilteredTreePopup(QWidget *parent)
     : QWidget(parent)
@@ -86,13 +96,20 @@ FilteredTreePopup::FilteredTreePopup(QWidget *parent)
     layout->setMargin(0);
     layout->setSpacing(0);
 
-    m_filter = new DecoratedFilterEdit(this);
+    m_filter = new TreeFilterEdit(this);
     connect(m_filter, &QLineEdit::textChanged, this, &FilteredTreePopup::filterItems);
     layout->addWidget(m_filter);
 
     m_tree = new QTreeWidget(this);
     m_tree->header()->hide();
     layout->addWidget(m_tree);
+
+    connect(m_filter, &TreeFilterEdit::navigateDown, this, [this]() {
+        m_tree->setFocus();
+        auto topItem = firstVisibleItem(m_tree->invisibleRootItem());
+        if (topItem)
+            m_tree->setCurrentItem(topItem);
+    });
 }
 
 QSize FilteredTreePopup::sizeHint() const
@@ -108,7 +125,7 @@ QSize FilteredTreePopup::sizeHint() const
 }
 
 template <typename FilterProc>
-bool applyFilter(QTreeWidgetItem *parent, FilterProc proc)
+bool applyFilter(QTreeWidgetItem *parent, const FilterProc &proc)
 {
     bool showParent = false;
     for (int i = 0; i < parent->childCount(); ++i) {
@@ -148,15 +165,26 @@ void FilteredTreePopup::showEvent(QShowEvent *e)
     QWidget::showEvent(e);
 }
 
+bool FilteredTreePopup::focusNextPrevChild(bool)
+{
+    // The default Qt tab navigation doesn't seem to work correctly
+    // in a popup widget
+    if (m_filter->hasFocus())
+        m_tree->setFocus();
+    else
+        m_filter->setFocus();
+    return true;
+}
+
 
 SyntaxPopup::SyntaxPopup(QWidget *parent)
     : FilteredTreePopup(parent)
 {
-    connect(tree(), &QTreeWidget::currentItemChanged,
-            this, &SyntaxPopup::syntaxItemChanged);
+    connect(tree(), &QTreeWidget::itemActivated, this, &SyntaxPopup::syntaxItemChosen);
+    connect(tree(), &QTreeWidget::itemClicked, this, &SyntaxPopup::syntaxItemChosen);
 
     // Default unformatted option
-    m_plainTextItem = new QTreeWidgetItem(tree(), QStringList() << tr("Plain Text"));
+    m_plainTextItem = new QTreeWidgetItem(tree(), QStringList{tr("Plain Text")});
 
     // Load the syntax definitions (these are already sorted)
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
@@ -168,17 +196,17 @@ SyntaxPopup::SyntaxPopup(QWidget *parent)
 
         QTreeWidgetItem *parent = groupItems.value(def.translatedSection(), Q_NULLPTR);
         if (!parent) {
-            parent = new QTreeWidgetItem(tree(), QStringList() << def.translatedSection());
+            parent = new QTreeWidgetItem(tree(), QStringList{def.translatedSection()});
             groupItems[def.translatedSection()] = parent;
         }
-        auto item = new QTreeWidgetItem(parent, QStringList() << def.translatedName());
+        auto item = new QTreeWidgetItem(parent, QStringList{def.translatedName()});
         item->setData(0, Qt::UserRole, QVariant::fromValue(def));
     }
     tree()->expandAll();
     tree()->resizeColumnToContents(0);
 }
 
-void SyntaxPopup::syntaxItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *)
+void SyntaxPopup::syntaxItemChosen(QTreeWidgetItem *current, int)
 {
     if (!current)
         return;
@@ -197,8 +225,8 @@ void SyntaxPopup::syntaxItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *)
 EncodingPopup::EncodingPopup(QWidget *parent)
     : FilteredTreePopup(parent)
 {
-    connect(tree(), &QTreeWidget::currentItemChanged,
-            this, &EncodingPopup::encodingItemChanged);
+    connect(tree(), &QTreeWidget::itemActivated, this, &EncodingPopup::encodingItemChosen);
+    connect(tree(), &QTreeWidget::itemClicked, this, &EncodingPopup::encodingItemChosen);
 
     // Load the available character sets by descriptive name
     auto encodingScripts = QTextPadCharsets::encodingsByScript();
@@ -214,15 +242,16 @@ EncodingPopup::EncodingPopup(QWidget *parent)
         const QString &scriptName = encodingList.first();
         for (int i = 1; i < encodingList.size(); ++i) {
             const QString &encoding = encodingList.at(i);
-            auto item = new QTreeWidgetItem(tree(), QStringList()
-                        << tr("%1 (%2)").arg(scriptName).arg(encoding));
+            auto item = new QTreeWidgetItem(tree(), QStringList {
+                                tr("%1 (%2)").arg(scriptName).arg(encoding)
+                        });
             item->setData(0, Qt::UserRole, encoding);
         }
     }
     tree()->resizeColumnToContents(0);
 }
 
-void EncodingPopup::encodingItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *)
+void EncodingPopup::encodingItemChosen(QTreeWidgetItem *current, int)
 {
     if (!current)
         return;
