@@ -188,15 +188,20 @@ void QTextPadSettings::setFileModes(const QString &filename, const QString &enco
 
 QFont QTextPadSettings::editorFont() const
 {
-#ifdef _WIN32
+#if defined(_WIN32)
     // Included in Vista or Office 2007, both of which are "Old Enough" (2018)
     static const QString defaultFontName = QStringLiteral("Consolas");
+    static const int defaultFontSize = 10;
+#elif defined(__APPLE__)
+    static const QString defaultFontName = QStringLiteral("Menlo");
+    static const int defaultFontSize = 12;
 #else
     static const QString defaultFontName = QStringLiteral("Monospace");
+    static const int defaultFontSize = 10;
 #endif
 
     QFont font(m_settings.value("Editor/DefaultFont", defaultFontName).toString(),
-               m_settings.value("Editor/DefaultFontSize", 10).toInt(),
+               m_settings.value("Editor/DefaultFontSize", defaultFontSize).toInt(),
                m_settings.value("Editor/DefaultFontWeight", QFont::Normal).toInt(),
                m_settings.value("Editor/DefaultFontItalic", false).toBool());
     font.setFixedPitch(true);
