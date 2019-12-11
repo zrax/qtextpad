@@ -1,0 +1,70 @@
+name: macOS-CI
+on: [push, pull_request]
+
+env:
+  KF5_VERSION: 5.64
+  KF5_FULLVER: 5.64.0
+  QT_VERSION: 5.12.6
+  FILE_VERSION: 5.37
+  MACOSX_DEPLOYMENT_TARGET: 10.12
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Qt5
+        run: |
+          brew install p7zip
+          pip3 install aqtinstall
+          python3 -m aqt install -O $HOME/qt5 $QT_VERSION mac desktop
+      - name: Build Qt5 Libs
+        run: |
+          mkdir -p $HOME/build-libs
+          cd $HOME/build-libs
+          curl -LO https://download.kde.org/stable/frameworks/$KF5_VERSION/extra-cmake-modules-${KF5_FULLVER}.tar.xz
+          curl -LO https://download.kde.org/stable/frameworks/$KF5_VERSION/syntax-highlighting-${KF5_FULLVER}.tar.xz
+          tar xf extra-cmake-modules-${KF5_FULLVER}.tar.xz
+          cd extra-cmake-modules-${KF5_FULLVER}
+          mkdir build && cd build
+          cmake -DCMAKE_INSTALL_PREFIX=$HOME/qt5/$QT_VERSION/clang_64 -DCMAKE_BUILD_TYPE=Release ..
+          make -j2 && make install
+          cd $HOME/build-libs
+          tar xf syntax-highlighting-${KF5_FULLVER}.tar.xz
+          cd syntax-highlighting-${KF5_FULLVER}
+          mkdir build && cd build
+          cmake -DCMAKE_INSTALL_PREFIX=$HOME/qt5/$QT_VERSION/clang_64 -DCMAKE_BUILD_TYPE=Release ..
+          make -j2 && make install
+      - name: Build libmagic
+        run: |
+          cd $HOME/build-libs
+          curl -LO ftp://ftp.astron.com/pub/file/file-${FILE_VERSION}.tar.gz
+          tar xf file-${FILE_VERSION}.tar.gz
+          cd file-${FILE_VERSION}
+          ./configure --prefix=$HOME/file --enable-shared --disable-static
+          make -j2
+          make install
+      - name: Build qtextpad
+        run: |
+          cd $GITHUB_WORKSPACE
+          buildver=$(git describe --dirty)
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$HOME/qt5/$QT_VERSION/clang_64;$HOME/file" \
+            -DCMAKE_INSTALL_PREFIX=$HOME/dist ..
+          make -j2
+          make install
+
+      # TODO: The below macdeployqt does not currently produce a working
+      #       app bundle on GitHub's builder :(
+      #- name: Create package
+      #  run: |
+      #    cd $HOME/dist
+      #    $HOME/qt5/$QT_VERSION/clang_64/bin/macdeployqt QTextPad.app -dmg
+      #    mkdir -p $GITHUB_WORKSPACE/macOS
+      #    mv QTextPad.dmg $GITHUB_WORKSPACE/macOS/QTextPad-${buildver}.dmg
+      #- name: Upload artifact
+      #  uses: actions/upload-artifact@v1
+      #  with:
+      #    name: QTextPad-macOS
+      #    path: macOS
