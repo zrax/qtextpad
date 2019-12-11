@@ -121,13 +121,16 @@ if(${Magic_FOUND})
 endif()
 
 if(APPLE)
-    set(MACOSX_BUNDLE true)
-    set(MACOSX_BUNDLE_NAME QTextPad)
-    set(MACOSX_BUNDLE_INFO_STRING "QTextPad ${APP_VERSION}")
-    set(MACOSX_BUNDLE_LONG_VERSION_STRING "QTextPad ${APP_VERSION}")
-    set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VERSION}")
-    set(MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2019 Michael Hansen")
-    set(MACOSX_BUNDLE_ICON_FILE "qtextpad.icns")
+    set_target_properties(qtextpad PROPERTIES
+        OUTPUT_NAME QTextPad
+        MACOSX_RPATH TRUE
+        MACOSX_BUNDLE_NAME QTextPad
+        MACOSX_BUNDLE_INFO_STRING "QTextPad ${APP_VERSION}"
+        MACOSX_BUNDLE_LONG_VERSION_STRING "QTextPad ${APP_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VERSION}"
+        MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2019 Michael Hansen"
+        MACOSX_BUNDLE_ICON_FILE "qtextpad.icns"
+    )
 
     install(TARGETS qtextpad BUNDLE DESTINATION .)
     install(FILES icons/qtextpad.icns DESTINATION QTextPad.app/Contents/Resources)
