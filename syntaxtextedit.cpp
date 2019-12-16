@@ -1014,8 +1014,18 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
                 }
             }
             if (startOfLine != 0) {
-                const QString leadingIndent = scanCursor.block().text().left(startOfLine);
+                const QString indentLine = scanCursor.block().text();
+                const QString leadingIndent = indentLine.left(startOfLine);
                 textCursor().insertText(leadingIndent);
+                if (indentLine.size() == startOfLine
+                        && scanCursor.blockNumber() == textCursor().blockNumber() - 1) {
+                    // We copied the previous blank (whitespace-only) line...
+                    // Now we can clear out that line to clean up unnecessary
+                    // trailing whitespace
+                    scanCursor.movePosition(QTextCursor::StartOfBlock);
+                    scanCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+                    scanCursor.removeSelectedText();
+                }
             }
         }
         undoCursor.endEditBlock();
