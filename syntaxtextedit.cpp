@@ -820,7 +820,8 @@ void SyntaxTextEdit::indentSelection()
     do {
         int leadingIndent = 0;
         int startOfLine = 0;
-        for (const auto ch : cursor.block().text()) {
+        const auto blockText = cursor.block().text();
+        for (const auto ch : blockText) {
             if (ch == QLatin1Char('\t')) {
                 leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
                 startOfLine += 1;
@@ -832,20 +833,22 @@ void SyntaxTextEdit::indentSelection()
             }
         }
 
-        cursor.movePosition(QTextCursor::StartOfLine);
-        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor,
-                            startOfLine);
-        cursor.removeSelectedText();
+        if (!blockText.isEmpty()) {
+            cursor.movePosition(QTextCursor::StartOfLine);
+            cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor,
+                                startOfLine);
+            cursor.removeSelectedText();
 
-        const int indent = leadingIndent + (m_indentationMode == IndentTabs
-                                            ? m_tabCharSize : m_indentWidth);
-        if (m_indentationMode == IndentSpaces) {
-            cursor.insertText(QString(indent, ' '));
-        } else {
-            const int tabs = indent / m_tabCharSize;
-            const int spaces = indent % m_tabCharSize;
-            cursor.insertText(QString(tabs, '\t'));
-            cursor.insertText(QString(spaces, ' '));
+            const int indent = leadingIndent + (m_indentationMode == IndentTabs
+                                                ? m_tabCharSize : m_indentWidth);
+            if (m_indentationMode == IndentSpaces) {
+                cursor.insertText(QString(indent, ' '));
+            } else {
+                const int tabs = indent / m_tabCharSize;
+                const int spaces = indent % m_tabCharSize;
+                cursor.insertText(QString(tabs, '\t'));
+                cursor.insertText(QString(spaces, ' '));
+            }
         }
 
         if (!cursor.movePosition(QTextCursor::NextBlock))
