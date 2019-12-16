@@ -1147,11 +1147,11 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     const QRect viewRect = viewport()->rect();
     QRectF cursorBlockRect;
 
+    const QTextCursor cursor = textCursor();
     if (highlightCurrentLine()) {
         // Highlight current line first, so the long line marker will draw over it
         // Unlike setExtraSelections(), we paint the entire line past even the
         // document margins.
-        QTextCursor cursor = textCursor();
         cursorBlockRect = blockBoundingGeometry(cursor.block());
         cursorBlockRect.translate(contentOffset());
         cursorBlockRect.setLeft(eventRect.left());
@@ -1216,6 +1216,10 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
             blockRect.translate(contentOffset());
             wsColumn = (wsColumn + guideWidth - 1) / guideWidth;
             for (int i = 1; i < wsColumn; ++i) {
+                if (cursor.blockNumber() == block.blockNumber()
+                        && cursor.positionInBlock() == (guideWidth * i))
+                     continue;
+
                 const qreal lineX = (indentLine * i) + lineOffset;
                 p.drawLine(QPointF(lineX, blockRect.top()),
                            QPointF(lineX, blockRect.bottom()));
