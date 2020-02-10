@@ -18,6 +18,7 @@
 
 #include <QTextCodec>
 #include <QRegularExpression>
+#include <QMimeDatabase>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
 
@@ -215,68 +216,31 @@ FileDetection FileDetection::detect(const QByteArray &buffer, const QString &fil
     return result;
 }
 
-static QString detectMimeType(const QString &filename)
-{
-#ifdef HAVE_LIBMAGIC
-    magic_t_RAII magic = magic_open(MAGIC_MIME_TYPE | MAGIC_SYMLINK);
-    if (!magic) {
-        qDebug("Could not initialize libmagic");
-        return QString();
-    }
-
-    if (magic_load(magic, Q_NULLPTR) < 0) {
-        qDebug("Could not load magic database: %s", magic_error(magic));
-        return QString();
-    }
-
-    const QByteArray filenameEncoded = QFile::encodeName(filename);
-    const char *mime = magic_file(magic, filenameEncoded.constData());
-    if (!mime) {
-        qDebug("Could not get MIME type from libmagic: %s", magic_error(magic));
-        return QString();
-    }
-    return QString::fromLatin1(mime);
-#else
-    (void) filename;
-    return QString();
-#endif
-}
-
 // For some reason, KSyntaxHighlighting::Repository doesn't provide a lookup
 // for MIME types like it does for names...
 KSyntaxHighlighting::Definition FileDetection::definitionForFileMagic(const QString &filename)
 {
     using KSyntaxHighlighting::Definition;
 
-    const QString mime = detectMimeType(filename);
-    if (mime.isEmpty() || mime == QStringLiteral("text/plain"))
+    QMimeDatabase mimeDb;
+    const auto &mime = mimeDb.mimeTypeForFile(filename);
+    if (mime.isDefault() || mime.name() == QStringLiteral("text/plain"))
         return Definition();
 
-    const QStringList mimeParts = mime.split(QLatin1Char('/'));
-    if (mimeParts.size() != 2 || mimeParts.last().isEmpty())
-        return Definition();
-
-    QVector<Definition> candidates;
+    Definition matchDef;
+    int matchPriority = std::numeric_limits<int>::min();
     for (const auto &def : SyntaxTextEdit::syntaxRepo()->definitions()) {
+        if (def.priority() < matchPriority)
+            continue;
+
         for (const auto &matchType : def.mimeTypes()) {
-            // Only compare the second part, to avoid missing matches due to
-            // disagreement about whether XML markup should be text/xml or
-            // application/xml (for example)
-            const QStringList matchParts = matchType.split(QLatin1Char('/'));
-            if (matchParts.last().compare(mimeParts.last(), Qt::CaseInsensitive) == 0) {
-                candidates.append(def);
+            if (mime.name() == matchType || mime.aliases().indexOf(matchType) >= 0) {
+                matchDef = def;
+                matchPriority = def.priority();
                 break;
             }
         }
     }
 
-    if (candidates.isEmpty())
-        return Definition();
-
-    std::partial_sort(candidates.begin(), candidates.begin() + 1, candidates.end(),
-                      [](const Definition &left, const Definition &right) {
-        return left.priority() > right.priority();
-    });
-
-    return candidates.first();
+    return matchDef;
 }

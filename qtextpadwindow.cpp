@@ -778,7 +778,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     KSyntaxHighlighting::Definition definition;
     if (!fileModes.syntax.isEmpty())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForName(fileModes.syntax);
-    // If libmagic finds a match, it's probably more likely to be correct
+    // If QMimeDatabase finds a match, it's probably more likely to be correct
     // than the filename match, which is easily fooled
     // (e.g. idle3.6 is not a Troff Mandoc file)
     if (!definition.isValid())
