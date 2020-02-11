@@ -2,8 +2,8 @@ version: '1.3-{build}'
 
 image: Visual Studio 2019
 environment:
-  KF5_VERSION: 5.64
-  KF5_FULLVER: 5.64.0
+  KF5_VERSION: 5.67
+  KF5_FULLVER: 5.67.0
   QT_VERSION: 5.13.2
   QT_MINGW: mingw73_64
 
@@ -48,6 +48,7 @@ after_build:
   - cmake --build . --target install
   - C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\windeployqt.exe
       "%APPVEYOR_BUILD_FOLDER%\dist\qtextpad-win64\qtextpad.exe" --release
+      --no-angle --no-opengl-sw
   - cd "%APPVEYOR_BUILD_FOLDER%\dist"
   - cmake -E copy "%APPVEYOR_BUILD_FOLDER%\COPYING"
       C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\libKF5SyntaxHighlighting.dll
@@ -57,13 +58,8 @@ after_build:
       C:\msys64\mingw64\bin\libtre-5.dll
       C:\msys64\mingw64\bin\libintl-8.dll
       C:\msys64\mingw64\bin\libiconv-2.dll
-      C:\msys64\mingw64\share\misc\magic.mgc
-      C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\data
       qtextpad-win64
   - cmake -E copy_directory C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\data qtextpad-win64\data
-  - cmake -E remove qtextpad-win64\D3Dcompiler_47.dll
-      qtextpad-win64\libGLESv2.dll qtextpad-win64\libEGL.dll
-      qtextpad-win64\opengl32sw.dll
   - cmake -E tar cf ..\qtextpad-win64-%APPVEYOR_BUILD_VERSION%.zip --format=zip qtextpad-win64
 
   # Build a Windows installer

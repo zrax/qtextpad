@@ -35,7 +35,6 @@ Source: qtextpad-win64\Qt5Network.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5PrintSupport.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Svg.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Widgets.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\magic.mgc; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\iconengines\qsvgicon.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qgif.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qicns.dll; DestDir: {app}\imageformats; Flags: ignoreversion
@@ -156,6 +155,9 @@ Source: qtextpad-win64\data\locale\xh\LC_MESSAGES\syntaxhighlighting5_qt.qm; Des
 Source: qtextpad-win64\data\locale\zh_CN\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\zh_CN\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\zh_TW\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\zh_TW\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\qlogging-categories5\org_kde_ksyntaxhighlighting.categories; DestDir: {app}\data\qlogging-categories5; Flags: ignoreversion
+
+[InstallDelete]
+Name: {app}\magic.mgc; Type: files
 
 [UninstallDelete]
 Name: {app}; Type: dirifempty
