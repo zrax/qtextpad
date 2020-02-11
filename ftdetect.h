@@ -25,7 +25,7 @@ public:
     FileDetection() : m_params() { }
     ~FileDetection();
 
-    static FileDetection detect(const QByteArray &buffer, const QString &filename);
+    static FileDetection detect(const QByteArray &buffer);
 
     FileDetection(const FileDetection &) = delete;
     FileDetection &operator=(const FileDetection &) = delete;

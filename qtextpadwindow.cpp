@@ -744,7 +744,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     const QString codecName = textEncoding.isEmpty() ? fileModes.encoding : textEncoding;
 
     auto detectBuffer = file.read(DETECTION_SIZE);
-    auto detect = FileDetection::detect(detectBuffer, filename);
+    auto detect = FileDetection::detect(detectBuffer);
     setLineEndingMode(detect.lineEndings());
 
     QTextCodec *codec = Q_NULLPTR;

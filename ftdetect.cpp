@@ -22,10 +22,6 @@
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
 
-#ifdef HAVE_LIBMAGIC
-#   include <magic.h>
-#endif
-
 #include "syntaxtextedit.h"
 
 #define LATIN1_MIB             4    // A.K.A. ISO-8859-1
@@ -41,21 +37,7 @@ struct DetectionParams_p
     QTextCodec *textCodec;
     int bomOffset;
     QTextPadWindow::LineEndingMode lineEndings;
-    KSyntaxHighlighting::Definition syntaxDefinition;
 };
-
-#ifdef HAVE_LIBMAGIC
-struct magic_t_RAII
-{
-    magic_t m_magic;
-
-    magic_t_RAII(magic_t magic) : m_magic(magic) { }
-    ~magic_t_RAII() { magic_close(m_magic); }
-
-    operator magic_t() { return m_magic; }
-    bool operator!() const { return !m_magic; }
-};
-#endif
 
 
 FileDetection::~FileDetection()
@@ -78,44 +60,7 @@ QTextPadWindow::LineEndingMode FileDetection::lineEndings() const
     return reinterpret_cast<DetectionParams_p *>(m_params)->lineEndings;
 }
 
-#ifdef HAVE_LIBMAGIC
-static QTextCodec *detectMagicEncoding(const QString &filename)
-{
-    magic_t_RAII magic = magic_open(MAGIC_MIME_ENCODING | MAGIC_SYMLINK);
-    if (!magic) {
-        qDebug("Could not initialize libmagic");
-        return Q_NULLPTR;
-    }
-
-    if (magic_load(magic, Q_NULLPTR) < 0) {
-        qDebug("Could not load magic database: %s", magic_error(magic));
-        return Q_NULLPTR;
-    }
-
-    const QByteArray filenameEncoded = QFile::encodeName(filename);
-    const char *mime = magic_file(magic, filenameEncoded.constData());
-    if (!mime) {
-        qDebug("Could not get MIME encoding from libmagic: %s", magic_error(magic));
-        return Q_NULLPTR;
-    }
-
-    // Treat pure 7-bit ASCII as UTF-8
-    if (strcmp(mime, "us-ascii") == 0 || strcmp(mime, "utf-8") == 0)
-        return QTextCodec::codecForMib(UTF8_MIB);
-    if (strcmp(mime, "utf-16le") == 0)
-        return QTextCodec::codecForMib(UTF16_LE_MIB);
-    if (strcmp(mime, "utf-16be") == 0)
-        return QTextCodec::codecForMib(UTF16_BE_MIB);
-    if (strcmp(mime, "iso-8859-1") == 0)
-        return QTextCodec::codecForMib(LATIN1_MIB);
-    if (strcmp(mime, "utf-7") == 0)
-        return QTextCodec::codecForMib(UTF7_MIB);
-
-    return Q_NULLPTR;
-}
-#endif
-
-FileDetection FileDetection::detect(const QByteArray &buffer, const QString &filename)
+FileDetection FileDetection::detect(const QByteArray &buffer)
 {
     FileDetection result;
     auto params = new DetectionParams_p;
@@ -147,6 +92,11 @@ FileDetection FileDetection::detect(const QByteArray &buffer, const QString &fil
                 && (uchar)buffer.at(2) == 0x00 && (uchar)buffer.at(3) == 0x00) {
             params->textCodec = QTextCodec::codecForMib(UTF32_LE_MIB);
             params->bomOffset = 4;
+        } else if (buffer.at(0) == '+' && buffer.at(1) == '/' && buffer.at(2) == 'v'
+                && (buffer.at(3) == '8' || buffer.at(3) == '9' || buffer.at(3) == '+'
+                        || buffer.at(3) == '/')) {
+            params->textCodec = QTextCodec::codecForMib(UTF7_MIB);
+            params->bomOffset = 4;
         }
     }
     if (buffer.size() >= 2 && params->textCodec == Q_NULLPTR) {
@@ -159,12 +109,7 @@ FileDetection FileDetection::detect(const QByteArray &buffer, const QString &fil
         }
     }
 
-#ifdef HAVE_LIBMAGIC
-    // If no BOM, try asking libmagic.
-    if (params->textCodec == Q_NULLPTR)
-        params->textCodec = detectMagicEncoding(filename);
-#else
-    // If we don't have libmagic and no BOM, try seeing if Qt's UTF-8 codec
+    // If we don't have a recognizable BOM, try seeing if Qt's UTF-8 codec
     // can decode it without any errors
     if (params->textCodec == Q_NULLPTR) {
         QTextCodec::ConverterState state;
@@ -173,11 +118,9 @@ FileDetection FileDetection::detect(const QByteArray &buffer, const QString &fil
         if (state.invalidChars == 0)
             params->textCodec = codec;
     }
-#endif
 
-    // If libmagic didn't work for us either, fall back to the system locale,
-    // and after that just try ISO-8859-1 (Latin-1) which can decode
-    // "anything" (even if incorrectly)
+    // Fall back to the system locale, and after that just try ISO-8859-1
+    // (Latin-1) which can decode "anything" (even if incorrectly)
     if (params->textCodec == Q_NULLPTR) {
         QTextCodec::ConverterState state;
         auto codec = QTextCodec::codecForLocale();
