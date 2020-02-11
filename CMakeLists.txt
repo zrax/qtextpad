@@ -30,14 +30,6 @@ set_package_properties(KF5SyntaxHighlighting PROPERTIES
     DESCRIPTION "Syntax Highlighting framework for Qt5"
     TYPE REQUIRED)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-find_package(Magic)
-set_package_properties(Magic PROPERTIES
-    URL "https://www.darwinsys.com/file/"
-    DESCRIPTION "File type identification library"
-    TYPE RECOMMENDED
-    PURPOSE "Provides improved auto-detection of file types and encodings")
-
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
 endif()
@@ -103,11 +95,6 @@ if(WIN32)
     target_sources(qtextpad PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/qtextpad.rc")
 endif()
 
-if(${Magic_FOUND})
-    target_compile_definitions(qtextpad PRIVATE HAVE_LIBMAGIC)
-    include_directories(${Magic_INCLUDE_DIR})
-endif()
-
 target_link_libraries(qtextpad
     PRIVATE
         Qt5::Core
@@ -115,10 +102,6 @@ target_link_libraries(qtextpad
         Qt5::PrintSupport
         KF5::SyntaxHighlighting
 )
-
-if(${Magic_FOUND})
-    target_link_libraries(qtextpad PRIVATE ${Magic_LIBRARY})
-endif()
 
 if(APPLE)
     set_target_properties(qtextpad PROPERTIES

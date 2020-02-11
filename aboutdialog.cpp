@@ -25,10 +25,6 @@
 
 #include <ksyntaxhighlighting_version.h>
 
-#ifdef HAVE_LIBMAGIC
-#   include <magic.h>
-#endif
-
 #include "appversion.h"
 
 AboutDialog::AboutDialog(QWidget *parent)
@@ -78,15 +74,9 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<b>Built with:</b><ul>"
         "<li>Qt %1</li>"
         "<li>KSyntaxHighlighting %2</li>"
-#ifdef HAVE_LIBMAGIC
-        "<li>libmagic %3.%4</li>"
-#endif
         "<li>Oxygen Icons</li>"
         "</ul>")
         .arg(qVersion()).arg(SyntaxHighlighting_VERSION_STRING)
-#ifdef HAVE_LIBMAGIC
-        .arg(MAGIC_VERSION / 100).arg(MAGIC_VERSION % 100)
-#endif
         );
     libVersions->setMargin(10);
     libVersions->setAlignment(Qt::AlignLeft | Qt::AlignTop);

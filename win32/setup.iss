@@ -21,13 +21,8 @@ WizardStyle=modern
 Source: qtextpad-win64\COPYING; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\qtextpad.exe; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libiconv-2.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libintl-8.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\libKF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libmagic-1.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libsystre-0.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libtre-5.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Core.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Gui.dll; DestDir: {app}; Flags: ignoreversion
@@ -158,6 +153,11 @@ Source: qtextpad-win64\data\qlogging-categories5\org_kde_ksyntaxhighlighting.cat
 
 [InstallDelete]
 Name: {app}\magic.mgc; Type: files
+Name: {app}\libiconv-2.dll; Type: files
+Name: {app}\libintl-8.dll; Type: files
+Name: {app}\libmagic-1.dll; Type: files
+Name: {app}\libsystre-0.dll; Type: files
+Name: {app}\libtre-5.dll; Type: files
 
 [UninstallDelete]
 Name: {app}; Type: dirifempty

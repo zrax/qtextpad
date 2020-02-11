@@ -11,10 +11,6 @@ install:
   # CMake's MinGW generator doesn't play nice with git's sh.exe
   - ps: Get-Command sh.exe -All | Remove-Item
 
-before_build:
-  # Get required MinGW libs
-  - C:\msys64\usr\bin\pacman.exe -Sy --noconfirm mingw-w64-x86_64-file
-
 build_script:
   - set PATH=%PATH%;C:\Qt\Tools\mingw730_64\bin;C:\Qt\%QT_VERSION%\%QT_MINGW%\bin
   - mkdir build_deps && cd build_deps
@@ -39,8 +35,6 @@ build_script:
   - mkdir build && cd build
   - cmake -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH="C:/Qt/%QT_VERSION%/%QT_MINGW%"
       -DCMAKE_INSTALL_PREFIX="%APPVEYOR_BUILD_FOLDER%/dist/qtextpad-win64"
-      -DMagic_INCLUDE_DIR="C:/msys64/mingw64/include"
-      -DMagic_LIBRARY="C:/msys64/mingw64/lib/libmagic.dll.a"
       -DCMAKE_BUILD_TYPE=Release ..
   - cmake --build .
 
@@ -53,11 +47,6 @@ after_build:
   - cmake -E copy "%APPVEYOR_BUILD_FOLDER%\COPYING"
       C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\libKF5SyntaxHighlighting.dll
       C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\Qt5Network.dll
-      C:\msys64\mingw64\bin\libmagic-1.dll
-      C:\msys64\mingw64\bin\libsystre-0.dll
-      C:\msys64\mingw64\bin\libtre-5.dll
-      C:\msys64\mingw64\bin\libintl-8.dll
-      C:\msys64\mingw64\bin\libiconv-2.dll
       qtextpad-win64
   - cmake -E copy_directory C:\Qt\%QT_VERSION%\%QT_MINGW%\bin\data qtextpad-win64\data
   - cmake -E tar cf ..\qtextpad-win64-%APPVEYOR_BUILD_VERSION%.zip --format=zip qtextpad-win64
