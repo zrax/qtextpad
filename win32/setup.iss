@@ -3,7 +3,7 @@ OutputDir=.
 OutputBaseFilename=qtextpad-win64
 AppName=QTextPad
 AppVersion=1.4-pre
-AppCopyright=2019 Michael Hansen
+AppCopyright=2020 Michael Hansen
 AppId={{7DDD3218-1920-4278-9C33-E3AF37F3E7A4}
 AppPublisher=Michael Hansen
 AppPublisherURL=https://github.com/zrax/qtextpad
@@ -18,18 +18,17 @@ UninstallDisplayIcon={app}\qtextpad.exe
 WizardStyle=modern
 
 [Files]
+Source: qtextpad-win64\vc_redist.x64.exe; DestDir: {tmp}; Flags: deleteafterinstall ignoreversion
 Source: qtextpad-win64\COPYING; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\qtextpad.exe; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libKF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\KF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Core.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Gui.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Network.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5PrintSupport.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Svg.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Widgets.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\bearer\qgenericbearer.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\iconengines\qsvgicon.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qgif.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qicns.dll; DestDir: {app}\imageformats; Flags: ignoreversion
@@ -149,15 +148,23 @@ Source: qtextpad-win64\data\locale\wa\LC_MESSAGES\syntaxhighlighting5_qt.qm; Des
 Source: qtextpad-win64\data\locale\xh\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\xh\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\zh_CN\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\zh_CN\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\zh_TW\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\zh_TW\LC_MESSAGES; Flags: ignoreversion
-Source: qtextpad-win64\data\qlogging-categories5\org_kde_ksyntaxhighlighting.categories; DestDir: {app}\data\qlogging-categories5; Flags: ignoreversion
+Source: qtextpad-win64\data\qlogging-categories5\ksyntaxhighlighting.categories; DestDir: {app}\data\qlogging-categories5; Flags: ignoreversion
+
+[Run]
+Filename: {tmp}\vc_redist.x64.exe; Parameters: /q /norestart
 
 [InstallDelete]
 Name: {app}\magic.mgc; Type: files
+Name: {app}\libgcc_s_seh-1.dll; Type: files
 Name: {app}\libiconv-2.dll; Type: files
 Name: {app}\libintl-8.dll; Type: files
+Name: {app}\libKF5SyntaxHighlighting.dll; Type: files
 Name: {app}\libmagic-1.dll; Type: files
+Name: {app}\libstdc++-6.dll; Type: files
 Name: {app}\libsystre-0.dll; Type: files
 Name: {app}\libtre-5.dll; Type: files
+Name: {app}\libwinpthread-1.dll; Type: files
+Name: {app}\data\qlogging-categories5\org_kde_ksyntaxhighlighting.categories; Type: files
 
 [UninstallDelete]
 Name: {app}; Type: dirifempty

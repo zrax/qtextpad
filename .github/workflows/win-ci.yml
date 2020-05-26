@@ -1,0 +1,76 @@
+name: Win64-CI
+on: [push, pull_request]
+
+env:
+  KF5_VERSION: "5.70"
+  KF5_FULLVER: "5.70.0"
+  QT_VERSION: "5.15.0"
+  CM_GENERATOR: "Visual Studio 16 2019"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Qt5
+        uses: jurplel/install-qt-action@v2
+        with:
+          arch: win64_msvc2019_64
+          version: ${{ env.QT_VERSION }}
+      - name: Build Qt5 Libs
+        run: |
+          mkdir build_deps
+          cd build_deps
+          curl -LO https://download.kde.org/stable/frameworks/${Env:KF5_VERSION}/extra-cmake-modules-${Env:KF5_FULLVER}.zip
+          curl -LO https://download.kde.org/stable/frameworks/${Env:KF5_VERSION}/syntax-highlighting-${Env:KF5_FULLVER}.zip
+          cmake -E tar xf extra-cmake-modules-${Env:KF5_FULLVER}.zip
+          cd extra-cmake-modules-${Env:KF5_FULLVER}
+          mkdir build
+          cd build
+          cmake -G "${Env:CM_GENERATOR}" -A x64 `
+              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
+              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
+              -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build . --config Release --target install
+          cd ..\..
+          cmake -E tar xf syntax-highlighting-${Env:KF5_FULLVER}.zip
+          cd syntax-highlighting-${Env:KF5_FULLVER}
+          mkdir build && cd build
+          cmake -G "${Env:CM_GENERATOR}" -A x64 `
+              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
+              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
+              -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build . --config Release
+          cmake --build . --config Release --target install
+      - name: Build qtextpad
+        run: |
+          mkdir build
+          cd build
+          cmake -G "${Env:CM_GENERATOR}" -A x64 `
+            "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
+            "-DCMAKE_INSTALL_PREFIX=${Env:GITHUB_WORKSPACE}/dist/qtextpad-win64" `
+            -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build . --config Release
+          cmake --build . --config Release --target install
+      - name: Package qtextpad
+        run: |
+          $buildver = ((git describe --dirty) | Out-String).Trim()
+          $Env:VCINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC"
+          cd "${Env:GITHUB_WORKSPACE}\dist"
+          windeployqt qtextpad-win64\qtextpad.exe --release --no-angle --no-opengl-sw
+          cmake -E copy "${Env:GITHUB_WORKSPACE}\COPYING" `
+              "${Env:RUNNER_WORKSPACE}\Qt\${Env:QT_VERSION}\msvc2019_64\bin\KF5SyntaxHighlighting.dll" `
+              qtextpad-win64
+          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-angle --no-opengl-sw
+          cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${Env:QT_VERSION}\msvc2019_64\bin\data" `
+              qtextpad-win64\data
+          cmake -E tar cf "..\qtextpad-win64-${buildver}.zip" --format=zip qtextpad-win64
+          cd ..\win32
+          cmake -E tar xf "..\qtextpad-win64-${buildver}.zip"
+          iscc setup.iss
+          cmake -E rename qtextpad-win64.exe "..\qtextpad-win64-${buildver}.exe"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: QTextPad-win64
+          path: qtextpad-win64-*.*

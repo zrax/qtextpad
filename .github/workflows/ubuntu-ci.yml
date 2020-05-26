@@ -4,18 +4,12 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        libmagic: [magic, no-magic]
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install qtbase5-dev libkf5syntaxhighlighting-dev
-          if [[ "${{ matrix.libmagic }}" == "no-magic" ]]; then
-            sudo apt remove libmagic-dev
-          fi
       - name: Build qtextpad
         run: |
           mkdir build && cd build
