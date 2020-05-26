@@ -27,6 +27,8 @@
 #include <QCompleter>
 #include <QMessageBox>
 
+#include <stdexcept>
+
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"
 #include "appsettings.h"
@@ -418,7 +420,7 @@ QTextCursor SearchDialog::performSearch(const QTextCursor &start, bool reverse)
     if (!session()->editor)
         return QTextCursor();
 
-    QTextDocument::FindFlags searchOptions = 0;
+    QTextDocument::FindFlags searchOptions;
     if (session()->caseSensitive)
         searchOptions |= QTextDocument::FindCaseSensitively;
     if (session()->wholeWord)

@@ -160,7 +160,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     connect(newAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
     connect(newWindowAction, &QAction::triggered, this, [](bool) {
-        QProcess::startDetached(QCoreApplication::applicationFilePath());
+        QProcess::startDetached(QCoreApplication::applicationFilePath(), QStringList());
     });
     connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
     connect(m_reloadAction, &QAction::triggered, this, &QTextPadWindow::reloadDocument);
