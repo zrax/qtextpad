@@ -18,6 +18,10 @@
 
 #include <QTextCodec>
 #include <QCoreApplication>
+#include <QLoggingCategory>
+#include <map>
+
+Q_LOGGING_CATEGORY(CsLog, "qtextpad.charsets", QtInfoMsg)
 
 // Greatly simplified version from KCharsets with no Latin-1 fallback
 QTextCodec *QTextPadCharsets::codecForName(const QString &name)
@@ -117,14 +121,16 @@ QTextPadCharsets::QTextPadCharsets()
         tr("Japanese"),
         "EUC-JP",
         "ISO-2022-JP",
-        "Shift_JIS",
+        "Shift-JIS",
     });
     m_encodingCache.append(QStringList {
         tr("Korean"),
+        "EUC-KR",
         "windows-949",
     });
     m_encodingCache.append(QStringList {
         tr("Thai"),
+        "IBM874",
         "TIS-620",
     });
     m_encodingCache.append(QStringList {
@@ -157,14 +163,21 @@ QTextPadCharsets::QTextPadCharsets()
         "UTF-32BE",
     });
 
+    std::map<QTextCodec *, QStringList> codecDupes;
+
     // Prune encodings that aren't supported by Qt or the platform
     for (auto &encodingList : m_encodingCache) {
         int enc = 1;
         while (enc < encodingList.size()) {
-            if (!QTextCodec::codecForName(encodingList.at(enc).toLatin1()))
+            const QString &name = encodingList.at(enc);
+            QTextCodec *codec = QTextCodec::codecForName(name.toLatin1());
+            if (!codec) {
+                qCDebug(CsLog, "Removing unsupported codec %s", qPrintable(name));
                 encodingList.removeAt(enc);
-            else
+            } else {
+                codecDupes[codec].append(name);
                 ++enc;
+            }
         }
     }
     int script = 0;
@@ -174,6 +187,14 @@ QTextPadCharsets::QTextPadCharsets()
             m_encodingCache.removeAt(script);
         else
             ++script;
+    }
+
+    for (const auto &dupe : codecDupes) {
+        if (dupe.second.size() > 1) {
+            qCDebug(CsLog, "Duplicate codecs for %s:", qPrintable(dupe.first->name()));
+            for (const auto &name : dupe.second)
+                qCDebug(CsLog, "  * %s", qPrintable(name));
+        }
     }
 }
 
