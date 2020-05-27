@@ -28,7 +28,7 @@ Source: qtextpad-win64\Qt5Network.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5PrintSupport.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Svg.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Widgets.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\bearer\qgenericbearer.dll; DestDir: {app}\iconengines; Flags: ignoreversion
+Source: qtextpad-win64\bearer\qgenericbearer.dll; DestDir: {app}\bearer; Flags: ignoreversion
 Source: qtextpad-win64\iconengines\qsvgicon.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qgif.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qicns.dll; DestDir: {app}\imageformats; Flags: ignoreversion
