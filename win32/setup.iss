@@ -22,6 +22,8 @@ Source: qtextpad-win64\vc_redist.x64.exe; DestDir: {tmp}; Flags: deleteafterinst
 Source: qtextpad-win64\COPYING; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\qtextpad.exe; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\KF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\libcrypto-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\libssl-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Core.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Gui.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt5Network.dll; DestDir: {app}; Flags: ignoreversion

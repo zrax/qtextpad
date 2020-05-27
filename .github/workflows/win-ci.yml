@@ -61,9 +61,16 @@ jobs:
           cmake -E copy "${Env:GITHUB_WORKSPACE}\COPYING" `
               "${Env:RUNNER_WORKSPACE}\Qt\${Env:QT_VERSION}\msvc2019_64\bin\KF5SyntaxHighlighting.dll" `
               qtextpad-win64
-          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-angle --no-opengl-sw
           cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${Env:QT_VERSION}\msvc2019_64\bin\data" `
               qtextpad-win64\data
+          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-angle --no-opengl-sw
+
+          # TODO: Use the Qt versions of the OpenSSL libs.  Depends on
+          # https://github.com/jurplel/install-qt-action/issues/16
+          cmake -E copy "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll" `
+              "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
+              qtextpad-win64
+
           cmake -E tar cf "..\qtextpad-win64-${buildver}.zip" --format=zip qtextpad-win64
           cd ..\win32
           cmake -E tar xf "..\qtextpad-win64-${buildver}.zip"
