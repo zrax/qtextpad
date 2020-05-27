@@ -54,6 +54,8 @@ QTextCodec *QTextPadCharsets::codecForName(const QString &name)
 // for example, all of which are the same ambiguous UTF-16 codec)
 QTextPadCharsets::QTextPadCharsets()
 {
+    (void)new Cp437Codec;
+
     m_encodingCache.reserve(17);
     m_encodingCache.append(QStringList {
         tr("Arabic"),
@@ -150,6 +152,7 @@ QTextPadCharsets::QTextPadCharsets()
     m_encodingCache.append(QStringList {
         tr("Other"),
         "macintosh",
+        "OEM437",
         "TSCII",
         "windows-1258",
     });

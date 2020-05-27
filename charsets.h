@@ -19,8 +19,7 @@
 
 #include <QStringList>
 #include <QCoreApplication>
-
-class QTextCodec;
+#include <QTextCodec>
 
 // Simplified version of KCharsets with more standard names and fewer duplicates
 class QTextPadCharsets
@@ -37,6 +36,23 @@ private:
     static QTextPadCharsets *instance();
 
     QList<QStringList> m_encodingCache;
+};
+
+// CP 437 (OEM/DOS) codec
+class Cp437Codec : public QTextCodec
+{
+public:
+    QByteArray name() const override { return "OEM437"; }
+    QList<QByteArray> aliases() const override
+    {
+        return QList<QByteArray>{ "CP437", "IBM437", "csPC8CodePage437" };
+    }
+
+    int mibEnum() const override { return 2011; }
+
+protected:
+    QString convertToUnicode(const char *in, int length, ConverterState *state) const override;
+    QByteArray convertFromUnicode(const QChar *in, int length, ConverterState *state) const override;
 };
 
 #endif // _CHARSETS_H

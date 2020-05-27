@@ -69,6 +69,7 @@ target_sources(qtextpad
         appsettings.cpp
         charsets.h
         charsets.cpp
+        cp437codec.cpp
         definitiondownload.h
         definitiondownload.cpp
         ftdetect.h
