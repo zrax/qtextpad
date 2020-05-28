@@ -36,7 +36,7 @@ endif()
 
 set(APP_MAJOR 1)
 set(APP_MINOR 4)
-set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}-pre")
+set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}")
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     find_program(GIT_EXECUTABLE NAMES git git.cmd)
     mark_as_advanced(GIT_EXECUTABLE)
