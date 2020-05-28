@@ -135,7 +135,6 @@ private:
 
     QToolBar *m_toolBar;
     QMenu *m_recentFiles;
-    QMenu *m_loadEncodingMenu;
     QMenu *m_themeMenu;
     QMenu *m_syntaxMenu;
     QMenu *m_setEncodingMenu;
@@ -146,7 +145,6 @@ private:
     QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
     QAction *m_fullScreenAction;
-    QActionGroup *m_loadEncodingActions;
     QActionGroup *m_themeActions;
     QActionGroup *m_syntaxActions;
     QActionGroup *m_setEncodingActions;

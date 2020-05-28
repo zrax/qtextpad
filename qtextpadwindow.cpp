@@ -143,7 +143,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     populateRecentFiles();
     m_reloadAction = fileMenu->addAction(ICON("view-refresh"), tr("Re&load"));
     m_reloadAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_R);
-    m_loadEncodingMenu = fileMenu->addMenu(tr("Reload with &Encoding"));
     (void) fileMenu->addSeparator();
     auto saveAction = fileMenu->addAction(ICON("document-save"), tr("&Save"));
     saveAction->setShortcut(QKeySequence::Save);
@@ -573,8 +572,6 @@ void QTextPadWindow::setEncoding(const QString &codecName)
 
     // We may not directly match the passed encoding, so don't show a
     // radio check at all if we can't find the encoding.
-    if (m_loadEncodingActions->checkedAction())
-        m_loadEncodingActions->checkedAction()->setChecked(false);
     if (m_setEncodingActions->checkedAction())
         m_setEncodingActions->checkedAction()->setChecked(false);
 
@@ -587,13 +584,6 @@ void QTextPadWindow::setEncoding(const QString &codecName)
     }
 
     // Update the menus when this is triggered via other callers
-    for (const auto &action : m_loadEncodingActions->actions()) {
-        const auto actionCodec = action->data().toString();
-        if (actionCodec == codecName) {
-            action->setChecked(true);
-            break;
-        }
-    }
     for (const auto &action : m_setEncodingActions->actions()) {
         const auto actionCodec = action->data().toString();
         if (actionCodec == codecName) {
@@ -832,7 +822,6 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     m_undoStack->clear();
     m_undoStack->setClean();
     m_reloadAction->setEnabled(true);
-    m_loadEncodingMenu->setEnabled(true);
     m_utfBOMAction->setChecked(detect.bomOffset() != 0);
     updateTitle();
     return true;
@@ -963,7 +952,6 @@ void QTextPadWindow::resetEditor()
     m_undoStack->clear();
     m_undoStack->setClean();
     m_reloadAction->setEnabled(false);
-    m_loadEncodingMenu->setEnabled(false);
     m_utfBOMAction->setChecked(false);
 }
 
@@ -1224,12 +1212,30 @@ void QTextPadWindow::chooseEditorFont()
 
 void QTextPadWindow::changeEncoding(const QString &encoding)
 {
+    if (encoding == m_textEncoding)
+        return;
+
     if (!documentExists()) {
         // Don't save changes in the undo stack if we are creating a new file
         setEncoding(encoding);
     } else {
-        auto command = new ChangeEncodingCommand(this, encoding);
-        addUndoCommand(command);
+        QMessageBox mbQuestion(QMessageBox::Question, tr("Change Document Encoding"),
+               tr("The current document encoding is '%1'.  Would you like to:<ul>"
+                  "<li><b>Reload</b> the existing file in the '%2' encoding, or</li>"
+                  "<li><b>Convert</b> the current document's encoding to '%2'?</li></ul>")
+                  .arg(m_textEncoding).arg(encoding),
+               QMessageBox::Cancel, this);
+        auto reloadButton = mbQuestion.addButton(tr("&Reload"), QMessageBox::AcceptRole);
+        auto convertButton = mbQuestion.addButton(tr("&Convert"), QMessageBox::AcceptRole);
+
+        (void)mbQuestion.exec();
+        if (mbQuestion.clickedButton() == convertButton) {
+            auto command = new ChangeEncodingCommand(this, encoding);
+            addUndoCommand(command);
+        } else if (mbQuestion.clickedButton() == reloadButton) {
+            reloadDocumentEncoding(encoding);
+        }
+        // No action if the user hit Cancel or closed the dialog.
     }
 }
 
@@ -1532,7 +1538,6 @@ void QTextPadWindow::populateThemeMenu()
 
 void QTextPadWindow::populateEncodingMenu()
 {
-    m_loadEncodingActions = new QActionGroup(this);
     m_setEncodingActions = new QActionGroup(this);
     auto encodingScripts = QTextPadCharsets::encodingsByScript();
 
@@ -1549,18 +1554,9 @@ void QTextPadWindow::populateEncodingMenu()
     });
 
     for (const auto &encodingList : encodingScripts) {
-        QMenu *loadEncodingParentMenu = m_loadEncodingMenu->addMenu(encodingList.first());
         QMenu *setEncodingParentMenu = m_setEncodingMenu->addMenu(encodingList.first());
         for (int i = 1; i < encodingList.size(); ++i) {
             const QString &codecName = encodingList.at(i);
-            auto leItem = loadEncodingParentMenu->addAction(codecName);
-            leItem->setCheckable(true);
-            leItem->setActionGroup(m_loadEncodingActions);
-            leItem->setData(codecName);
-            connect(leItem, &QAction::triggered, [this, codecName]() {
-                reloadDocumentEncoding(codecName);
-            });
-
             auto seItem = setEncodingParentMenu->addAction(codecName);
             seItem->setCheckable(true);
             seItem->setActionGroup(m_setEncodingActions);
