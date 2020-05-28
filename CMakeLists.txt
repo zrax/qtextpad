@@ -112,7 +112,7 @@ if(APPLE)
         MACOSX_BUNDLE_INFO_STRING "QTextPad ${APP_VERSION}"
         MACOSX_BUNDLE_LONG_VERSION_STRING "QTextPad ${APP_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VERSION}"
-        MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2019 Michael Hansen"
+        MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2020 Michael Hansen"
         MACOSX_BUNDLE_ICON_FILE "qtextpad.icns"
     )
 
