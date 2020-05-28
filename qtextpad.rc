@@ -22,7 +22,7 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Michael Hansen"
             VALUE "FileVersion", APP_FILE_VERSION_STR
-            VALUE "FileDescription", "Lightweight Qt Text Editor"
+            VALUE "FileDescription", "QTextPad"
             VALUE "InternalName", "qtextpad"
             VALUE "LegalCopyright", "Copyright (C) 2020 Michael Hansen"
             VALUE "OriginalFilename", "qtextpad.exe"
