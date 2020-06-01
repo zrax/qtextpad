@@ -643,27 +643,21 @@ void QTextPadWindow::setLineEndingMode(LineEndingMode mode)
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-static QString rawTextToFormat(const QString &text, QTextPadWindow::LineEndingMode mode)
+static QString convertRawText(const QString &text)
 {
-    QString result;
-    result.reserve(text.size());
-    for (const QChar &ch : qAsConst(text)) {
-        switch (ch.unicode()) {
+    QString result = text;
+    for (auto dp = result.begin(); dp != result.end(); ++dp) {
+        switch (dp->unicode()) {
         case 0xfdd0:    // Used internally by QTextDocument
         case 0xfdd1:    // Used internally by QTextDocument
         case QChar::ParagraphSeparator:
         case QChar::LineSeparator:
-            if (mode == QTextPadWindow::CROnly || mode == QTextPadWindow::CRLF)
-                result.append(QLatin1Char('\r'));
-            if (mode == QTextPadWindow::LFOnly || mode == QTextPadWindow::CRLF)
-                result.append(QLatin1Char('\n'));
+            *dp = QLatin1Char('\n');
             break;
         default:
-            result.append(ch);
             break;
         }
     }
-
     return result;
 }
 #endif
@@ -686,11 +680,12 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-    auto document = rawTextToFormat(m_editor->document()->toRawText(),
-                                    m_lineEndingMode);
+    auto document = convertRawText(m_editor->document()->toRawText());
 #else
     // NOTE: toPlainText() does not preserve NBSP characters
     auto document = m_editor->toPlainText();
+#endif
+
     switch (m_lineEndingMode) {
     case CROnly:
         document.replace(QLatin1Char('\n'), QLatin1Char('\r'));
@@ -702,7 +697,6 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         document.replace(QLatin1Char('\n'), QStringLiteral("\r\n"));
         break;
     }
-#endif
 
     QTextCodec::ConversionFlags codecFlags = QTextCodec::DefaultConversion;
     if (!utfBOM())
