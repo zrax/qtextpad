@@ -30,8 +30,6 @@
 
 #include <cmath>
 
-#include "appsettings.h"
-
 enum SyntaxTextEdit_Config
 {
     Config_ShowLineNumbers = (1U<<0),
@@ -113,39 +111,13 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     connect(this, &QPlainTextEdit::cursorPositionChanged,
             this, &SyntaxTextEdit::updateCursor);
 
-    // Default editor configuration
-    QTextPadSettings settings;
-
-    if (settings.lineNumbers())
-        m_config |= Config_ShowLineNumbers;
-    if (settings.autoIndent())
-        m_config |= Config_AutoIndent;
-    if (settings.matchBraces())
-        m_config |= Config_MatchBraces;
-    if (settings.highlightCurLine())
-        m_config |= Config_HighlightCurLine;
-    if (settings.indentationGuides())
-        m_config |= Config_IndentGuides;
-    if (settings.showLongLineMargin())
-        m_config |= Config_LongLineEdge;
-
-    m_tabCharSize = settings.tabWidth();
-    m_indentWidth = settings.indentWidth();
-    m_longLineMarker = settings.longLineWidth();
-
-    setDefaultFont(settings.editorFont());
-    setWordWrap(settings.wordWrap());
-    setIndentationMode(settings.indentMode());
-
-    // See comment in SyntaxTextEdit::setScrollPastEndOfFile()
-    setCenterOnScroll(settings.scrollPastEndOfFile());
+    // Initialize default editor configuration
+    setDefaultFont(font());
+    setWordWrap(false);
+    setIndentationMode(-1);
 
     QTextOption opt = document()->defaultTextOption();
     opt.setFlags(opt.flags() | QTextOption::AddSpaceForLineAndParagraphSeparators);
-    if (settings.showWhitespace())
-        opt.setFlags(opt.flags() | QTextOption::ShowTabsAndSpaces);
-    else
-        opt.setFlags(opt.flags() & ~QTextOption::ShowTabsAndSpaces);
     document()->setDefaultTextOption(opt);
 }
 
@@ -232,8 +204,6 @@ void SyntaxTextEdit::setShowLineNumbers(bool show)
         m_config &= ~Config_ShowLineNumbers;
     updateMargins();
     m_lineMargin->update();
-
-    QTextPadSettings().setLineNumbers(show);
 }
 
 bool SyntaxTextEdit::showLineNumbers() const
@@ -249,8 +219,6 @@ void SyntaxTextEdit::setShowWhitespace(bool show)
     else
         opt.setFlags(opt.flags() & ~QTextOption::ShowTabsAndSpaces);
     document()->setDefaultTextOption(opt);
-
-    QTextPadSettings().setShowWhitespace(show);
 }
 
 bool SyntaxTextEdit::showWhitespace() const
@@ -267,8 +235,6 @@ void SyntaxTextEdit::setScrollPastEndOfFile(bool scroll)
     // property is the only way to enable scrolling past the last line of
     // the document.  TL;DR: This property is poorly named.
     setCenterOnScroll(scroll);
-
-    QTextPadSettings().setScrollPastEndOfFile(scroll);
 }
 
 bool SyntaxTextEdit::scrollPastEndOfFile() const
@@ -283,8 +249,6 @@ void SyntaxTextEdit::setHighlightCurrentLine(bool show)
     else
         m_config &= ~Config_HighlightCurLine;
     viewport()->update();
-
-    QTextPadSettings().setHighlightCurLine(show);
 }
 
 bool SyntaxTextEdit::highlightCurrentLine() const
@@ -296,8 +260,6 @@ void SyntaxTextEdit::setTabWidth(int width)
 {
     m_tabCharSize = width;
     updateTabMetrics();
-
-    QTextPadSettings().setTabWidth(width);
 }
 
 void SyntaxTextEdit::setIndentWidth(int width)
@@ -305,8 +267,6 @@ void SyntaxTextEdit::setIndentWidth(int width)
     m_indentWidth = width;
     if (showIndentGuides())
         viewport()->update();
-
-    QTextPadSettings().setIndentWidth(width);
 }
 
 void SyntaxTextEdit::updateTabMetrics()
@@ -333,9 +293,6 @@ void SyntaxTextEdit::setIndentationMode(int mode)
     }
     if (showIndentGuides())
         viewport()->update();
-
-    // Save the real indentation mode
-    QTextPadSettings().setIndentMode(static_cast<int>(m_indentationMode));
 }
 
 int SyntaxTextEdit::textColumn(const QString &block, int positionInBlock) const
@@ -479,8 +436,6 @@ void SyntaxTextEdit::setAutoIndent(bool ai)
         m_config |= Config_AutoIndent;
     else
         m_config &= ~Config_AutoIndent;
-
-    QTextPadSettings().setAutoIndent(ai);
 }
 
 bool SyntaxTextEdit::autoIndent() const
@@ -495,8 +450,6 @@ void SyntaxTextEdit::setShowLongLineEdge(bool show)
     else
         m_config &= ~Config_LongLineEdge;
     viewport()->update();
-
-    QTextPadSettings().setShowLongLineMargin(show);
 }
 
 bool SyntaxTextEdit::showLongLineEdge() const
@@ -508,8 +461,6 @@ void SyntaxTextEdit::setLongLineWidth(int pos)
 {
     m_longLineMarker = pos;
     viewport()->update();
-
-    QTextPadSettings().setLongLineWidth(pos);
 }
 
 void SyntaxTextEdit::setShowIndentGuides(bool show)
@@ -519,8 +470,6 @@ void SyntaxTextEdit::setShowIndentGuides(bool show)
     else
         m_config &= ~Config_IndentGuides;
     viewport()->update();
-
-    QTextPadSettings().setIndentationGuides(show);
 }
 
 bool SyntaxTextEdit::showIndentGuides() const
@@ -532,7 +481,6 @@ void SyntaxTextEdit::setWordWrap(bool wrap)
 {
     setWordWrapMode(wrap ? QTextOption::WrapAtWordBoundaryOrAnywhere
                          : QTextOption::NoWrap);
-    QTextPadSettings().setWordWrap(wrap);
 }
 
 bool SyntaxTextEdit::wordWrap() const
@@ -547,8 +495,6 @@ void SyntaxTextEdit::setMatchBraces(bool match)
     else
         m_config &= ~Config_MatchBraces;
     updateCursor();
-
-    QTextPadSettings().setMatchBraces(match);
 }
 
 bool SyntaxTextEdit::matchBraces() const
@@ -563,8 +509,6 @@ void SyntaxTextEdit::setDefaultFont(const QFont &font)
     m_originalFontSize = font.pointSize();
     updateMargins();
     updateTabMetrics();
-
-    QTextPadSettings().setEditorFont(font);
 }
 
 QFont SyntaxTextEdit::defaultFont() const

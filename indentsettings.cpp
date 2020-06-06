@@ -23,6 +23,7 @@
 #include <QGridLayout>
 
 #include "syntaxtextedit.h"
+#include "appsettings.h"
 
 IndentSettingsDialog::IndentSettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -92,9 +93,18 @@ void IndentSettingsDialog::loadSettings(SyntaxTextEdit *editor)
 
 void IndentSettingsDialog::applySettings(SyntaxTextEdit *editor)
 {
-    if (m_indentMode->currentIndex() >= 0)
-        editor->setIndentationMode(m_indentMode->currentData().toInt());
+    QTextPadSettings settings;
+    if (m_indentMode->currentIndex() >= 0) {
+        const int mode = m_indentMode->currentData().toInt();
+        editor->setIndentationMode(mode);
+        settings.setIndentMode(mode);
+    }
 
-    editor->setTabWidth(m_tabWidth->value());
-    editor->setIndentWidth(m_indentWidth->value());
+    const int tabWidth = m_tabWidth->value();
+    const int indentWidth = m_indentWidth->value();
+    editor->setTabWidth(tabWidth);
+    editor->setIndentWidth(indentWidth);
+
+    settings.setTabWidth(tabWidth);
+    settings.setIndentWidth(indentWidth);
 }
