@@ -38,6 +38,7 @@ enum SyntaxTextEdit_Config
     Config_HighlightCurLine = (1U<<3),
     Config_IndentGuides = (1U<<4),
     Config_LongLineEdge = (1U<<5),
+    Config_ExternalUndoRedo = (1U<<6),
 };
 
 class LineNumberMargin : public QWidget
@@ -502,6 +503,19 @@ bool SyntaxTextEdit::matchBraces() const
     return !!(m_config & Config_MatchBraces);
 }
 
+void SyntaxTextEdit::setExternalUndoRedo(bool enable)
+{
+    if (enable)
+        m_config |= Config_ExternalUndoRedo;
+    else
+        m_config &= ~Config_ExternalUndoRedo;
+}
+
+bool SyntaxTextEdit::externalUndoRedo() const
+{
+    return !!(m_config & Config_ExternalUndoRedo);
+}
+
 void SyntaxTextEdit::setDefaultFont(const QFont &font)
 {
     // Note:  This will reset the zoom factor to 100%
@@ -875,15 +889,17 @@ void SyntaxTextEdit::zoomReset()
 
 void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 {
-    // Ensure these are handled by the application, NOT by QPlainTextEdit's
-    // built-in implementation that bypasses us altogether
-    if (e->matches(QKeySequence::Undo)) {
-        emit parentUndo();
-        return;
-    }
-    if (e->matches(QKeySequence::Redo)) {
-        emit parentRedo();
-        return;
+    if (externalUndoRedo()) {
+        // Ensure these are handled by the application, NOT by QPlainTextEdit's
+        // built-in implementation that bypasses us altogether
+        if (e->matches(QKeySequence::Undo)) {
+            emit undoRequested();
+            return;
+        }
+        if (e->matches(QKeySequence::Redo)) {
+            emit redoRequested();
+            return;
+        }
     }
 
     // Custom versions of Cut and Copy

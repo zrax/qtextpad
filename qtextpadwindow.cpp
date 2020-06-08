@@ -139,11 +139,12 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_editor->setIndentationMode(settings.indentMode());
     m_editor->setScrollPastEndOfFile(settings.scrollPastEndOfFile());
 
+    m_editor->setExternalUndoRedo(true);
     m_undoStack = new QUndoStack(this);
     connect(m_editor->document(), &QTextDocument::undoCommandAdded,
             [this]() { addUndoCommand(new TextEditorUndoCommand(m_editor)); });
-    connect(m_editor, &SyntaxTextEdit::parentUndo, m_undoStack, &QUndoStack::undo);
-    connect(m_editor, &SyntaxTextEdit::parentRedo, m_undoStack, &QUndoStack::redo);
+    connect(m_editor, &SyntaxTextEdit::undoRequested, m_undoStack, &QUndoStack::undo);
+    connect(m_editor, &SyntaxTextEdit::redoRequested, m_undoStack, &QUndoStack::redo);
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto newAction = fileMenu->addAction(ICON("document-new"), tr("&New"));

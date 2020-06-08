@@ -91,6 +91,12 @@ public:
     void setMatchBraces(bool match);
     bool matchBraces() const;
 
+    // When this is set, the widget will send undoRequested() and
+    // redoRequested() signals instead of handling undo and redo
+    // internally within the QPlainTextEdit widget.
+    void setExternalUndoRedo(bool enable);
+    bool externalUndoRedo() const;
+
     static KSyntaxHighlighting::Repository *syntaxRepo();
     static const KSyntaxHighlighting::Definition &nullSyntax();
 
@@ -108,8 +114,8 @@ protected:
     void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
 
 signals:
-    void parentUndo();
-    void parentRedo();
+    void undoRequested();
+    void redoRequested();
 
 public slots:
     void cutLines();
