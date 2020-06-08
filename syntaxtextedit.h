@@ -35,7 +35,7 @@ class SyntaxTextEdit : public QPlainTextEdit
     Q_OBJECT
 
 public:
-    explicit SyntaxTextEdit(QWidget *parent);
+    explicit SyntaxTextEdit(QWidget *parent = nullptr);
 
     void deleteSelection();
     void deleteLines();
