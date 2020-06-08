@@ -13,5 +13,5 @@ jobs:
       - name: Build qtextpad
         run: |
           mkdir build && cd build
-          cmake -DCMAKE_BUILD_TYPE=Debug ..
-          make -j2
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/dist ..
+          make -j2 && make install
