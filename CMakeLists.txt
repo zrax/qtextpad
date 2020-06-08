@@ -118,7 +118,7 @@ target_link_libraries(qtextpad
         KF5::SyntaxHighlighting
 )
 
-if(QTEXTPAD_EDITOR_ONLY)
+if(NOT QTEXTPAD_WIDGET_ONLY)
     if(APPLE)
         set_target_properties(qtextpad PROPERTIES
             OUTPUT_NAME QTextPad
