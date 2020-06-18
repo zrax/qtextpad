@@ -142,7 +142,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_editor->setExternalUndoRedo(true);
     m_undoStack = new QUndoStack(this);
     connect(m_editor->document(), &QTextDocument::undoCommandAdded,
-            [this]() { addUndoCommand(new TextEditorUndoCommand(m_editor)); });
+            [this]() { m_undoStack->push(new TextEditorUndoCommand(m_editor)); });
     connect(m_editor, &SyntaxTextEdit::undoRequested, m_undoStack, &QUndoStack::undo);
     connect(m_editor, &SyntaxTextEdit::redoRequested, m_undoStack, &QUndoStack::redo);
 
@@ -867,11 +867,6 @@ bool QTextPadWindow::isDocumentModified() const
     return !m_undoStack->isClean();
 }
 
-void QTextPadWindow::addUndoCommand(QUndoCommand *command)
-{
-    m_undoStack->push(command);
-}
-
 bool QTextPadWindow::documentExists() const
 {
     // Checking m_fileState is faster than asking the file system...
@@ -1268,7 +1263,7 @@ void QTextPadWindow::changeEncoding(const QString &encoding)
         (void)mbQuestion.exec();
         if (mbQuestion.clickedButton() == convertButton) {
             auto command = new ChangeEncodingCommand(this, encoding);
-            addUndoCommand(command);
+            m_undoStack->push(command);
         } else if (mbQuestion.clickedButton() == reloadButton) {
             reloadDocumentEncoding(encoding);
         }
@@ -1283,7 +1278,7 @@ void QTextPadWindow::changeLineEndingMode(LineEndingMode mode)
         setLineEndingMode(mode);
     } else {
         auto command = new ChangeLineEndingCommand(this, mode);
-        addUndoCommand(command);
+        m_undoStack->push(command);
     }
 }
 
@@ -1292,7 +1287,7 @@ void QTextPadWindow::changeUtfBOM()
     if (documentExists()) {
         // Don't save changes in the undo stack if we are creating a new file
         auto command = new ChangeUtfBOMCommand(this);
-        addUndoCommand(command);
+        m_undoStack->push(command);
     }
 }
 

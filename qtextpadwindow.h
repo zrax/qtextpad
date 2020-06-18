@@ -164,7 +164,6 @@ private:
 
     // Custom Undo Stack for adding non-editor undo items
     QUndoStack *m_undoStack;
-    void addUndoCommand(QUndoCommand *command);
 
     QString documentTitle();
     void updateTitle();
