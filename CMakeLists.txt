@@ -22,7 +22,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include(FeatureSummary)
 
-find_package(Qt5 5.4 REQUIRED COMPONENTS Core Widgets PrintSupport)
+find_package(Qt5 5.4 REQUIRED COMPONENTS Core Widgets PrintSupport Network)
 
 find_package(KF5SyntaxHighlighting REQUIRED)
 set_package_properties(KF5SyntaxHighlighting PROPERTIES
