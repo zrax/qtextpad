@@ -2,9 +2,9 @@ name: macOS-CI
 on: [push, pull_request]
 
 env:
-  KF5_VERSION: "5.70"
-  KF5_FULLVER: "5.70.0"
-  QT_VERSION: "5.15.0"
+  KF5_VERSION: "5.71"
+  KF5_FULLVER: "5.71.0"
+  QT_VERSION: "5.12.9"
   MACOSX_DEPLOYMENT_TARGET: "10.12"
 
 jobs:
@@ -26,18 +26,19 @@ jobs:
           tar xf extra-cmake-modules-${KF5_FULLVER}.tar.xz
           cd extra-cmake-modules-${KF5_FULLVER}
           mkdir build && cd build
-          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64 -DCMAKE_BUILD_TYPE=Release ..
+          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64 \
+                -DCMAKE_BUILD_TYPE=Release ..
           make -j2 && make install
           cd $HOME/build-libs
           tar xf syntax-highlighting-${KF5_FULLVER}.tar.xz
           cd syntax-highlighting-${KF5_FULLVER}
           mkdir build && cd build
-          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64 -DCMAKE_BUILD_TYPE=Release ..
+          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64 \
+                -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release ..
           make -j2 && make install
       - name: Build qtextpad
         run: |
           cd $GITHUB_WORKSPACE
-          buildver=$(git describe --dirty)
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64" \
@@ -45,16 +46,15 @@ jobs:
           make -j2
           make install
 
-      # TODO: The below macdeployqt does not currently produce a working
-      #       app bundle on GitHub's builder :(
-      #- name: Create package
-      #  run: |
-      #    cd $HOME/dist
-      #    $RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64/bin/macdeployqt QTextPad.app -dmg
-      #    mkdir -p $GITHUB_WORKSPACE/macOS
-      #    mv QTextPad.dmg $GITHUB_WORKSPACE/macOS/QTextPad-${buildver}.dmg
-      #- name: Upload artifact
-      #  uses: actions/upload-artifact@v1
-      #  with:
-      #    name: QTextPad-macOS
-      #    path: macOS
+      - name: Create package
+        run: |
+          cd $HOME/dist
+          $RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64/bin/macdeployqt QTextPad.app -dmg \
+              -executable=QTextPad.app/Contents/MacOS/QTextPad
+          mkdir -p $GITHUB_WORKSPACE/macOS
+          mv QTextPad.dmg $GITHUB_WORKSPACE/macOS/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: QTextPad-macOS
+          path: macOS
