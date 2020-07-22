@@ -32,7 +32,7 @@ void TextEditorUndoCommand::redo()
 
 ChangeLineEndingCommand::ChangeLineEndingCommand(QTextPadWindow *window,
                                                  int newMode)
-    : m_window(window), m_newMode(newMode), m_oldMode(window->lineEndingMode())
+    : m_window(window), m_oldMode(window->lineEndingMode()), m_newMode(newMode)
 {
 }
 
@@ -49,8 +49,8 @@ void ChangeLineEndingCommand::redo()
 
 ChangeEncodingCommand::ChangeEncodingCommand(QTextPadWindow *window,
                                              QString newEncoding)
-    : m_window(window), m_newEncoding(std::move(newEncoding)),
-      m_oldEncoding(window->textEncoding())
+    : m_window(window), m_oldEncoding(window->textEncoding()),
+      m_newEncoding(std::move(newEncoding))
 {
 }
 
