@@ -61,12 +61,12 @@ int main(int argc, char *argv[])
     app.setApplicationVersion(QTextPadVersion::versionString());
 
     QTranslator qtTranslator;
-    if (qtTranslator.load(QStringLiteral("qt_") + QLocale::system().name(),
+    if (qtTranslator.load(QLocale(), QStringLiteral("qt"), QStringLiteral("_"),
                           QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
         QCoreApplication::installTranslator(&qtTranslator);
 
     QTranslator appTranslator;
-    if (appTranslator.load(QStringLiteral("qtextedit_") + QLocale::system().name()))
+    if (appTranslator.load(QLocale(), QStringLiteral("qtextedit"), QStringLiteral("_")))
         QCoreApplication::installTranslator(&appTranslator);
 
     QCommandLineParser parser;
