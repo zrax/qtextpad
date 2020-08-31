@@ -24,6 +24,7 @@
 class QLabel;
 class QComboBox;
 class QCheckBox;
+class QPushButton;
 class QTextCursor;
 class SyntaxTextEdit;
 class QTextPadWindow;
@@ -54,9 +55,11 @@ private:
 
     void syncSearchSettings(bool saveRecent);
     static QTextCursor performSearch(const QTextCursor &start, bool reverse);
-    void performReplaceAll(bool inSelection);
 
-    SyntaxTextEdit *editor();
+    enum ReplaceAllMode { WholeDocument, InSelection };
+    void performReplaceAll(ReplaceAllMode mode);
+
+    SyntaxTextEdit *parentEditor();
 
     QComboBox *m_searchText;
     QComboBox *m_replaceText;
@@ -66,6 +69,7 @@ private:
     QCheckBox *m_escapes;
     QCheckBox *m_wrapSearch;
     QLabel *m_toggleReplace;
+    QPushButton *m_replaceSelectionButton;
     QList<QWidget *> m_replaceWidgets;
     QTextCursor m_replaceCursor;
 };

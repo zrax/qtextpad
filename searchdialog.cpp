@@ -125,9 +125,9 @@ SearchDialog::SearchDialog(QWidget *parent)
     auto replaceAll = new QPushButton(tr("Replace &All"), this);
     buttonLayout->addWidget(replaceAll);
     m_replaceWidgets.append(replaceAll);
-    auto replaceSelection = new QPushButton(tr("&In Selection"), this);
-    buttonLayout->addWidget(replaceSelection);
-    m_replaceWidgets.append(replaceSelection);
+    m_replaceSelectionButton = new QPushButton(tr("&In Selection"), this);
+    buttonLayout->addWidget(m_replaceSelectionButton);
+    m_replaceWidgets.append(m_replaceSelectionButton);
     buttonLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::MinimumExpanding));
     auto closeButton = new QPushButton(tr("&Close"), this);
     buttonLayout->addWidget(closeButton);
@@ -136,7 +136,7 @@ SearchDialog::SearchDialog(QWidget *parent)
     connect(findPrev, &QPushButton::clicked, this, &SearchDialog::searchBackward);
     connect(replaceNext, &QPushButton::clicked, this, &SearchDialog::replaceCurrent);
     connect(replaceAll, &QPushButton::clicked, this, &SearchDialog::replaceAll);
-    connect(replaceSelection, &QPushButton::clicked, this, &SearchDialog::replaceInSelection);
+    connect(m_replaceSelectionButton, &QPushButton::clicked, this, &SearchDialog::replaceInSelection);
     connect(closeButton, &QPushButton::clicked, this, &QDialog::close);
 
     auto layout = new QGridLayout(this);
@@ -184,13 +184,20 @@ SearchDialog *SearchDialog::create(QTextPadWindow *parent, bool replace)
         s_instance->show();
         s_instance->raise();
         s_instance->activateWindow();
+
+        connect(parent->editor(), &SyntaxTextEdit::selectionChanged, s_instance, [] {
+            SyntaxTextEdit *editor = s_instance->parentEditor();
+            s_instance->m_replaceSelectionButton->setEnabled(editor->textCursor().hasSelection());
+        });
     }
 
-    if (parent->editor()->textCursor().hasSelection()) {
+    bool hasSelection = parent->editor()->textCursor().hasSelection();
+    if (hasSelection) {
         QTextCursor cursor = parent->editor()->textCursor();
         s_instance->m_searchText->setCurrentText(cursor.selectedText());
         s_instance->m_searchText->lineEdit()->selectAll();
     }
+    s_instance->m_replaceSelectionButton->setEnabled(hasSelection);
 
     return s_instance;
 }
@@ -200,7 +207,7 @@ SearchDialog *SearchDialog::current()
     return s_instance;
 }
 
-SyntaxTextEdit *SearchDialog::editor()
+SyntaxTextEdit *SearchDialog::parentEditor()
 {
     auto window = qobject_cast<QTextPadWindow *>(parent());
     Q_ASSERT(window);
@@ -210,7 +217,7 @@ SyntaxTextEdit *SearchDialog::editor()
 void SearchDialog::showReplace(bool show)
 {
     if (show) {
-        setWindowTitle(tr("Replace..."));
+        setWindowTitle(tr("Find and Replace..."));
         setWindowIcon(ICON("edit-find-replace"));
     } else {
         setWindowTitle(tr("Find..."));
@@ -225,7 +232,7 @@ void SearchDialog::showReplace(bool show)
     adjustSize();
 }
 
-QString translateCharEscape(const QStringRef &digits, int *advance)
+static QString translateCharEscape(const QStringRef &digits, int *advance)
 {
     Q_ASSERT(digits.size() > 0);
     Q_ASSERT(advance);
@@ -277,7 +284,7 @@ QString translateCharEscape(const QStringRef &digits, int *advance)
     }
 }
 
-QString translateEscapes(const QString &text)
+static QString translateEscapes(const QString &text)
 {
     QString result;
     result.reserve(text.size());
@@ -383,7 +390,7 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
 {
     QTextPadSettings settings;
 
-    session()->editor = editor();
+    session()->editor = parentEditor();
 
     const QString searchText = m_searchText->currentText();
     if (!searchText.isEmpty() && saveRecent) {
@@ -461,12 +468,10 @@ QTextCursor SearchDialog::searchNext(QTextPadWindow *parent, bool reverse)
         searchCursor = performSearch(wrapCursor, reverse);
     }
 
-    if (searchCursor.isNull()) {
-        QMessageBox::information(parent, QString(),
-                                 tr("The specified text was not found"));
-    } else {
+    if (searchCursor.isNull())
+        QMessageBox::information(parent, QString(), tr("The specified text was not found"));
+    else
         editor->setTextCursor(searchCursor);
-    }
     return searchCursor;
 }
 
@@ -485,12 +490,13 @@ void SearchDialog::searchBackward()
 void SearchDialog::replaceCurrent()
 {
     syncSearchSettings(true);
+    SyntaxTextEdit *editor = parentEditor();
 
     const QString searchText = m_searchText->currentText();
     if (searchText.isEmpty())
         return;
 
-    if (m_replaceCursor.isNull() || m_replaceCursor != editor()->textCursor()) {
+    if (m_replaceCursor.isNull() || m_replaceCursor != editor->textCursor()) {
         m_replaceCursor = searchNext(Q_NULLPTR, false);
         return;
     }
@@ -510,27 +516,26 @@ void SearchDialog::replaceCurrent()
     m_replaceCursor = searchNext(Q_NULLPTR, false);
 }
 
-void SearchDialog::performReplaceAll(bool inSelection)
+void SearchDialog::performReplaceAll(ReplaceAllMode mode)
 {
     syncSearchSettings(true);
+    SyntaxTextEdit *editor = parentEditor();
 
     const QString searchText = m_searchText->currentText();
     if (searchText.isEmpty())
         return;
 
-    auto searchCursor = editor()->textCursor();
-    if (inSelection)
-        searchCursor.setPosition(editor()->textCursor().selectionStart());
+    auto searchCursor = editor->textCursor();
+    if (mode == InSelection)
+        searchCursor.setPosition(editor->textCursor().selectionStart());
     else
         searchCursor.movePosition(QTextCursor::Start);
     searchCursor = performSearch(searchCursor, false);
     if (searchCursor.isNull()) {
-        QMessageBox::information(qobject_cast<QWidget *>(parent()), QString(),
-                                 tr("The specified text was not found"));
+        QMessageBox::information(editor, QString(), tr("The specified text was not found"));
         return;
-    } else if (inSelection && searchCursor.selectionEnd() > editor()->textCursor().selectionEnd()) {
-        QMessageBox::information(qobject_cast<QWidget *>(parent()), QString(),
-                                 tr("The specified text was not found in the selection"));
+    } else if (mode == InSelection && searchCursor.selectionEnd() > editor->textCursor().selectionEnd()) {
+        QMessageBox::information(editor, QString(), tr("The specified text was not found in the selection"));
         return;
     }
 
@@ -542,7 +547,7 @@ void SearchDialog::performReplaceAll(bool inSelection)
     auto replaceCursor = searchCursor;
     int replacements = 0;
     while (!replaceCursor.isNull()) {
-        if (inSelection && replaceCursor.selectionEnd() > editor()->textCursor().selectionEnd())
+        if (mode == InSelection && replaceCursor.selectionEnd() > editor->textCursor().selectionEnd())
             break;
 
         replaceCursor.removeSelectedText();
@@ -555,16 +560,16 @@ void SearchDialog::performReplaceAll(bool inSelection)
     }
     searchCursor.endEditBlock();
 
-    QMessageBox::information(qobject_cast<QWidget *>(parent()), QString(),
+    QMessageBox::information(editor, QString(),
                              tr("Successfully replaced %1 matches").arg(replacements));
 }
 
 void SearchDialog::replaceAll()
 {
-    performReplaceAll(false);
+    performReplaceAll(WholeDocument);
 }
 
 void SearchDialog::replaceInSelection()
 {
-    performReplaceAll(true);
+    performReplaceAll(InSelection);
 }
