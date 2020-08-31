@@ -39,6 +39,10 @@ public:
 
     ~SearchDialog() Q_DECL_OVERRIDE;
 
+    static QString translateEscapes(const QString &text);
+    static QString regexReplace(const QString &text,
+                                const QRegularExpressionMatch &regexMatch);
+
     void showReplace(bool show);
 
     static QTextCursor searchNext(QTextPadWindow *parent, bool reverse);
@@ -54,7 +58,6 @@ private:
     explicit SearchDialog(QWidget *parent);
 
     void syncSearchSettings(bool saveRecent);
-    static QTextCursor performSearch(const QTextCursor &start, bool reverse);
 
     enum ReplaceAllMode { WholeDocument, InSelection };
     void performReplaceAll(ReplaceAllMode mode);

@@ -37,16 +37,12 @@ static SearchDialog *s_instance = Q_NULLPTR;
 
 struct SessionSettings
 {
-    QString searchText;
+    SyntaxTextEdit::SearchParams searchParams;
     QRegularExpressionMatch regexMatch;
-    bool caseSensitive, wholeWord, regex, escapes;
     bool wrapSearch;
     SyntaxTextEdit *editor;
 
-    SessionSettings()
-        : caseSensitive(), wholeWord(), regex(), escapes(),
-          wrapSearch(), editor()
-    { }
+    SessionSettings() : wrapSearch(), editor() { }
 };
 
 static SessionSettings *session()
@@ -280,11 +276,12 @@ static QString translateCharEscape(const QStringRef &digits, int *advance)
         }
     } else {
         // Octal no longer supported
-        throw std::runtime_error("Unsupported character escape prefix");
+        qFatal("Unsupported character escape prefix");
+        return QString();
     }
 }
 
-static QString translateEscapes(const QString &text)
+QString SearchDialog::translateEscapes(const QString &text)
 {
     QString result;
     result.reserve(text.size());
@@ -356,7 +353,8 @@ static QString translateEscapes(const QString &text)
     return result;
 }
 
-static QString regexReplace(const QString &text)
+QString SearchDialog::regexReplace(const QString &text,
+                                   const QRegularExpressionMatch &regexMatch)
 {
     QString result;
     result.reserve(text.size());
@@ -373,7 +371,7 @@ static QString regexReplace(const QString &text)
             QByteArray number = text.midRef(pos + 1, 2).toLatin1();
             char *end;
             ulong ref = strtoul(number.constData(), &end, 10);
-            result.append(session()->regexMatch.capturedRef(ref));
+            result.append(regexMatch.capturedRef(ref));
             start = pos + 1 + (end - number.constData());
         } else {
             result.append(QLatin1Char('\\'));
@@ -399,7 +397,9 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
             m_searchText->insertItem(0, searchText);
         }
     }
-    session()->searchText = searchText;
+    session()->searchParams.searchText = m_escapes->isChecked()
+                                       ? translateEscapes(searchText)
+                                       : searchText;
 
     const QString replaceText = m_replaceText->currentText();
     if (!replaceText.isEmpty() && saveRecent) {
@@ -409,10 +409,9 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
         }
     }
 
-    session()->caseSensitive = m_caseSensitive->isChecked();
-    session()->wholeWord = m_wholeWord->isChecked();
-    session()->regex = m_regex->isChecked();
-    session()->escapes = m_escapes->isChecked();
+    session()->searchParams.caseSensitive = m_caseSensitive->isChecked();
+    session()->searchParams.wholeWord = m_wholeWord->isChecked();
+    session()->searchParams.regex = m_regex->isChecked();
     session()->wrapSearch = m_wrapSearch->isChecked();
 
     settings.setSearchCaseSensitive(m_caseSensitive->isChecked());
@@ -422,50 +421,22 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
     settings.setSearchWrap(m_wrapSearch->isChecked());
 }
 
-QTextCursor SearchDialog::performSearch(const QTextCursor &start, bool reverse)
-{
-    if (!session()->editor)
-        return QTextCursor();
-
-    QTextDocument::FindFlags searchOptions;
-    if (session()->caseSensitive)
-        searchOptions |= QTextDocument::FindCaseSensitively;
-    if (session()->wholeWord)
-        searchOptions |= QTextDocument::FindWholeWords;
-    if (reverse)
-        searchOptions |= QTextDocument::FindBackward;
-
-    QString text = session()->searchText;
-    if (session()->escapes)
-        text = translateEscapes(text);
-
-    auto document = session()->editor->document();
-    if (session()->regex) {
-        QRegularExpression::PatternOptions csOption = session()->caseSensitive
-                        ? QRegularExpression::NoPatternOption
-                        : QRegularExpression::CaseInsensitiveOption;
-        const QRegularExpression re(text, csOption);
-        QTextCursor cursor = document->find(re, start, searchOptions);
-        session()->regexMatch = re.match(cursor.selectedText());
-        return cursor;
-    } else {
-        return document->find(text, start, searchOptions);
-    }
-}
-
 QTextCursor SearchDialog::searchNext(QTextPadWindow *parent, bool reverse)
 {
-    if (!session()->editor || session()->searchText.isEmpty()) {
+    SyntaxTextEdit *editor = session()->editor;
+    if (!editor || session()->searchParams.searchText.isEmpty()) {
         create(parent, false);
         return QTextCursor();
     }
 
-    SyntaxTextEdit *editor = session()->editor;
-    auto searchCursor = performSearch(editor->textCursor(), reverse);
+    auto searchCursor = editor->textSearch(editor->textCursor(),
+                                           session()->searchParams, reverse,
+                                           &session()->regexMatch);
     if (searchCursor.isNull() && session()->wrapSearch) {
         QTextCursor wrapCursor = editor->textCursor();
         wrapCursor.movePosition(reverse ? QTextCursor::End : QTextCursor::Start);
-        searchCursor = performSearch(wrapCursor, reverse);
+        searchCursor = editor->textSearch(wrapCursor, session()->searchParams,
+                                          reverse, &session()->regexMatch);
     }
 
     if (searchCursor.isNull())
@@ -508,7 +479,7 @@ void SearchDialog::replaceCurrent()
     m_replaceCursor.beginEditBlock();
     m_replaceCursor.removeSelectedText();
     if (m_regex->isChecked())
-        m_replaceCursor.insertText(regexReplace(replaceText));
+        m_replaceCursor.insertText(regexReplace(replaceText, session()->regexMatch));
     else
         m_replaceCursor.insertText(replaceText);
     m_replaceCursor.endEditBlock();
@@ -522,7 +493,7 @@ void SearchDialog::performReplaceAll(ReplaceAllMode mode)
     SyntaxTextEdit *editor = parentEditor();
 
     const QString searchText = m_searchText->currentText();
-    if (searchText.isEmpty())
+    if (!editor || searchText.isEmpty())
         return;
 
     auto searchCursor = editor->textCursor();
@@ -530,7 +501,8 @@ void SearchDialog::performReplaceAll(ReplaceAllMode mode)
         searchCursor.setPosition(editor->textCursor().selectionStart());
     else
         searchCursor.movePosition(QTextCursor::Start);
-    searchCursor = performSearch(searchCursor, false);
+    searchCursor = editor->textSearch(searchCursor, session()->searchParams, false,
+                                      &session()->regexMatch);
     if (searchCursor.isNull()) {
         QMessageBox::information(editor, QString(), tr("The specified text was not found"));
         return;
@@ -552,10 +524,11 @@ void SearchDialog::performReplaceAll(ReplaceAllMode mode)
 
         replaceCursor.removeSelectedText();
         if (m_regex->isChecked())
-            replaceCursor.insertText(regexReplace(replaceText));
+            replaceCursor.insertText(regexReplace(replaceText, session()->regexMatch));
         else
             replaceCursor.insertText(replaceText);
-        replaceCursor = performSearch(replaceCursor, false);
+        replaceCursor = editor->textSearch(replaceCursor, session()->searchParams,
+                                           false, &session()->regexMatch);
         ++replacements;
     }
     searchCursor.endEditBlock();

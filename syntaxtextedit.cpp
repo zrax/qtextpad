@@ -489,6 +489,31 @@ bool SyntaxTextEdit::wordWrap() const
     return wordWrapMode() != QTextOption::NoWrap;
 }
 
+QTextCursor SyntaxTextEdit::textSearch(const QTextCursor &start, const SearchParams &params,
+                                       bool reverse, QRegularExpressionMatch *regexMatch)
+{
+    QTextDocument::FindFlags flags;
+    if (params.caseSensitive)
+        flags |= QTextDocument::FindCaseSensitively;
+    if (params.wholeWord)
+        flags |= QTextDocument::FindWholeWords;
+    if (reverse)
+        flags |= QTextDocument::FindBackward;
+
+    if (params.regex) {
+        QRegularExpression::PatternOptions csOption = params.caseSensitive
+                                                    ? QRegularExpression::NoPatternOption
+                                                    : QRegularExpression::CaseInsensitiveOption;
+        const QRegularExpression re(params.searchText, csOption);
+        QTextCursor cursor = document()->find(re, start, flags);
+        if (regexMatch)
+            *regexMatch = re.match(cursor.selectedText());
+        return cursor;
+    } else {
+        return document()->find(params.searchText, start, flags);
+    }
+}
+
 void SyntaxTextEdit::setMatchBraces(bool match)
 {
     if (match)

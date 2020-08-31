@@ -88,6 +88,15 @@ public:
     void setWordWrap(bool wrap);
     bool wordWrap() const;
 
+    struct SearchParams
+    {
+        QString searchText;
+        bool caseSensitive, wholeWord, regex;
+
+        SearchParams() : caseSensitive(), wholeWord(), regex() { }
+    };
+    QTextCursor textSearch(const QTextCursor &start, const SearchParams& params,
+                           bool reverse = false, QRegularExpressionMatch *regexMatch = nullptr);
     void setMatchBraces(bool match);
     bool matchBraces() const;
 
