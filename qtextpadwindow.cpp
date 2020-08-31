@@ -521,6 +521,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     connect(m_editor, &SyntaxTextEdit::cursorPositionChanged,
             this, &QTextPadWindow::updateCursorPosition);
+    connect(m_editor, &SyntaxTextEdit::selectionChanged,
+            this, &QTextPadWindow::updateCursorPosition);
     connect(m_undoStack, &QUndoStack::cleanChanged, [this](bool) { updateTitle(); });
 
     // Set up the editor and status for a clean, empty document
@@ -1116,9 +1118,13 @@ void QTextPadWindow::updateCursorPosition()
 {
     const QTextCursor cursor = m_editor->textCursor();
     const int column = m_editor->textColumn(cursor.block().text(), cursor.positionInBlock());
-    m_positionLabel->setText(QString("Line %1, Col %2")
-                             .arg(cursor.blockNumber() + 1)
-                             .arg(column + 1));
+    const int selectedChars = std::abs(cursor.selectionEnd() - cursor.selectionStart());
+    QString positionText = tr("Line %1, Col %2")
+                                .arg(cursor.blockNumber() + 1)
+                                .arg(column + 1);
+    if (selectedChars)
+        positionText += tr(" (Selected: %1)").arg(selectedChars);
+    m_positionLabel->setText(positionText);
 }
 
 QString QTextPadWindow::documentTitle()
