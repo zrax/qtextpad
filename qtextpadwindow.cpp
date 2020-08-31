@@ -535,7 +535,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_fileWatcher = new QFileSystemWatcher(this);
     connect(m_fileWatcher, &QFileSystemWatcher::fileChanged, this,
             [this](const QString &) {
-        if (qApp->applicationState() == Qt::ApplicationActive)
+        if (QApplication::applicationState() == Qt::ApplicationActive)
             checkForModifications();
     });
     connect(qApp, &QApplication::applicationStateChanged, this,

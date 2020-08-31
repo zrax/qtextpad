@@ -627,10 +627,12 @@ static BraceMatchResult findNextBrace(QTextBlock block, int position)
         while (position < text.size()) {
             const QChar ch = text.at(position);
             if (isQuote(ch)) {
-                if (!balance.isEmpty() && balance.top() == ch)
-                    (void) balance.pop();
-                else
+                if (!balance.isEmpty() && isQuote(balance.top())) {
+                    if (balance.top() == ch)
+                        (void) balance.pop();
+                } else {
                     balance.push(ch);
+                }
             } else if (!balance.isEmpty() && isQuote(balance.top())) {
                 /* Don't look for matching braces until we exit the quote */
             } else if (ch == '(' || ch == '[' || ch == '{') {
@@ -662,10 +664,12 @@ static BraceMatchResult findPrevBrace(QTextBlock block, int position)
             --position;
             const QChar ch = text.at(position);
             if (isQuote(ch)) {
-                if (!balance.isEmpty() && balance.top() == ch)
-                    (void) balance.pop();
-                else
+                if (!balance.isEmpty() && isQuote(balance.top())) {
+                    if (balance.top() == ch)
+                        (void) balance.pop();
+                } else {
                     balance.push(ch);
+                }
             } else if (!balance.isEmpty() && isQuote(balance.top())) {
                 /* Don't look for matching braces until we exit the quote */
             } else if (ch == ')' || ch == ']' || ch == '}') {
