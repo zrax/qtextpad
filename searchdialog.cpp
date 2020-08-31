@@ -175,39 +175,30 @@ SearchDialog *SearchDialog::create(QTextPadWindow *parent, bool replace)
         s_instance->raise();
         s_instance->showReplace(replace);
     } else {
+        Q_ASSERT(parent);
         s_instance = new SearchDialog(parent);
         s_instance->showReplace(replace);
         s_instance->show();
         s_instance->raise();
         s_instance->activateWindow();
 
-        connect(parent->editor(), &SyntaxTextEdit::selectionChanged, s_instance, [] {
-            SyntaxTextEdit *editor = s_instance->parentEditor();
-            s_instance->m_replaceSelectionButton->setEnabled(editor->textCursor().hasSelection());
+        session()->editor = parent->editor();
+
+        connect(session()->editor, &SyntaxTextEdit::selectionChanged, s_instance, [] {
+            bool hasSelection = session()->editor->textCursor().hasSelection();
+            s_instance->m_replaceSelectionButton->setEnabled(hasSelection);
         });
     }
 
-    bool hasSelection = parent->editor()->textCursor().hasSelection();
+    bool hasSelection = session()->editor->textCursor().hasSelection();
     if (hasSelection) {
-        QTextCursor cursor = parent->editor()->textCursor();
+        QTextCursor cursor = session()->editor->textCursor();
         s_instance->m_searchText->setCurrentText(cursor.selectedText());
         s_instance->m_searchText->lineEdit()->selectAll();
     }
     s_instance->m_replaceSelectionButton->setEnabled(hasSelection);
 
     return s_instance;
-}
-
-SearchDialog *SearchDialog::current()
-{
-    return s_instance;
-}
-
-SyntaxTextEdit *SearchDialog::parentEditor()
-{
-    auto window = qobject_cast<QTextPadWindow *>(parent());
-    Q_ASSERT(window);
-    return window->editor();
 }
 
 void SearchDialog::showReplace(bool show)
@@ -388,8 +379,6 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
 {
     QTextPadSettings settings;
 
-    session()->editor = parentEditor();
-
     const QString searchText = m_searchText->currentText();
     if (!searchText.isEmpty() && saveRecent) {
         if (m_searchText->count() == 0 || m_searchText->itemText(0) != searchText) {
@@ -461,7 +450,7 @@ void SearchDialog::searchBackward()
 void SearchDialog::replaceCurrent()
 {
     syncSearchSettings(true);
-    SyntaxTextEdit *editor = parentEditor();
+    SyntaxTextEdit *editor = session()->editor;
 
     const QString searchText = m_searchText->currentText();
     if (searchText.isEmpty())
@@ -490,7 +479,7 @@ void SearchDialog::replaceCurrent()
 void SearchDialog::performReplaceAll(ReplaceAllMode mode)
 {
     syncSearchSettings(true);
-    SyntaxTextEdit *editor = parentEditor();
+    SyntaxTextEdit *editor = session()->editor;
 
     const QString searchText = m_searchText->currentText();
     if (!editor || searchText.isEmpty())

@@ -35,7 +35,6 @@ class SearchDialog : public QDialog
 
 public:
     static SearchDialog *create(QTextPadWindow *parent, bool replace);
-    static SearchDialog *current();
 
     ~SearchDialog() Q_DECL_OVERRIDE;
 
@@ -61,8 +60,6 @@ private:
 
     enum ReplaceAllMode { WholeDocument, InSelection };
     void performReplaceAll(ReplaceAllMode mode);
-
-    SyntaxTextEdit *parentEditor();
 
     QComboBox *m_searchText;
     QComboBox *m_replaceText;
