@@ -22,6 +22,7 @@
 #if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
 
 #include <QDialog>
+#include <QElapsedTimer>
 
 class QPlainTextEdit;
 class QDialogButtonBox;
@@ -47,6 +48,7 @@ private:
     KSyntaxHighlighting::DefinitionDownloader *m_downloader;
     QPlainTextEdit *m_status;
     QDialogButtonBox *m_buttonBox;
+    QElapsedTimer m_timer;
 };
 
 #endif // SyntaxHighlighting_VERSION check

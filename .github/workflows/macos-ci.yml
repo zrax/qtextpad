@@ -2,8 +2,8 @@ name: macOS-CI
 on: [push, pull_request]
 
 env:
-  KF5_VERSION: "5.71"
-  KF5_FULLVER: "5.71.0"
+  KF5_VERSION: "5.73"
+  KF5_FULLVER: "5.73.0"
   QT_VERSION: "5.12.9"
   MACOSX_DEPLOYMENT_TARGET: "10.12"
 

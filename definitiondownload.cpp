@@ -71,10 +71,31 @@ DefinitionDownloadDialog::DefinitionDownloadDialog(
 
     m_status->appendPlainText(tr("Updating syntax definitions from online repository..."));
     m_downloader->start();
+    m_timer.start();
 }
 
 void DefinitionDownloadDialog::downloadFinished()
 {
+    qint64 elapsed = m_timer.elapsed();
+    QString timeStr;
+    if (elapsed >= 60 * 60 * 1000) {
+        qint64 hours = elapsed / (60 * 60 * 1000);
+        elapsed %= (60 * 60 * 1000);
+        qint64 minutes = elapsed / (60 * 1000);
+        timeStr = tr("%1:%2 hours").arg(hours).arg(minutes, 2, 10, QChar('0'));
+    } else if (elapsed >= 60 * 1000) {
+        qint64 minutes = elapsed / (60 * 1000);
+        elapsed %= (60 * 1000);
+        qint64 seconds = elapsed / 1000;
+        timeStr = tr("%1:%2 minutes").arg(minutes).arg(seconds, 2, 10, QChar('0'));
+    } else if (elapsed >= 1000) {
+        qint64 seconds = elapsed / 1000;
+        elapsed %= 1000;
+        timeStr = tr("%1.%2 seconds").arg(seconds).arg((int)qRound(elapsed / 100.0));
+    } else {
+        timeStr = tr("%1 ms").arg(elapsed);
+    }
+    m_status->appendPlainText(tr("Update operation completed (%1)").arg(timeStr));
     m_buttonBox->button(QDialogButtonBox::Close)->setEnabled(true);
     m_downloader->deleteLater();
 }
