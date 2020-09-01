@@ -530,6 +530,9 @@ void SyntaxTextEdit::clearLiveSearch()
 
 void SyntaxTextEdit::updateLiveSearch()
 {
+    if (m_searchResults.isEmpty() && m_liveSearch.searchText.isEmpty())
+        return;
+
     m_searchResults.clear();
     if (!m_liveSearch.searchText.isEmpty()) {
         auto searchCursor = textCursor();
