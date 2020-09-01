@@ -350,7 +350,6 @@ SearchDialog::SearchDialog(QWidget *parent)
 SearchDialog::~SearchDialog()
 {
     syncSearchSettings(false);
-    m_editor->clearLiveSearch();
     s_instance = Q_NULLPTR;
 }
 
@@ -602,14 +601,12 @@ QTextCursor SearchDialog::searchNext(bool reverse)
 void SearchDialog::searchForward()
 {
     syncSearchSettings(true);
-    m_editor->setLiveSearch(m_searchParams);
     m_replaceCursor = searchNext(false);
 }
 
 void SearchDialog::searchBackward()
 {
     syncSearchSettings(true);
-    m_editor->setLiveSearch(m_searchParams);
     m_replaceCursor = searchNext(true);
 }
 
@@ -639,7 +636,6 @@ void SearchDialog::replaceCurrent()
         m_replaceCursor.insertText(replaceText);
     m_replaceCursor.endEditBlock();
 
-    m_editor->setLiveSearch(m_searchParams);
     m_replaceCursor = searchNext(false);
 }
 
@@ -689,6 +685,5 @@ void SearchDialog::performReplaceAll(ReplaceAllMode mode)
     }
     searchCursor.endEditBlock();
 
-    m_editor->setLiveSearch(m_searchParams);
     QMessageBox::information(this, QString(), tr("Successfully replaced %1 matches").arg(replacements));
 }
