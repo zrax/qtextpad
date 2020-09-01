@@ -43,7 +43,7 @@ public:
     {
         m_eraserButton = new QToolButton(this);
         m_eraserButton->setIconSize(QSize(16, 16));
-        m_eraserButton->setIcon(QIcon(":/icons/edit-clear.png"));
+        m_eraserButton->setIcon(ICON("edit-clear"));
         m_eraserButton->setCursor(Qt::ArrowCursor);
         m_eraserButton->setStyleSheet("QToolButton { border: none; padding: 0px; }");
         m_eraserButton->setToolTip(tr("Clear"));
@@ -123,13 +123,13 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     auto tbNext = new QToolButton(this);
     tbNext->setAutoRaise(true);
     tbNext->setIconSize(QSize(16, 16));
-    tbNext->setIcon(QIcon(":/icons/go-down.png"));
+    tbNext->setIcon(ICON("go-down"));
     tbNext->setToolTip(tr("Find Next"));
 
     auto tbPrev = new QToolButton(this);
     tbPrev->setAutoRaise(true);
     tbPrev->setIconSize(QSize(16, 16));
-    tbPrev->setIcon(QIcon(":/icons/go-up.png"));
+    tbPrev->setIcon(ICON("go-up"));
     tbPrev->setToolTip(tr("Find Previous"));
 
     auto layout = new QHBoxLayout(this);
@@ -201,7 +201,7 @@ void SearchWidget::searchNext(bool reverse)
         m_editor->setTextCursor(searchCursor);
 }
 
-void SearchWidget::paintEvent(QPaintEvent *event)
+void SearchWidget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
 
