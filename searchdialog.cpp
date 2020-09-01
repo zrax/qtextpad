@@ -93,7 +93,7 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     auto tbMenu = new QToolButton(this);
     tbMenu->setAutoRaise(true);
     tbMenu->setIconSize(QSize(16, 16));
-    tbMenu->setIcon(QIcon(":/icons/search-filter.png"));
+    tbMenu->setIcon(ICON("edit-find"));
     tbMenu->setToolTip(tr("Search Settings"));
 
     auto settingsMenu = new QMenu(this);
@@ -109,7 +109,6 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     m_wrapSearch->setCheckable(true);
     tbMenu->setMenu(settingsMenu);
     tbMenu->setPopupMode(QToolButton::InstantPopup);
-    tbMenu->setStyleSheet("QToolButton::menu-indicator { image: none; }");
 
     connect(m_caseSensitive, &QAction::triggered, this, &SearchWidget::updateSettings);
     connect(m_wholeWord, &QAction::triggered, this, &SearchWidget::updateSettings);

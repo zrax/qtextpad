@@ -8,7 +8,7 @@
         <file>icons/qtextpad-64.png</file>
         <file>icons/qtextpad-128.png</file>
 
-        <!-- Used by the search widget and filter widgets -->
+        <!-- Used by the filter widgets -->
         <file>icons/search-filter.png</file>
 
         <!-- Oxygen icons for Win/Mac and Unixes that don't have a usable theme -->
