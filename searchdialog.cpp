@@ -22,33 +22,224 @@
 #include <QLineEdit>
 #include <QCheckBox>
 #include <QPushButton>
+#include <QToolButton>
+#include <QMenu>
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QCompleter>
 #include <QMessageBox>
-
-#include <stdexcept>
+#include <QPainter>
 
 #include "qtextpadwindow.h"
-#include "syntaxtextedit.h"
 #include "appsettings.h"
 
 static SearchDialog *s_instance = Q_NULLPTR;
 
-struct SessionSettings
+class SearchLineEdit : public QLineEdit
 {
-    SyntaxTextEdit::SearchParams searchParams;
-    QRegularExpressionMatch regexMatch;
-    bool wrapSearch;
-    SyntaxTextEdit *editor;
+public:
+    explicit SearchLineEdit(QWidget *parent = nullptr)
+        : QLineEdit(parent)
+    {
+        m_eraserButton = new QToolButton(this);
+        m_eraserButton->setIconSize(QSize(16, 16));
+        m_eraserButton->setIcon(QIcon(":/icons/edit-clear.png"));
+        m_eraserButton->setCursor(Qt::ArrowCursor);
+        m_eraserButton->setStyleSheet("QToolButton { border: none; padding: 0px; }");
+        m_eraserButton->setToolTip(tr("Clear"));
+        m_eraserButton->hide();
 
-    SessionSettings() : wrapSearch(), editor() { }
+        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+        const QSize buttonSize = m_eraserButton->sizeHint();
+        setStyleSheet(QStringLiteral("QLineEdit { padding-right: %1px; }")
+                              .arg(frameWidth + buttonSize.width() + 1));
+
+        const QSize minSize = minimumSizeHint();
+        setMinimumSize(qMax(minSize.width(), buttonSize.width() + (frameWidth * 2) + 2),
+                       qMax(minSize.height(), buttonSize.height() + (frameWidth * 2) + 2));
+
+        connect(m_eraserButton, &QToolButton::clicked, this, &QLineEdit::clear);
+        connect(this, &QLineEdit::textChanged, this, [this](const QString &text) {
+            m_eraserButton->setVisible(!text.isEmpty());
+        });
+    }
+
+    void resizeEvent(QResizeEvent *event) override
+    {
+        QLineEdit::resizeEvent(event);
+
+        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+        const QSize buttonSize = m_eraserButton->sizeHint();
+        m_eraserButton->move(rect().right() - frameWidth - buttonSize.width(),
+                             (rect().bottom() + 1 - buttonSize.height()) / 2);
+    }
+
+    QSize sizeHint() const override
+    {
+        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+        const QSize buttonSize = m_eraserButton->sizeHint();
+        const QSize lineSize = QLineEdit::sizeHint();
+        return { qMax(buttonSize.width() + (frameWidth * 2) + 2, lineSize.width()),
+                 qMax(buttonSize.height() + (frameWidth * 2) + 2, lineSize.height()) };
+    }
+
+private:
+    QToolButton *m_eraserButton;
 };
 
-static SessionSettings *session()
+SearchWidget::SearchWidget(QTextPadWindow *parent)
+    : QWidget(parent), m_editor(parent->editor())
 {
-    static SessionSettings s_session;
-    return &s_session;
+    auto tbMenu = new QToolButton(this);
+    tbMenu->setAutoRaise(true);
+    tbMenu->setIconSize(QSize(16, 16));
+    tbMenu->setIcon(QIcon(":/icons/search-filter.png"));
+    tbMenu->setToolTip(tr("Search Settings"));
+
+    auto settingsMenu = new QMenu(this);
+    m_caseSensitive = settingsMenu->addAction(tr("Match ca&se"));
+    m_caseSensitive->setCheckable(true);
+    m_wholeWord = settingsMenu->addAction(tr("Match &whole words"));
+    m_wholeWord->setCheckable(true);
+    m_regex = settingsMenu->addAction(tr("Regular e&xpressions"));
+    m_regex->setCheckable(true);
+    m_escapes = settingsMenu->addAction(tr("&Escape sequences"));
+    m_escapes->setCheckable(true);
+    m_wrapSearch = settingsMenu->addAction(tr("Wrap Aro&und"));
+    m_wrapSearch->setCheckable(true);
+    tbMenu->setMenu(settingsMenu);
+    tbMenu->setPopupMode(QToolButton::InstantPopup);
+    tbMenu->setStyleSheet("QToolButton::menu-indicator { image: none; }");
+
+    connect(m_caseSensitive, &QAction::triggered, this, &SearchWidget::updateSettings);
+    connect(m_wholeWord, &QAction::triggered, this, &SearchWidget::updateSettings);
+    connect(m_regex, &QAction::triggered, this, &SearchWidget::updateSettings);
+    connect(m_escapes, &QAction::triggered, this, &SearchWidget::updateSettings);
+    connect(m_wrapSearch, &QAction::triggered, this, &SearchWidget::updateSettings);
+
+    m_searchText = new SearchLineEdit(this);
+    setFocusProxy(m_searchText);
+
+    auto tbNext = new QToolButton(this);
+    tbNext->setAutoRaise(true);
+    tbNext->setIconSize(QSize(16, 16));
+    tbNext->setIcon(QIcon(":/icons/go-down.png"));
+    tbNext->setToolTip(tr("Find Next"));
+
+    auto tbPrev = new QToolButton(this);
+    tbPrev->setAutoRaise(true);
+    tbPrev->setIconSize(QSize(16, 16));
+    tbPrev->setIcon(QIcon(":/icons/go-up.png"));
+    tbPrev->setToolTip(tr("Find Previous"));
+
+    auto layout = new QHBoxLayout(this);
+    layout->setContentsMargins(5, 5, 5, 5);
+    layout->setSpacing(5);
+    layout->addWidget(tbMenu);
+    layout->addWidget(m_searchText);
+    layout->addWidget(tbNext);
+    layout->addWidget(tbPrev);
+    setLayout(layout);
+
+    connect(m_searchText, &QLineEdit::textChanged, this, [this](const QString &text) {
+        m_searchParams.searchText = m_escapes->isChecked()
+                                  ? SearchDialog::translateEscapes(text)
+                                  : text;
+        m_editor->setLiveSearch(m_searchParams);
+    });
+    connect(m_searchText, &QLineEdit::returnPressed, this, [this] { searchNext(false); });
+    connect(tbNext, &QToolButton::clicked, this, [this] { searchNext(false); });
+    connect(tbPrev, &QToolButton::clicked, this, [this] { searchNext(true); });
+}
+
+void SearchWidget::setSearchText(const QString &text)
+{
+    m_searchText->setText(text);
+}
+
+void SearchWidget::activate()
+{
+    QTextPadSettings settings;
+    m_caseSensitive->setChecked(settings.searchCaseSensitive());
+    m_wholeWord->setChecked(settings.searchWholeWord());
+    m_regex->setChecked(settings.searchRegex());
+    m_escapes->setChecked(settings.searchEscapes());
+    m_wrapSearch->setChecked(settings.searchWrap());
+
+    m_searchParams.caseSensitive = m_caseSensitive->isChecked();
+    m_searchParams.wholeWord = m_wholeWord->isChecked();
+    m_searchParams.regex = m_regex->isChecked();
+
+    setFocus(Qt::OtherFocusReason);
+    m_searchText->selectAll();
+    m_editor->setLiveSearch(m_searchParams);
+}
+
+void SearchWidget::searchNext(bool reverse)
+{
+    if (!isVisible()) {
+        setVisible(true);
+        setEnabled(true);
+        activate();
+    }
+    if (m_searchParams.searchText.isEmpty())
+        return;
+
+    auto searchCursor = m_editor->textSearch(m_editor->textCursor(),
+                                             m_searchParams, reverse,
+                                             nullptr);
+    if (searchCursor.isNull() && m_wrapSearch->isChecked()) {
+        QTextCursor wrapCursor = m_editor->textCursor();
+        wrapCursor.movePosition(reverse ? QTextCursor::End : QTextCursor::Start);
+        searchCursor = m_editor->textSearch(wrapCursor, m_searchParams,
+                                            reverse, nullptr);
+    }
+
+    if (searchCursor.isNull())
+        QMessageBox::information(this, QString(), tr("The specified text was not found"));
+    else
+        m_editor->setTextCursor(searchCursor);
+}
+
+void SearchWidget::paintEvent(QPaintEvent *event)
+{
+    QPainter painter(this);
+
+    // Round the corners of this widget.  Not strictly necessary, but
+    // it looks nicer...
+    const int arc = 4;
+    const int circ = 8;
+    const int h = height() - 1;
+    const int w = width() - 1;
+    painter.setPen(palette().color(QPalette::Mid));
+    const QColor windowColor = palette().color(QPalette::Window);
+    painter.setBrush(windowColor);
+    painter.drawEllipse(0, h - circ, circ, circ);
+    painter.drawEllipse(w - circ, h - circ, circ, circ);
+    painter.fillRect(0, 0, arc, h - arc, windowColor);
+    painter.fillRect(w - arc, 0, arc, h - arc, windowColor);
+    painter.fillRect(arc, h - arc, w - circ, arc, windowColor);
+    painter.fillRect(arc, 0, w - circ, h - arc, windowColor);
+    painter.drawLine(0, 0, 0, h - arc);
+    painter.drawLine(arc, h, w - arc, h);
+    painter.drawLine(w, 0, w, h - arc);
+}
+
+void SearchWidget::updateSettings()
+{
+    QTextPadSettings settings;
+
+    m_searchParams.caseSensitive = m_caseSensitive->isChecked();
+    m_searchParams.wholeWord = m_wholeWord->isChecked();
+    m_searchParams.regex = m_regex->isChecked();
+
+    settings.setSearchCaseSensitive(m_caseSensitive->isChecked());
+    settings.setSearchWholeWord(m_wholeWord->isChecked());
+    settings.setSearchRegex(m_regex->isChecked());
+    settings.setSearchEscapes(m_escapes->isChecked());
+    settings.setSearchWrap(m_wrapSearch->isChecked());
+
+    m_editor->setLiveSearch(m_searchParams);
 }
 
 /* Just sets some more sane defaults for QComboBox:
@@ -70,10 +261,13 @@ public:
 };
 
 SearchDialog::SearchDialog(QWidget *parent)
-    : QDialog(parent)
+    : QDialog(parent), m_editor()
 {
     s_instance = this;
     setAttribute(Qt::WA_DeleteOnClose);
+
+    setWindowTitle(tr("Find and Replace..."));
+    setWindowIcon(ICON("edit-find-replace"));
 
     QTextPadSettings settings;
 
@@ -84,7 +278,6 @@ SearchDialog::SearchDialog(QWidget *parent)
     m_replaceText = new SearchComboBox(this);
     m_replaceText->addItems(settings.recentSearchReplacements());
     m_replaceText->setCurrentText(QString());
-    m_replaceWidgets.append(m_replaceText);
 
     m_caseSensitive = new QCheckBox(tr("Match ca&se"), this);
     m_caseSensitive->setChecked(settings.searchCaseSensitive());
@@ -96,12 +289,6 @@ SearchDialog::SearchDialog(QWidget *parent)
     m_escapes->setChecked(settings.searchEscapes());
     m_wrapSearch = new QCheckBox(tr("Wrap Aro&und"), this);
     m_wrapSearch->setChecked(settings.searchWrap());
-
-    m_toggleReplace = new QLabel(this);
-    m_toggleReplace->setOpenExternalLinks(false);
-    connect(m_toggleReplace, &QLabel::linkActivated, this, [this](const QString &) {
-        showReplace(!m_replaceWidgets.front()->isVisible());
-    });
 
     // QDialogButtonBox insists on rearranging buttons depending on your platform,
     // which would be fine if we only had standard actions, but most of our
@@ -117,13 +304,10 @@ SearchDialog::SearchDialog(QWidget *parent)
     buttonLayout->addWidget(findPrev);
     auto replaceNext = new QPushButton(tr("&Replace"), this);
     buttonLayout->addWidget(replaceNext);
-    m_replaceWidgets.append(replaceNext);
     auto replaceAll = new QPushButton(tr("Replace &All"), this);
     buttonLayout->addWidget(replaceAll);
-    m_replaceWidgets.append(replaceAll);
     m_replaceSelectionButton = new QPushButton(tr("&In Selection"), this);
     buttonLayout->addWidget(m_replaceSelectionButton);
-    m_replaceWidgets.append(m_replaceSelectionButton);
     buttonLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::MinimumExpanding));
     auto closeButton = new QPushButton(tr("&Close"), this);
     buttonLayout->addWidget(closeButton);
@@ -131,8 +315,10 @@ SearchDialog::SearchDialog(QWidget *parent)
     connect(findNext, &QPushButton::clicked, this, &SearchDialog::searchForward);
     connect(findPrev, &QPushButton::clicked, this, &SearchDialog::searchBackward);
     connect(replaceNext, &QPushButton::clicked, this, &SearchDialog::replaceCurrent);
-    connect(replaceAll, &QPushButton::clicked, this, &SearchDialog::replaceAll);
-    connect(m_replaceSelectionButton, &QPushButton::clicked, this, &SearchDialog::replaceInSelection);
+    connect(replaceAll, &QPushButton::clicked, this,
+            [this] { performReplaceAll(WholeDocument); });
+    connect(m_replaceSelectionButton, &QPushButton::clicked, this,
+            [this] { performReplaceAll(InSelection); });
     connect(closeButton, &QPushButton::clicked, this, &QDialog::close);
 
     auto layout = new QGridLayout(this);
@@ -147,7 +333,6 @@ SearchDialog::SearchDialog(QWidget *parent)
     auto replaceLabel = new QLabel(tr("Replace wit&h:"), this);
     replaceLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     replaceLabel->setBuddy(m_replaceText);
-    m_replaceWidgets.append(replaceLabel);
     layout->addWidget(replaceLabel, 1, 0);
     layout->addWidget(m_replaceText, 1, 1, 1, 2);
     layout->addItem(new QSpacerItem(0, 10, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed),
@@ -157,7 +342,6 @@ SearchDialog::SearchDialog(QWidget *parent)
     layout->addWidget(m_regex, 5, 1);
     layout->addWidget(m_escapes, 6, 1);
     layout->addWidget(m_wrapSearch, 3, 2);
-    layout->addWidget(m_toggleReplace, 6, 2);
     layout->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding),
                     layout->rowCount(), 0, 1, 3);
     layout->addWidget(buttonBox, 0, layout->columnCount(), layout->rowCount(), 1);
@@ -166,57 +350,39 @@ SearchDialog::SearchDialog(QWidget *parent)
 SearchDialog::~SearchDialog()
 {
     syncSearchSettings(false);
+    m_editor->clearLiveSearch();
     s_instance = Q_NULLPTR;
 }
 
-SearchDialog *SearchDialog::create(QTextPadWindow *parent, bool replace)
+SearchDialog *SearchDialog::create(QTextPadWindow *parent)
 {
     if (s_instance) {
         s_instance->raise();
-        s_instance->showReplace(replace);
     } else {
         Q_ASSERT(parent);
         s_instance = new SearchDialog(parent);
-        s_instance->showReplace(replace);
         s_instance->show();
         s_instance->raise();
         s_instance->activateWindow();
 
-        session()->editor = parent->editor();
-
-        connect(session()->editor, &SyntaxTextEdit::selectionChanged, s_instance, [] {
-            bool hasSelection = session()->editor->textCursor().hasSelection();
+        s_instance->m_editor = parent->editor();
+        connect(s_instance->m_editor, &SyntaxTextEdit::selectionChanged, s_instance, [] {
+            bool hasSelection = s_instance->m_editor->textCursor().hasSelection();
             s_instance->m_replaceSelectionButton->setEnabled(hasSelection);
         });
     }
 
-    bool hasSelection = session()->editor->textCursor().hasSelection();
-    if (hasSelection) {
-        QTextCursor cursor = session()->editor->textCursor();
+    if (parent)
+        parent->showSearchBar(false);
+
+    const QTextCursor cursor = s_instance->m_editor->textCursor();
+    if (cursor.hasSelection()) {
         s_instance->m_searchText->setCurrentText(cursor.selectedText());
         s_instance->m_searchText->lineEdit()->selectAll();
     }
-    s_instance->m_replaceSelectionButton->setEnabled(hasSelection);
+    s_instance->m_replaceSelectionButton->setEnabled(cursor.hasSelection());
 
     return s_instance;
-}
-
-void SearchDialog::showReplace(bool show)
-{
-    if (show) {
-        setWindowTitle(tr("Find and Replace..."));
-        setWindowIcon(ICON("edit-find-replace"));
-    } else {
-        setWindowTitle(tr("Find..."));
-        setWindowIcon(ICON("edit-find"));
-    }
-
-    for (auto widget : m_replaceWidgets)
-        widget->setVisible(show);
-
-    m_toggleReplace->setText(show ? tr("<a href=\"#\">Switch to Find</a>")
-                                  : tr("<a href=\"#\">Switch to Replace</a>"));
-    adjustSize();
 }
 
 static QString translateCharEscape(const QStringRef &digits, int *advance)
@@ -386,9 +552,9 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
             m_searchText->insertItem(0, searchText);
         }
     }
-    session()->searchParams.searchText = m_escapes->isChecked()
-                                       ? translateEscapes(searchText)
-                                       : searchText;
+    m_searchParams.searchText = m_escapes->isChecked()
+                              ? translateEscapes(searchText)
+                              : searchText;
 
     const QString replaceText = m_replaceText->currentText();
     if (!replaceText.isEmpty() && saveRecent) {
@@ -398,10 +564,9 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
         }
     }
 
-    session()->searchParams.caseSensitive = m_caseSensitive->isChecked();
-    session()->searchParams.wholeWord = m_wholeWord->isChecked();
-    session()->searchParams.regex = m_regex->isChecked();
-    session()->wrapSearch = m_wrapSearch->isChecked();
+    m_searchParams.caseSensitive = m_caseSensitive->isChecked();
+    m_searchParams.wholeWord = m_wholeWord->isChecked();
+    m_searchParams.regex = m_regex->isChecked();
 
     settings.setSearchCaseSensitive(m_caseSensitive->isChecked());
     settings.setSearchWholeWord(m_wholeWord->isChecked());
@@ -410,54 +575,55 @@ void SearchDialog::syncSearchSettings(bool saveRecent)
     settings.setSearchWrap(m_wrapSearch->isChecked());
 }
 
-QTextCursor SearchDialog::searchNext(QTextPadWindow *parent, bool reverse)
+QTextCursor SearchDialog::searchNext(bool reverse)
 {
-    SyntaxTextEdit *editor = session()->editor;
-    if (!editor || session()->searchParams.searchText.isEmpty()) {
-        create(parent, false);
-        return QTextCursor();
-    }
+    Q_ASSERT(m_editor);
 
-    auto searchCursor = editor->textSearch(editor->textCursor(),
-                                           session()->searchParams, reverse,
-                                           &session()->regexMatch);
-    if (searchCursor.isNull() && session()->wrapSearch) {
-        QTextCursor wrapCursor = editor->textCursor();
+    if (m_searchParams.searchText.isEmpty())
+        return QTextCursor();
+
+    auto searchCursor = m_editor->textSearch(m_editor->textCursor(),
+                                             m_searchParams, reverse,
+                                             &m_regexMatch);
+    if (searchCursor.isNull() && m_wrapSearch->isChecked()) {
+        QTextCursor wrapCursor = m_editor->textCursor();
         wrapCursor.movePosition(reverse ? QTextCursor::End : QTextCursor::Start);
-        searchCursor = editor->textSearch(wrapCursor, session()->searchParams,
-                                          reverse, &session()->regexMatch);
+        searchCursor = m_editor->textSearch(wrapCursor, m_searchParams,
+                                            reverse, &m_regexMatch);
     }
 
     if (searchCursor.isNull())
-        QMessageBox::information(parent, QString(), tr("The specified text was not found"));
+        QMessageBox::information(this, QString(), tr("The specified text was not found"));
     else
-        editor->setTextCursor(searchCursor);
+        m_editor->setTextCursor(searchCursor);
     return searchCursor;
 }
 
 void SearchDialog::searchForward()
 {
     syncSearchSettings(true);
-    m_replaceCursor = searchNext(Q_NULLPTR, false);
+    m_editor->setLiveSearch(m_searchParams);
+    m_replaceCursor = searchNext(false);
 }
 
 void SearchDialog::searchBackward()
 {
     syncSearchSettings(true);
-    m_replaceCursor = searchNext(Q_NULLPTR, true);
+    m_editor->setLiveSearch(m_searchParams);
+    m_replaceCursor = searchNext(true);
 }
 
 void SearchDialog::replaceCurrent()
 {
     syncSearchSettings(true);
-    SyntaxTextEdit *editor = session()->editor;
+    Q_ASSERT(m_editor);
 
     const QString searchText = m_searchText->currentText();
     if (searchText.isEmpty())
         return;
 
-    if (m_replaceCursor.isNull() || m_replaceCursor != editor->textCursor()) {
-        m_replaceCursor = searchNext(Q_NULLPTR, false);
+    if (m_replaceCursor.isNull() || m_replaceCursor != m_editor->textCursor()) {
+        m_replaceCursor = searchNext(false);
         return;
     }
 
@@ -468,35 +634,36 @@ void SearchDialog::replaceCurrent()
     m_replaceCursor.beginEditBlock();
     m_replaceCursor.removeSelectedText();
     if (m_regex->isChecked())
-        m_replaceCursor.insertText(regexReplace(replaceText, session()->regexMatch));
+        m_replaceCursor.insertText(regexReplace(replaceText, m_regexMatch));
     else
         m_replaceCursor.insertText(replaceText);
     m_replaceCursor.endEditBlock();
 
-    m_replaceCursor = searchNext(Q_NULLPTR, false);
+    m_editor->setLiveSearch(m_searchParams);
+    m_replaceCursor = searchNext(false);
 }
 
 void SearchDialog::performReplaceAll(ReplaceAllMode mode)
 {
     syncSearchSettings(true);
-    SyntaxTextEdit *editor = session()->editor;
+    Q_ASSERT(m_editor);
 
     const QString searchText = m_searchText->currentText();
-    if (!editor || searchText.isEmpty())
+    if (searchText.isEmpty())
         return;
 
-    auto searchCursor = editor->textCursor();
+    auto searchCursor = m_editor->textCursor();
     if (mode == InSelection)
-        searchCursor.setPosition(editor->textCursor().selectionStart());
+        searchCursor.setPosition(m_editor->textCursor().selectionStart());
     else
         searchCursor.movePosition(QTextCursor::Start);
-    searchCursor = editor->textSearch(searchCursor, session()->searchParams, false,
-                                      &session()->regexMatch);
+    searchCursor = m_editor->textSearch(searchCursor, m_searchParams, false,
+                                        &m_regexMatch);
     if (searchCursor.isNull()) {
-        QMessageBox::information(editor, QString(), tr("The specified text was not found"));
+        QMessageBox::information(this, QString(), tr("The specified text was not found"));
         return;
-    } else if (mode == InSelection && searchCursor.selectionEnd() > editor->textCursor().selectionEnd()) {
-        QMessageBox::information(editor, QString(), tr("The specified text was not found in the selection"));
+    } else if (mode == InSelection && searchCursor.selectionEnd() > m_editor->textCursor().selectionEnd()) {
+        QMessageBox::information(this, QString(), tr("The specified text was not found in the selection"));
         return;
     }
 
@@ -508,30 +675,20 @@ void SearchDialog::performReplaceAll(ReplaceAllMode mode)
     auto replaceCursor = searchCursor;
     int replacements = 0;
     while (!replaceCursor.isNull()) {
-        if (mode == InSelection && replaceCursor.selectionEnd() > editor->textCursor().selectionEnd())
+        if (mode == InSelection && replaceCursor.selectionEnd() > m_editor->textCursor().selectionEnd())
             break;
 
         replaceCursor.removeSelectedText();
         if (m_regex->isChecked())
-            replaceCursor.insertText(regexReplace(replaceText, session()->regexMatch));
+            replaceCursor.insertText(regexReplace(replaceText, m_regexMatch));
         else
             replaceCursor.insertText(replaceText);
-        replaceCursor = editor->textSearch(replaceCursor, session()->searchParams,
-                                           false, &session()->regexMatch);
+        replaceCursor = m_editor->textSearch(replaceCursor, m_searchParams,
+                                             false, &m_regexMatch);
         ++replacements;
     }
     searchCursor.endEditBlock();
 
-    QMessageBox::information(editor, QString(),
-                             tr("Successfully replaced %1 matches").arg(replacements));
-}
-
-void SearchDialog::replaceAll()
-{
-    performReplaceAll(WholeDocument);
-}
-
-void SearchDialog::replaceInSelection()
-{
-    performReplaceAll(InSelection);
+    m_editor->setLiveSearch(m_searchParams);
+    QMessageBox::information(this, QString(), tr("Successfully replaced %1 matches").arg(replacements));
 }

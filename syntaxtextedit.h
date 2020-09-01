@@ -97,6 +97,9 @@ public:
     };
     QTextCursor textSearch(const QTextCursor &start, const SearchParams& params,
                            bool reverse = false, QRegularExpressionMatch *regexMatch = nullptr);
+    void setLiveSearch(const SearchParams& params);
+    void clearLiveSearch();
+
     void setMatchBraces(bool match);
     bool matchBraces() const;
 
@@ -143,6 +146,8 @@ private slots:
     void updateLineNumbers(const QRect &rect, int dy);
     void updateCursor();
     void updateTabMetrics();
+    void updateLiveSearch();
+    void updateExtraSelections();
 
 private:
     QWidget *m_lineMargin;
@@ -151,6 +156,7 @@ private:
     QColor m_cursorLineBg, m_cursorLineNum;
     QColor m_longLineBg, m_longLineEdge, m_longLineCursorBg;
     QColor m_indentGuideFg;
+    QColor m_searchBg;
     QColor m_braceMatchBg;
     QColor m_errorBg;
     int m_tabCharSize, m_indentWidth;
@@ -158,6 +164,10 @@ private:
     unsigned int m_config;
     IndentationMode m_indentationMode;
     int m_originalFontSize;
+
+    SearchParams m_liveSearch;
+    QList<QTextEdit::ExtraSelection> m_braceMatch;
+    QList<QTextEdit::ExtraSelection> m_searchResults;
 };
 
 #endif // _SYNTAXTEXTEDIT_H

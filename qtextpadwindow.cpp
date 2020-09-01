@@ -123,6 +123,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     setCentralWidget(m_editor);
     m_editor->setFrameStyle(QFrame::NoFrame);
 
+    m_searchWidget = new SearchWidget(this);
+    showSearchBar(false);
+
     QTextPadSettings settings;
     m_editor->setShowLineNumbers(settings.lineNumbers());
     m_editor->setAutoIndent(settings.autoIndent());
@@ -239,10 +242,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_overwriteModeAction, &QAction::toggled,
             this, &QTextPadWindow::setOverwriteMode);
 
-    connect(findAction, &QAction::triggered, [this]() { SearchDialog::create(this, false); });
-    connect(findNextAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, false); });
-    connect(findPrevAction, &QAction::triggered, [this]() { SearchDialog::searchNext(this, true); });
-    connect(replaceAction, &QAction::triggered, [this]() { SearchDialog::create(this, true); });
+    connect(findAction, &QAction::triggered, this, [this] { showSearchBar(true); });
+    connect(findNextAction, &QAction::triggered, this, [this] { m_searchWidget->searchNext(false); });
+    connect(findPrevAction, &QAction::triggered, this, [this] { m_searchWidget->searchNext(true); });
+    connect(replaceAction, &QAction::triggered, this, [this] { SearchDialog::create(this); });
     connect(gotoAction, &QAction::triggered, this, &QTextPadWindow::navigateToLine);
 
     connect(m_undoStack, &QUndoStack::canUndoChanged, undoAction, &QAction::setEnabled);
@@ -543,6 +546,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         if (state == Qt::ApplicationActive)
             checkForModifications();
     });
+
+    installEventFilter(this);
 }
 
 void QTextPadWindow::setOpenFilename(const QString &filename)
@@ -571,6 +576,20 @@ void QTextPadWindow::toggleFullScreen(bool fullScreen)
     } else {
         m_fullScreenAction->setIcon(ICON("view-fullscreen"));
         showNormal();
+    }
+}
+
+void QTextPadWindow::showSearchBar(bool show)
+{
+    m_searchWidget->setVisible(show);
+    m_searchWidget->setEnabled(show);
+    if (show) {
+        const QTextCursor cursor = m_editor->textCursor();
+        if (cursor.hasSelection())
+            m_searchWidget->setSearchText(cursor.selectedText());
+        m_searchWidget->activate();
+    } else {
+        m_editor->clearLiveSearch();
     }
 }
 
@@ -827,6 +846,9 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
             break;
         pieces << decoder->toUnicode(buffer);
     }
+
+    // Don't search while we're in the middle of loading a new file
+    showSearchBar(false);
 
     // Don't let the syntax highlighter hinder us while setting the new content
     m_editor->clear();
@@ -1476,10 +1498,29 @@ void QTextPadWindow::joinLines()
     m_editor->setTextCursor(cursor);
 }
 
-void QTextPadWindow::closeEvent(QCloseEvent *e)
+void QTextPadWindow::resizeEvent(QResizeEvent *event)
+{
+    if (event)
+        QMainWindow::resizeEvent(event);
+
+    // Move the search widget to the upper-right corner
+    const QPoint editorPos = m_editor->pos();
+    QSize searchSize = m_searchWidget->sizeHint();
+    m_searchWidget->resize(searchSize);
+    m_searchWidget->move(editorPos.x() + m_editor->viewport()->width() - searchSize.width() - 16,
+                         editorPos.y());
+}
+
+void QTextPadWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+    resizeEvent(nullptr);
+}
+
+void QTextPadWindow::closeEvent(QCloseEvent *event)
 {
     if (!promptForSave()) {
-        e->ignore();
+        event->ignore();
         return;
     }
 
@@ -1489,7 +1530,19 @@ void QTextPadWindow::closeEvent(QCloseEvent *e)
         settings.setShowToolBar(m_toolBar->isVisible());
         settings.setShowStatusBar(statusBar()->isVisible());
     }
-    e->accept();
+    event->accept();
+}
+
+bool QTextPadWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (m_searchWidget->isVisible() && event->type() == QEvent::KeyPress) {
+        auto keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Escape) {
+            showSearchBar(false);
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
 }
 
 void QTextPadWindow::populateRecentFiles()

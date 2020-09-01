@@ -8,8 +8,11 @@
         <file>icons/qtextpad-64.png</file>
         <file>icons/qtextpad-128.png</file>
 
-        <!-- Used by the filter widget in the toolbar popups -->
-        <file>icons/syntax-filter.png</file>
+        <!-- Used by the search widget and filter widgets -->
+        <file>icons/edit-clear.png</file>
+        <file>icons/go-down.png</file>
+        <file>icons/go-up.png</file>
+        <file>icons/search-filter.png</file>
 
         <!-- Oxygen icons for Win/Mac and Unixes that don't have a usable theme -->
         <file>icons/qtextpad/index.theme</file>

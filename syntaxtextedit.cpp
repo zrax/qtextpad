@@ -111,6 +111,8 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
             this, &SyntaxTextEdit::updateLineNumbers);
     connect(this, &QPlainTextEdit::cursorPositionChanged,
             this, &SyntaxTextEdit::updateCursor);
+    connect(this, &QPlainTextEdit::textChanged,
+            this, &SyntaxTextEdit::updateLiveSearch);
 
     // Initialize default editor configuration
     setDefaultFont(font());
@@ -514,6 +516,41 @@ QTextCursor SyntaxTextEdit::textSearch(const QTextCursor &start, const SearchPar
     }
 }
 
+void SyntaxTextEdit::setLiveSearch(const SearchParams &params)
+{
+    m_liveSearch = params;
+    updateLiveSearch();
+}
+
+void SyntaxTextEdit::clearLiveSearch()
+{
+    m_liveSearch.searchText = QString();
+    updateLiveSearch();
+}
+
+void SyntaxTextEdit::updateLiveSearch()
+{
+    m_searchResults.clear();
+    if (!m_liveSearch.searchText.isEmpty()) {
+        auto searchCursor = textCursor();
+        searchCursor.movePosition(QTextCursor::Start);
+        searchCursor = textSearch(searchCursor, m_liveSearch);
+        while (!searchCursor.isNull()) {
+            QTextEdit::ExtraSelection selection;
+            selection.format.setBackground(m_searchBg);
+            selection.cursor = searchCursor;
+            m_searchResults.append(selection);
+            searchCursor = textSearch(searchCursor, m_liveSearch);
+        }
+    }
+    updateExtraSelections();
+}
+
+void SyntaxTextEdit::updateExtraSelections()
+{
+    setExtraSelections(m_braceMatch + m_searchResults);
+}
+
 void SyntaxTextEdit::setMatchBraces(bool match)
 {
     if (match)
@@ -577,11 +614,17 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     m_longLineEdge = darkTheme ? m_longLineBg.lighter(120) : m_longLineBg.darker(120);
     m_longLineCursorBg = darkTheme ? m_cursorLineBg.lighter(110) : m_cursorLineBg.darker(110);
     m_indentGuideFg = theme.editorColor(KSyntaxHighlighting::Theme::IndentationLine);
+    m_searchBg = theme.editorColor(KSyntaxHighlighting::Theme::SearchHighlight);
     m_braceMatchBg = theme.editorColor(KSyntaxHighlighting::Theme::BracketMatching);
     m_errorBg = theme.editorColor(KSyntaxHighlighting::Theme::MarkError);
 
     m_highlighter->setTheme(theme);
     m_highlighter->rehighlight();
+
+    // Update extra highlights to match the new theme
+    for (auto &result : m_searchResults)
+        result.format.setBackground(m_searchBg);
+    updateCursor();
 }
 
 void SyntaxTextEdit::setSyntax(const KSyntaxHighlighting::Definition &syntax)
@@ -718,7 +761,7 @@ static BraceMatchResult findPrevBrace(QTextBlock block, int position)
 
 void SyntaxTextEdit::updateCursor()
 {
-    QList<QTextEdit::ExtraSelection> selections;
+    m_braceMatch.clear();
 
     if (matchBraces()) {
         QTextCursor cursor = textCursor();
@@ -744,15 +787,15 @@ void SyntaxTextEdit::updateCursor()
             selection.format.setBackground(match.validMatch ? m_braceMatchBg : m_errorBg);
             selection.cursor = cursor;
             selection.cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
-            selections.append(selection);
+            m_braceMatch.append(selection);
             selection.cursor = textCursor();
             selection.cursor.setPosition(match.position);
             selection.cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
-            selections.append(selection);
+            m_braceMatch.append(selection);
         }
     }
 
-    setExtraSelections(selections);
+    updateExtraSelections();
 
     // Ensure the entire viewport gets repainted to account for the
     // "current line" highlight change

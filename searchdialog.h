@@ -20,21 +20,62 @@
 #include <QDialog>
 #include <QList>
 #include <QTextCursor>
+#include <QRegularExpressionMatch>
 
-class QLabel;
+#include "syntaxtextedit.h"
+
 class QComboBox;
 class QCheckBox;
 class QPushButton;
 class QTextCursor;
 class SyntaxTextEdit;
 class QTextPadWindow;
+class SearchLineEdit;
+
+class SearchWidget : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit SearchWidget(QTextPadWindow *parent);
+
+    QSize sizeHint() const override
+    {
+        // Make the default just a bit wider
+        const QSize parentHint = QWidget::sizeHint();
+        return { (parentHint.width() * 5) / 4, parentHint.height() };
+    }
+
+    void setSearchText(const QString &text);
+    void activate();
+
+public slots:
+    void searchNext(bool reverse);
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
+private slots:
+    void updateSettings();
+
+private:
+    SearchLineEdit *m_searchText;
+    QAction *m_caseSensitive;
+    QAction *m_wholeWord;
+    QAction *m_regex;
+    QAction *m_escapes;
+    QAction *m_wrapSearch;
+
+    SyntaxTextEdit *m_editor;
+    SyntaxTextEdit::SearchParams m_searchParams;
+};
 
 class SearchDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    static SearchDialog *create(QTextPadWindow *parent, bool replace);
+    static SearchDialog *create(QTextPadWindow *parent);
 
     ~SearchDialog() Q_DECL_OVERRIDE;
 
@@ -42,16 +83,13 @@ public:
     static QString regexReplace(const QString &text,
                                 const QRegularExpressionMatch &regexMatch);
 
-    void showReplace(bool show);
-
-    static QTextCursor searchNext(QTextPadWindow *parent, bool reverse);
+public slots:
+    QTextCursor searchNext(bool reverse);
 
 private slots:
     void searchForward();
     void searchBackward();
     void replaceCurrent();
-    void replaceAll();
-    void replaceInSelection();
 
 private:
     explicit SearchDialog(QWidget *parent);
@@ -68,10 +106,12 @@ private:
     QCheckBox *m_regex;
     QCheckBox *m_escapes;
     QCheckBox *m_wrapSearch;
-    QLabel *m_toggleReplace;
     QPushButton *m_replaceSelectionButton;
-    QList<QWidget *> m_replaceWidgets;
     QTextCursor m_replaceCursor;
+
+    SyntaxTextEdit *m_editor;
+    SyntaxTextEdit::SearchParams m_searchParams;
+    QRegularExpressionMatch m_regexMatch;
 };
 
 #endif // _SEARCHDIALOG_H

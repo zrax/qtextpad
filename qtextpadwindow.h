@@ -22,6 +22,7 @@
 #include <QLocale>
 
 class SyntaxTextEdit;
+class SearchWidget;
 class ActivationLabel;
 
 class QToolButton;
@@ -108,6 +109,7 @@ public slots:
 
     void showAbout();
     void toggleFullScreen(bool fullScreen);
+    void showSearchBar(bool show);
 
     // User-triggered actions that store commands in the Undo stack
     void changeEncoding(const QString &encoding);
@@ -115,7 +117,11 @@ public slots:
     void changeUtfBOM();
 
 protected:
-    void closeEvent(QCloseEvent *e) Q_DECL_OVERRIDE;
+    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
+    void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
+    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
+
+    bool eventFilter(QObject *, QEvent *event) Q_DECL_OVERRIDE;
 
 private:
     enum FileState
@@ -125,6 +131,7 @@ private:
     };
 
     SyntaxTextEdit *m_editor;
+    SearchWidget *m_searchWidget;
     QString m_textEncoding;
 
     QString m_openFilename;
