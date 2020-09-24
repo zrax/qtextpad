@@ -24,13 +24,13 @@
 
 #include "syntaxtextedit.h"
 
+class QLineEdit;
 class QComboBox;
 class QCheckBox;
 class QPushButton;
 class QTextCursor;
 class SyntaxTextEdit;
 class QTextPadWindow;
-class SearchLineEdit;
 
 class SearchWidget : public QWidget
 {
@@ -59,7 +59,7 @@ private slots:
     void updateSettings();
 
 private:
-    SearchLineEdit *m_searchText;
+    QLineEdit *m_searchText;
     QAction *m_caseSensitive;
     QAction *m_wholeWord;
     QAction *m_regex;

@@ -35,58 +35,6 @@
 
 static SearchDialog *s_instance = Q_NULLPTR;
 
-class SearchLineEdit : public QLineEdit
-{
-public:
-    explicit SearchLineEdit(QWidget *parent = nullptr)
-        : QLineEdit(parent)
-    {
-        m_eraserButton = new QToolButton(this);
-        m_eraserButton->setIconSize(QSize(16, 16));
-        m_eraserButton->setIcon(ICON("edit-clear"));
-        m_eraserButton->setCursor(Qt::ArrowCursor);
-        m_eraserButton->setStyleSheet("QToolButton { border: none; padding: 0px; }");
-        m_eraserButton->setToolTip(tr("Clear"));
-        m_eraserButton->hide();
-
-        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-        const QSize buttonSize = m_eraserButton->sizeHint();
-        setStyleSheet(QStringLiteral("QLineEdit { padding-right: %1px; }")
-                              .arg(frameWidth + buttonSize.width() + 1));
-
-        const QSize minSize = minimumSizeHint();
-        setMinimumSize(qMax(minSize.width(), buttonSize.width() + (frameWidth * 2) + 2),
-                       qMax(minSize.height(), buttonSize.height() + (frameWidth * 2) + 2));
-
-        connect(m_eraserButton, &QToolButton::clicked, this, &QLineEdit::clear);
-        connect(this, &QLineEdit::textChanged, this, [this](const QString &text) {
-            m_eraserButton->setVisible(!text.isEmpty());
-        });
-    }
-
-    void resizeEvent(QResizeEvent *event) override
-    {
-        QLineEdit::resizeEvent(event);
-
-        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-        const QSize buttonSize = m_eraserButton->sizeHint();
-        m_eraserButton->move(rect().right() - frameWidth - buttonSize.width(),
-                             (rect().bottom() + 1 - buttonSize.height()) / 2);
-    }
-
-    QSize sizeHint() const override
-    {
-        const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-        const QSize buttonSize = m_eraserButton->sizeHint();
-        const QSize lineSize = QLineEdit::sizeHint();
-        return { qMax(buttonSize.width() + (frameWidth * 2) + 2, lineSize.width()),
-                 qMax(buttonSize.height() + (frameWidth * 2) + 2, lineSize.height()) };
-    }
-
-private:
-    QToolButton *m_eraserButton;
-};
-
 SearchWidget::SearchWidget(QTextPadWindow *parent)
     : QWidget(parent), m_editor(parent->editor())
 {
@@ -116,7 +64,8 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     connect(m_escapes, &QAction::triggered, this, &SearchWidget::updateSettings);
     connect(m_wrapSearch, &QAction::triggered, this, &SearchWidget::updateSettings);
 
-    m_searchText = new SearchLineEdit(this);
+    m_searchText = new QLineEdit(this);
+    m_searchText->setClearButtonEnabled(true);
     setFocusProxy(m_searchText);
 
     auto tbNext = new QToolButton(this);
