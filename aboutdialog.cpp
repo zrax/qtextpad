@@ -33,7 +33,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     setWindowTitle(tr("About QTextPad"));
 
     auto iconLabel = new QLabel(this);
-    iconLabel->setPixmap(QPixmap(":/icons/qtextpad-64.png"));
+    iconLabel->setPixmap(QPixmap(QStringLiteral(":/icons/qtextpad-64.png")));
     iconLabel->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
 
     auto aboutText = new QLabel(this);
@@ -76,7 +76,8 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<li>KSyntaxHighlighting %2</li>"
         "<li>Oxygen Icons</li>"
         "</ul>")
-        .arg(qVersion()).arg(SyntaxHighlighting_VERSION_STRING)
+        .arg(QString::fromLatin1(qVersion()))
+        .arg(QStringLiteral(SyntaxHighlighting_VERSION_STRING))
         );
     libVersions->setMargin(10);
     libVersions->setAlignment(Qt::AlignLeft | Qt::AlignTop);

@@ -518,8 +518,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     }
     setTheme(theme);
 
-    m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).boundingRect("OVR").width() + 4);
-    m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).boundingRect("CRLF").width() + 4);
+    m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).boundingRect(tr("OVR")).width() + 4);
+    m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).boundingRect(tr("CRLF")).width() + 4);
     setOverwriteMode(false);
 
     connect(m_editor, &SyntaxTextEdit::cursorPositionChanged,
@@ -685,13 +685,13 @@ void QTextPadWindow::setLineEndingMode(LineEndingMode mode)
 
     switch (mode) {
     case CROnly:
-        m_crlfLabel->setText(QStringLiteral("CR"));
+        m_crlfLabel->setText(tr("CR"));
         break;
     case LFOnly:
-        m_crlfLabel->setText(QStringLiteral("LF"));
+        m_crlfLabel->setText(tr("LF"));
         break;
     case CRLF:
-        m_crlfLabel->setText(QStringLiteral("CRLF"));
+        m_crlfLabel->setText(tr("CRLF"));
         break;
     }
 
@@ -835,7 +835,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     }
     if (!codec)
         codec = detect.textCodec();
-    setEncoding(codec->name());
+    setEncoding(QString::fromLatin1(codec->name()));
 
     auto decoder = codec->makeDecoder();
     QStringList pieces;
@@ -993,7 +993,7 @@ void QTextPadWindow::resetEditor()
     m_editor->document()->clearUndoRedoStacks();
 
     setSyntax(SyntaxTextEdit::nullSyntax());
-    setEncoding("UTF-8");
+    setEncoding(QStringLiteral("UTF-8"));
 #ifdef _WIN32
     setLineEndingMode(CRLF);
 #else
@@ -1353,7 +1353,7 @@ void QTextPadWindow::navigateToLine()
     if (dialog.exec() == QDialog::Rejected)
         return;
 
-    QStringList parts = dialog.textValue().split(QChar(':'));
+    QStringList parts = dialog.textValue().split(QLatin1Char(':'));
     bool ok;
     int line = parts.at(0).toInt(&ok);
     int column = 0;

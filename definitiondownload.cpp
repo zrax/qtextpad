@@ -82,12 +82,12 @@ void DefinitionDownloadDialog::downloadFinished()
         qint64 hours = elapsed / (60 * 60 * 1000);
         elapsed %= (60 * 60 * 1000);
         qint64 minutes = elapsed / (60 * 1000);
-        timeStr = tr("%1:%2 hours").arg(hours).arg(minutes, 2, 10, QChar('0'));
+        timeStr = tr("%1:%2 hours").arg(hours).arg(minutes, 2, 10, QLatin1Char('0'));
     } else if (elapsed >= 60 * 1000) {
         qint64 minutes = elapsed / (60 * 1000);
         elapsed %= (60 * 1000);
         qint64 seconds = elapsed / 1000;
-        timeStr = tr("%1:%2 minutes").arg(minutes).arg(seconds, 2, 10, QChar('0'));
+        timeStr = tr("%1:%2 minutes").arg(minutes).arg(seconds, 2, 10, QLatin1Char('0'));
     } else if (elapsed >= 1000) {
         qint64 seconds = elapsed / 1000;
         elapsed %= 1000;

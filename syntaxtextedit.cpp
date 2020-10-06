@@ -73,7 +73,7 @@ public:
     {
         KSyntaxHighlighting::SyntaxHighlighter::highlightBlock(text);
 
-        static const QRegularExpression ws_regex("\\s+");
+        static const QRegularExpression ws_regex(QStringLiteral("\\s+"));
         auto iter = ws_regex.globalMatch(text);
         QTextCharFormat ws_format;
         const QBrush ws_brush(theme().editorColor(KSyntaxHighlighting::Theme::TabMarker));
@@ -163,7 +163,7 @@ int SyntaxTextEdit::lineMarginWidth()
         maxLine /= 10;
         ++digits;
     }
-    return fontMetrics().boundingRect(QString(digits + 1, '0')).width() + 2;
+    return fontMetrics().boundingRect(QString(digits + 1, QLatin1Char('0'))).width() + 2;
 }
 
 void SyntaxTextEdit::paintLineNumbers(QPaintEvent *paintEvent)
@@ -276,7 +276,7 @@ void SyntaxTextEdit::updateTabMetrics()
 {
     // setTabStopWidth only allows int widths, which doesn't line up correctly
     // on many fonts.  Hack from QtCreator: Set it in the text option instead
-    const qreal tabWidth = QFontMetricsF(font()).width(QString(m_tabCharSize, ' '));
+    const qreal tabWidth = QFontMetricsF(font()).width(QString(m_tabCharSize, QLatin1Char(' ')));
     QTextOption opt = document()->defaultTextOption();
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     opt.setTabStopDistance(tabWidth);
@@ -665,20 +665,30 @@ static bool braceMatch(const QChar &left, const QChar &right)
 {
     switch (left.unicode()) {
     case '{':
-        return right == '}';
+        return right == QLatin1Char('}');
     case '(':
-        return right == ')';
+        return right == QLatin1Char(')');
     case '[':
-        return right == ']';
+        return right == QLatin1Char(']');
     case '}':
-        return right == '{';
+        return right == QLatin1Char('{');
     case ')':
-        return right == '(';
+        return right == QLatin1Char('(');
     case ']':
-        return right == '[';
+        return right == QLatin1Char('[');
     default:
         return false;
     }
+}
+
+static bool isOpenBrace(const QChar &ch)
+{
+    return ch == QLatin1Char('(') || ch == QLatin1Char('[') || ch == QLatin1Char('{');
+}
+
+static bool isCloseBrace(const QChar &ch)
+{
+    return ch == QLatin1Char(')') || ch == QLatin1Char(']') || ch == QLatin1Char('}');
 }
 
 struct BraceMatchResult
@@ -706,9 +716,9 @@ static BraceMatchResult findNextBrace(QTextBlock block, int position)
                 }
             } else if (!balance.isEmpty() && isQuote(balance.top())) {
                 /* Don't look for matching braces until we exit the quote */
-            } else if (ch == '(' || ch == '[' || ch == '{') {
+            } else if (isOpenBrace(ch)) {
                 balance.push(ch);
-            } else if (ch == ')' || ch == ']' || ch == '}') {
+            } else if (isCloseBrace(ch)) {
                 if (balance.isEmpty())
                     return BraceMatchResult();
                 const QChar match = balance.pop();
@@ -743,9 +753,9 @@ static BraceMatchResult findPrevBrace(QTextBlock block, int position)
                 }
             } else if (!balance.isEmpty() && isQuote(balance.top())) {
                 /* Don't look for matching braces until we exit the quote */
-            } else if (ch == ')' || ch == ']' || ch == '}') {
+            } else if (isCloseBrace(ch)) {
                 balance.push(ch);
-            } else if (ch == '(' || ch == '[' || ch == '{') {
+            } else if (isOpenBrace(ch)) {
                 if (balance.isEmpty())
                     return BraceMatchResult();
                 const QChar match = balance.pop();
@@ -778,9 +788,9 @@ void SyntaxTextEdit::updateCursor()
                              ? blockText[cursor.positionInBlock()]
                              : QLatin1Char(0);
         BraceMatchResult match;
-        if (chNext == '(' || chNext == '[' || chNext == '{') {
+        if (isOpenBrace(chNext)) {
             match = findNextBrace(cursor.block(), blockPos);
-        } else if (chPrev == ')' || chPrev == ']' || chPrev == '}') {
+        } else if (isCloseBrace(chPrev)) {
             match = findPrevBrace(cursor.block(), blockPos);
             cursor.movePosition(QTextCursor::PreviousCharacter);
         }
@@ -875,12 +885,12 @@ void SyntaxTextEdit::indentSelection()
             const int indent = leadingIndent + (m_indentationMode == IndentTabs
                                                 ? m_tabCharSize : m_indentWidth);
             if (m_indentationMode == IndentSpaces) {
-                cursor.insertText(QString(indent, ' '));
+                cursor.insertText(QString(indent, QLatin1Char(' ')));
             } else {
                 const int tabs = indent / m_tabCharSize;
                 const int spaces = indent % m_tabCharSize;
-                cursor.insertText(QString(tabs, '\t'));
-                cursor.insertText(QString(spaces, ' '));
+                cursor.insertText(QString(tabs, QLatin1Char('\t')));
+                cursor.insertText(QString(spaces, QLatin1Char(' ')));
             }
         }
 
@@ -925,12 +935,12 @@ void SyntaxTextEdit::outdentSelection()
                                             ? m_tabCharSize : m_indentWidth);
         if (indent > 0) {
             if (m_indentationMode == IndentSpaces) {
-                cursor.insertText(QString(indent, ' '));
+                cursor.insertText(QString(indent, QLatin1Char(' ')));
             } else {
                 const int tabs = indent / m_tabCharSize;
                 const int spaces = indent % m_tabCharSize;
-                cursor.insertText(QString(tabs, '\t'));
-                cursor.insertText(QString(spaces, ' '));
+                cursor.insertText(QString(tabs, QLatin1Char('\t')));
+                cursor.insertText(QString(spaces, QLatin1Char(' ')));
             }
         }
 
@@ -1103,7 +1113,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
                     vpos += 1;
             }
             const int spaces = m_indentWidth - (vpos % m_indentWidth);
-            cursor.insertText(QString(spaces, ' '));
+            cursor.insertText(QString(spaces, QLatin1Char(' ')));
         } else {
             QTextCursor cursor = textCursor();
             const QString blockText = cursor.block().text();
@@ -1140,8 +1150,8 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
             }
             const int tabs = (indentTo - vpos) / m_tabCharSize;
             const int spaces = (indentTo - vpos) % m_tabCharSize;
-            cursor.insertText(QString(tabs, '\t'));
-            cursor.insertText(QString(spaces, ' '));
+            cursor.insertText(QString(tabs, QLatin1Char('\t')));
+            cursor.insertText(QString(spaces, QLatin1Char(' ')));
             cursor.endEditBlock();
         }
         break;
@@ -1215,7 +1225,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         // averageCharWidth() and width('x') don't seem to give an accurate
         // enough position.  I'm sure I'm missing something, but this works
         // for now and doesn't seem to be too slow (yet).
-        const qreal longLinePos = fm.width(QString(m_longLineMarker, 'x'))
+        const qreal longLinePos = fm.width(QString(m_longLineMarker, QLatin1Char('x')))
                                   + contentOffset().x() + document()->documentMargin();
         if (longLinePos < viewRect.width()) {
             QPainter p(viewport());
@@ -1239,7 +1249,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         const QFontMetricsF fm(font());
         const int guideWidth = (m_indentationMode == IndentTabs
                                 ? m_tabCharSize : m_indentWidth);
-        const qreal indentLine = fm.width(QString(guideWidth, ' '));
+        const qreal indentLine = fm.width(QString(guideWidth, QLatin1Char(' ')));
         const qreal lineOffset = contentOffset().x() + document()->documentMargin();
         while (block.isValid()) {
             QString blockText = block.text();

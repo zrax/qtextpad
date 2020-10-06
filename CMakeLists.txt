@@ -34,6 +34,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
 endif()
 
+# Force conversions to/from 8-bit text to be explicit
+add_definitions(-DQT_NO_CAST_FROM_ASCII -DQT_NO_CAST_TO_ASCII)
+
 # Set this in your project before including qtextpad to build only the widget
 # and the charset loader / text codecs.
 if(QTEXTPAD_WIDGET_ONLY)

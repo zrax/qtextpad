@@ -20,8 +20,8 @@
 #include <QSettings>
 
 #define SIMPLE_SETTING(type, name, get, set, defaultValue) \
-    type get() const { return m_settings.value(name, defaultValue).value<type>(); } \
-    void set(type value) { m_settings.setValue(name, value); }
+    type get() const { return m_settings.value(QStringLiteral(name), defaultValue).value<type>(); } \
+    void set(type value) { m_settings.setValue(QStringLiteral(name), value); }
 
 struct FileModes
 {
@@ -73,11 +73,20 @@ public:
     QFont editorFont() const;
     void setEditorFont(const QFont &font);
 
-    QString editorTheme() const { return m_settings.value("Editor/Theme").toString(); }
-    void setEditorTheme(const QString &theme) { m_settings.setValue("Editor/Theme", theme); }
+    QString editorTheme() const
+    {
+        return m_settings.value(QStringLiteral("Editor/Theme")).toString();
+    }
+    void setEditorTheme(const QString &theme)
+    {
+        m_settings.setValue(QStringLiteral("Editor/Theme"), theme);
+    }
 
     QSize windowSize() const;
-    void setWindowSize(const QSize &size) { m_settings.setValue("WindowSize", size); }
+    void setWindowSize(const QSize &size)
+    {
+        m_settings.setValue(QStringLiteral("WindowSize"), size);
+    }
 
     // Search dialog options
     QStringList recentSearches() const;

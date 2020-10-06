@@ -74,10 +74,10 @@ int main(int argc, char *argv[])
             QCoreApplication::translate("main", "qtextpad - The lightweight Qt code and text editor"));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument("filename",
+    parser.addPositionalArgument(QStringLiteral("filename"),
             QCoreApplication::translate("main", "A document to open at startup"),
             QCoreApplication::translate("main", "[filename]"));
-    parser.addPositionalArgument("line",
+    parser.addPositionalArgument(QStringLiteral("line"),
             QCoreApplication::translate("main", "Move the cursor to the specified line"),
             QCoreApplication::translate("main", "[+line]"));
 

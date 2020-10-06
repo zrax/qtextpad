@@ -41,7 +41,7 @@ QTextCodec *QTextPadCharsets::codecForName(const QString &name)
     if (nameLatin1.startsWith("x-"))
         nameLatin1.remove(0, 2);
 
-    if (name.isEmpty())
+    if (nameLatin1.isEmpty())
         return Q_NULLPTR;
 
     return QTextCodec::codecForName(nameLatin1);
@@ -59,111 +59,111 @@ QTextPadCharsets::QTextPadCharsets()
     m_encodingCache.reserve(17);
     m_encodingCache.append(QStringList {
         tr("Arabic"),
-        "ISO-8859-6",
-        "windows-1256",
+        QStringLiteral("ISO-8859-6"),
+        QStringLiteral("windows-1256"),
     });
     m_encodingCache.append(QStringList {
         tr("Baltic"),
-        "ISO-8859-4",
-        "ISO-8859-13",
-        "windows-1257",
+        QStringLiteral("ISO-8859-4"),
+        QStringLiteral("ISO-8859-13"),
+        QStringLiteral("windows-1257"),
     });
     m_encodingCache.append(QStringList {
         tr("Central European"),
-        "ISO-8859-2",
-        "ISO-8859-3",
-        "ISO-8859-10",
-        "windows-1250",
+        QStringLiteral("ISO-8859-2"),
+        QStringLiteral("ISO-8859-3"),
+        QStringLiteral("ISO-8859-10"),
+        QStringLiteral("windows-1250"),
     });
     m_encodingCache.append(QStringList {
         tr("Chinese Simplified"),
-        "GB18030",
-        "GBK",
+        QStringLiteral("GB18030"),
+        QStringLiteral("GBK"),
     });
     m_encodingCache.append(QStringList {
         tr("Chinese Traditional"),
-        "Big5",
-        "Big5-HKSCS",
+        QStringLiteral("Big5"),
+        QStringLiteral("Big5-HKSCS"),
     });
     m_encodingCache.append(QStringList {
         tr("Cyrillic"),
-        "IBM866",
-        "ISO-8859-5",
-        "KOI8-R",
-        "KOI8-U",
-        "windows-1251",
+        QStringLiteral("IBM866"),
+        QStringLiteral("ISO-8859-5"),
+        QStringLiteral("KOI8-R"),
+        QStringLiteral("KOI8-U"),
+        QStringLiteral("windows-1251"),
     });
     m_encodingCache.append(QStringList {
         tr("Eastern European"),
-        "ISO-8859-16",
+        QStringLiteral("ISO-8859-16"),
     });
     m_encodingCache.append(QStringList {
         tr("Greek"),
-        "ISO-8859-7",
-        "windows-1253",
+        QStringLiteral("ISO-8859-7"),
+        QStringLiteral("windows-1253"),
     });
     m_encodingCache.append(QStringList {
         tr("Hebrew"),
-        "ISO-8859-8",
-        "windows-1255",
+        QStringLiteral("ISO-8859-8"),
+        QStringLiteral("windows-1255"),
     });
     m_encodingCache.append(QStringList {
         tr("Indic"),
-        "iscii-bng",
-        "iscii-dev",
-        "iscii-gjr",
-        "iscii-knd",
-        "iscii-mlm",
-        "iscii-ori",
-        "iscii-pnj",
-        "iscii-tlg",
-        "iscii-tml",
+        QStringLiteral("iscii-bng"),
+        QStringLiteral("iscii-dev"),
+        QStringLiteral("iscii-gjr"),
+        QStringLiteral("iscii-knd"),
+        QStringLiteral("iscii-mlm"),
+        QStringLiteral("iscii-ori"),
+        QStringLiteral("iscii-pnj"),
+        QStringLiteral("iscii-tlg"),
+        QStringLiteral("iscii-tml"),
     });
     m_encodingCache.append(QStringList {
         tr("Japanese"),
-        "EUC-JP",
-        "ISO-2022-JP",
-        "Shift-JIS",
+        QStringLiteral("EUC-JP"),
+        QStringLiteral("ISO-2022-JP"),
+        QStringLiteral("Shift-JIS"),
     });
     m_encodingCache.append(QStringList {
         tr("Korean"),
-        "EUC-KR",
-        "windows-949",
+        QStringLiteral("EUC-KR"),
+        QStringLiteral("windows-949"),
     });
     m_encodingCache.append(QStringList {
         tr("Thai"),
-        "IBM874",
-        "TIS-620",
+        QStringLiteral("IBM874"),
+        QStringLiteral("TIS-620"),
     });
     m_encodingCache.append(QStringList {
         tr("Turkish"),
-        "ISO-8859-9",
-        "windows-1254",
+        QStringLiteral("ISO-8859-9"),
+        QStringLiteral("windows-1254"),
     });
     m_encodingCache.append(QStringList {
         tr("Western European"),
-        "IBM850",
-        "ISO-8859-1",
-        "ISO-8859-14",
-        "ISO-8859-15",
-        "hp-roman8",
-        "windows-1252",
+        QStringLiteral("IBM850"),
+        QStringLiteral("ISO-8859-1"),
+        QStringLiteral("ISO-8859-14"),
+        QStringLiteral("ISO-8859-15"),
+        QStringLiteral("hp-roman8"),
+        QStringLiteral("windows-1252"),
     });
     m_encodingCache.append(QStringList {
         tr("Other"),
-        "macintosh",
-        "OEM437",
-        "TSCII",
-        "windows-1258",
+        QStringLiteral("macintosh"),
+        QStringLiteral("OEM437"),
+        QStringLiteral("TSCII"),
+        QStringLiteral("windows-1258"),
     });
     m_encodingCache.append(QStringList {
         tr("Unicode"),
-        "UTF-7",
-        "UTF-8",
-        "UTF-16LE",
-        "UTF-16BE",
-        "UTF-32LE",
-        "UTF-32BE",
+        QStringLiteral("UTF-7"),
+        QStringLiteral("UTF-8"),
+        QStringLiteral("UTF-16LE"),
+        QStringLiteral("UTF-16BE"),
+        QStringLiteral("UTF-32LE"),
+        QStringLiteral("UTF-32BE"),
     });
 
     std::map<QTextCodec *, QStringList> codecDupes;
@@ -194,7 +194,7 @@ QTextPadCharsets::QTextPadCharsets()
 
     for (const auto &dupe : codecDupes) {
         if (dupe.second.size() > 1) {
-            qCDebug(CsLog, "Duplicate codecs for %s:", qPrintable(dupe.first->name()));
+            qCDebug(CsLog, "Duplicate codecs for %s:", dupe.first->name().constData());
             for (const auto &name : dupe.second)
                 qCDebug(CsLog, "  * %s", qPrintable(name));
         }

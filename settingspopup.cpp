@@ -34,7 +34,7 @@
 TreeFilterEdit::TreeFilterEdit(QWidget *parent)
     : QLineEdit(parent)
 {
-    m_searchIcon = QIcon(":/icons/search-filter.png");
+    m_searchIcon = QIcon(QStringLiteral(":/icons/search-filter.png"));
     setClearButtonEnabled(true);
     resizeEvent(Q_NULLPTR);
 }

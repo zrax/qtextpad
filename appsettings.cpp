@@ -200,30 +200,31 @@ QFont QTextPadSettings::editorFont() const
     static const int defaultFontSize = 10;
 #endif
 
-    QFont font(m_settings.value("Editor/DefaultFont", defaultFontName).toString(),
-               m_settings.value("Editor/DefaultFontSize", defaultFontSize).toInt(),
-               m_settings.value("Editor/DefaultFontWeight", QFont::Normal).toInt(),
-               m_settings.value("Editor/DefaultFontItalic", false).toBool());
+    QFont font(m_settings.value(QStringLiteral("Editor/DefaultFont"), defaultFontName).toString(),
+               m_settings.value(QStringLiteral("Editor/DefaultFontSize"), defaultFontSize).toInt(),
+               m_settings.value(QStringLiteral("Editor/DefaultFontWeight"), QFont::Normal).toInt(),
+               m_settings.value(QStringLiteral("Editor/DefaultFontItalic"), false).toBool());
     font.setFixedPitch(true);
     return font;
 }
 
 void QTextPadSettings::setEditorFont(const QFont &font)
 {
-    m_settings.setValue("Editor/DefaultFont", font.family());
-    m_settings.setValue("Editor/DefaultFontSize", font.pointSize());
-    m_settings.setValue("Editor/DefaultFontWeight", font.weight());
-    m_settings.setValue("Editor/DefaultFontItalic", font.italic());
+    m_settings.setValue(QStringLiteral("Editor/DefaultFont"), font.family());
+    m_settings.setValue(QStringLiteral("Editor/DefaultFontSize"), font.pointSize());
+    m_settings.setValue(QStringLiteral("Editor/DefaultFontWeight"), font.weight());
+    m_settings.setValue(QStringLiteral("Editor/DefaultFontItalic"), font.italic());
 }
 
 QSize QTextPadSettings::windowSize() const
 {
-    return m_settings.value("WindowSize", QSize(600, 400)).toSize();
+    return m_settings.value(QStringLiteral("WindowSize"), QSize(600, 400)).toSize();
 }
 
 QStringList QTextPadSettings::recentSearches() const
 {
-    return m_settings.value("Search/Recent", QStringList{}).toStringList();
+    return m_settings.value(QStringLiteral("Search/Recent"),
+                            QStringList{}).toStringList();
 }
 
 void QTextPadSettings::addRecentSearch(const QString &text)
@@ -240,12 +241,13 @@ void QTextPadSettings::addRecentSearch(const QString &text)
     searches.prepend(text);
     while (searches.size() > RECENT_SEARCHES)
         searches.removeLast();
-    m_settings.setValue("Search/Recent", searches);
+    m_settings.setValue(QStringLiteral("Search/Recent"), searches);
 }
 
 QStringList QTextPadSettings::recentSearchReplacements() const
 {
-    return m_settings.value("Search/RecentReplace", QStringList{}).toStringList();
+    return m_settings.value(QStringLiteral("Search/RecentReplace"),
+                            QStringList{}).toStringList();
 }
 
 void QTextPadSettings::addRecentSearchReplacement(const QString &text)
@@ -262,5 +264,5 @@ void QTextPadSettings::addRecentSearchReplacement(const QString &text)
     replacements.prepend(text);
     while (replacements.size() > RECENT_SEARCHES)
         replacements.removeLast();
-    m_settings.setValue("Search/RecentReplace", replacements);
+    m_settings.setValue(QStringLiteral("Search/RecentReplace"), replacements);
 }
