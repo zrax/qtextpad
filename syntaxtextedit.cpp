@@ -115,9 +115,14 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
             this, &SyntaxTextEdit::updateLiveSearch);
 
     // Initialize default editor configuration
-    setDefaultFont(font());
+    QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    setDefaultFont(fixedFont);
     setWordWrap(false);
     setIndentationMode(-1);
+
+    setTheme((palette().color(QPalette::Base).lightness() < 128)
+             ? syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
+             : syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme));
 
     QTextOption opt = document()->defaultTextOption();
     opt.setFlags(opt.flags() | QTextOption::AddSpaceForLineAndParagraphSeparators);
@@ -628,6 +633,11 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     for (auto &result : m_searchResults)
         result.format.setBackground(m_searchBg);
     updateCursor();
+}
+
+QString SyntaxTextEdit::themeName() const
+{
+    return m_highlighter->theme().name();
 }
 
 void SyntaxTextEdit::setSyntax(const KSyntaxHighlighting::Definition &syntax)

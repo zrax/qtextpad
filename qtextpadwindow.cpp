@@ -507,16 +507,14 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showMatchingBraces->setChecked(m_editor->matchBraces());
     m_autoIndentAction->setChecked(m_editor->autoIndent());
 
-    auto theme = (m_editor->palette().color(QPalette::Base).lightness() < 128)
-                 ? SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
-                 : SyntaxTextEdit::syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
+    KSyntaxHighlighting::Theme theme;
     QString themeName = settings.editorTheme();
-    if (!themeName.isEmpty()) {
-        auto requestedTheme = SyntaxTextEdit::syntaxRepo()->theme(themeName);
-        if (requestedTheme.isValid())
-            theme = requestedTheme;
-    }
-    setTheme(theme);
+    if (!themeName.isEmpty())
+        theme = SyntaxTextEdit::syntaxRepo()->theme(themeName);
+    if (!theme.isValid())
+        theme = SyntaxTextEdit::syntaxRepo()->theme(m_editor->themeName());
+    if (theme.isValid())
+        setTheme(theme);
 
     m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).boundingRect(tr("OVR")).width() + 4);
     m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).boundingRect(tr("CRLF")).width() + 4);

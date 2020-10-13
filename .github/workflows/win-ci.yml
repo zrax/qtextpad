@@ -5,8 +5,8 @@ on:
   pull_request:
 
 env:
-  KF5_VERSION: "5.74"
-  KF5_FULLVER: "5.74.0"
+  KF5_VERSION: "5.75"
+  KF5_FULLVER: "5.75.0"
   QT_VERSION: "5.15.1"
   CM_GENERATOR: "Visual Studio 16 2019"
 
