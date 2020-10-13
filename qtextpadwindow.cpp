@@ -424,7 +424,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showStatusBarAction->setChecked(settings.showStatusBar());
     auto showFilePathAction = settingsMenu->addAction(tr("Show &Path in Title Bar"));
     showFilePathAction->setCheckable(true);
-    showFilePathAction->setChecked(settings.showFilePath());
+    m_showFilePath = settings.showFilePath();
+    showFilePathAction->setChecked(m_showFilePath);
 
     connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(crOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(CROnly); });
@@ -1158,10 +1159,8 @@ QString QTextPadWindow::documentTitle()
 
 void QTextPadWindow::updateTitle()
 {
-    QTextPadSettings settings;
-
     QString title = documentTitle();
-    if (settings.showFilePath() && !m_openFilename.isEmpty()) {
+    if (m_showFilePath && !m_openFilename.isEmpty()) {
         QFileInfo fi(m_openFilename);
         title += QStringLiteral(" [%1]").arg(fi.absolutePath());
     }
@@ -1368,6 +1367,7 @@ void QTextPadWindow::navigateToLine()
 
 void QTextPadWindow::toggleFilePath(bool show)
 {
+    m_showFilePath = show;
     QTextPadSettings().setShowFilePath(show);
     updateTitle();
 }

@@ -145,6 +145,7 @@ private:
     QMenu *m_themeMenu;
     QMenu *m_syntaxMenu;
     QMenu *m_setEncodingMenu;
+    bool m_showFilePath;
 
     // QAction caches
     QAction *m_reloadAction;
