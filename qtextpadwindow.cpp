@@ -128,6 +128,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     QTextPadSettings settings;
     m_editor->setShowLineNumbers(settings.lineNumbers());
+    m_editor->setShowFolding(settings.showFolding());
     m_editor->setAutoIndent(settings.autoIndent());
     m_editor->setMatchBraces(settings.matchBraces());
     m_editor->setHighlightCurrentLine(settings.highlightCurLine());
@@ -285,6 +286,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
     showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_L);
     showLineNumbersAction->setCheckable(true);
+    auto showFoldingAction = viewMenu->addAction(tr("Show &Fold Margin"));
+    showFoldingAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_H);
+    showFoldingAction->setCheckable(true);
     auto showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
     showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
     showWhitespaceAction->setCheckable(true);
@@ -329,6 +333,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
             [this](bool show) {
                 m_editor->setShowLineNumbers(show);
                 QTextPadSettings().setLineNumbers(show);
+            });
+    connect(showFoldingAction, &QAction::toggled, this,
+            [this](bool show) {
+                m_editor->setShowFolding(show);
+                QTextPadSettings().setShowFolding(show);
             });
     connect(showWhitespaceAction, &QAction::toggled, this,
             [this](bool show) {
@@ -502,6 +511,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     longLineAction->setChecked(m_editor->showLongLineEdge());
     indentGuidesAction->setChecked(m_editor->showIndentGuides());
     showLineNumbersAction->setChecked(m_editor->showLineNumbers());
+    showFoldingAction->setChecked(m_editor->showFolding());
     showWhitespaceAction->setChecked(m_editor->showWhitespace());
     scrollPastEndOfFileAction->setChecked(m_editor->scrollPastEndOfFile());
     showCurrentLineAction->setChecked(m_editor->highlightCurrentLine());

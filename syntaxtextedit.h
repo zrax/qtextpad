@@ -43,6 +43,8 @@ public:
     int lineMarginWidth();
     void setShowLineNumbers(bool show);
     bool showLineNumbers() const;
+    void setShowFolding(bool show);
+    bool showFolding() const;
 
     void setShowWhitespace(bool show);
     bool showWhitespace() const;
@@ -146,13 +148,14 @@ private slots:
     void updateLineNumbers(const QRect &rect, int dy);
     void updateCursor();
     void updateTabMetrics();
+    void updateTextMetrics();
     void updateLiveSearch();
     void updateExtraSelections();
 
 private:
     QWidget *m_lineMargin;
     WhitespaceSyntaxHighlighter *m_highlighter;
-    QColor m_lineMarginBg, m_lineMarginFg;
+    QColor m_lineMarginBg, m_lineMarginFg, m_codeFoldingBg;
     QColor m_cursorLineBg, m_cursorLineNum;
     QColor m_longLineBg, m_longLineEdge, m_longLineCursorBg;
     QColor m_indentGuideFg;
@@ -164,6 +167,8 @@ private:
     unsigned int m_config;
     IndentationMode m_indentationMode;
     int m_originalFontSize;
+
+    QPixmap m_foldOpen, m_foldClosed;
 
     SearchParams m_liveSearch;
     QList<QTextEdit::ExtraSelection> m_braceMatch;

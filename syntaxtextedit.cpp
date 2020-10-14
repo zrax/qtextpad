@@ -22,6 +22,7 @@
 #include <QPrinter>
 #include <QRegularExpression>
 #include <QStack>
+#include <QtMath>
 
 #include <KSyntaxHighlighting/Theme>
 #include <KSyntaxHighlighting/Definition>
@@ -39,6 +40,7 @@ enum SyntaxTextEdit_Config
     Config_IndentGuides = (1U<<4),
     Config_LongLineEdge = (1U<<5),
     Config_ExternalUndoRedo = (1U<<6),
+    Config_ShowFolding = (1U<<7),
 };
 
 class WhitespaceSyntaxHighlighter : public KSyntaxHighlighting::SyntaxHighlighter
@@ -138,21 +140,30 @@ void SyntaxTextEdit::deleteLines()
 
 int SyntaxTextEdit::lineMarginWidth()
 {
-    if (!showLineNumbers())
-        return 0;
+    qreal margin = 0;
+    const QFontMetricsF metrics(font());
 
-    int digits = 1;
-    int maxLine = qMax(1, blockCount());
-    while (maxLine >= 10) {
-        maxLine /= 10;
-        ++digits;
+    if (showLineNumbers()) {
+        int digits = 1;
+        int maxLine = qMax(1, blockCount());
+        while (maxLine >= 10) {
+            maxLine /= 10;
+            ++digits;
+        }
+        margin += metrics.boundingRect(QString(digits + 1, QLatin1Char('0'))).width() + qreal(2.0);
     }
-    return fontMetrics().boundingRect(QString(digits + 1, QLatin1Char('0'))).width() + 2;
+
+    if (showFolding()) {
+        // Fold markers
+        margin += m_foldOpen.width() + (showLineNumbers() ? qreal(2.0) : qreal(4.0));
+    }
+
+    return qCeil(margin);
 }
 
 void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
 {
-    if (!m_editor->showLineNumbers())
+    if (!m_editor->showLineNumbers() && !m_editor->showFolding())
         return;
 
     QPainter painter(this);
@@ -163,18 +174,32 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
                             .translated(m_editor->contentOffset()).top();
     qreal bottom = top + m_editor->blockBoundingRect(block).height();
     const QFontMetricsF metrics(font());
-    const qreal offset = metrics.width(QLatin1Char('0')) / 2.0;
+    const int foldPixmapWidth = m_editor->m_foldOpen.width() + 2;
+    const qreal numOffset = metrics.boundingRect(QLatin1Char('0')).width() / 2.0
+                          + (m_editor->showFolding() ? foldPixmapWidth : 0);
     QTextCursor cursor = m_editor->textCursor();
 
     while (block.isValid() && top <= paintEvent->rect().bottom()) {
         if (block.isVisible() && bottom >= paintEvent->rect().top()) {
-            const QString lineNum = QString::number(block.blockNumber() + 1);
-            if (block.blockNumber() == cursor.blockNumber())
-                painter.setPen(m_editor->m_cursorLineNum);
-            else
-                painter.setPen(m_editor->m_lineMarginFg);
-            const QRectF numberRect(0, top, width() - offset, metrics.height());
-            painter.drawText(numberRect, Qt::AlignRight, lineNum);
+            if (m_editor->showLineNumbers()) {
+                const QString lineNum = QString::number(block.blockNumber() + 1);
+                if (block.blockNumber() == cursor.blockNumber())
+                    painter.setPen(m_editor->m_cursorLineNum);
+                else
+                    painter.setPen(m_editor->m_lineMarginFg);
+                const QRectF numberRect(0, top, width() - numOffset,
+                                        metrics.height());
+                painter.drawText(numberRect, Qt::AlignRight, lineNum);
+            }
+
+            if (m_editor->showFolding() && m_editor->m_highlighter->startsFoldingRegion(block)) {
+                QTextBlock nextBlock = block.next();
+                const QPixmap &foldPixmap = (nextBlock.isValid() && !nextBlock.isVisible())
+                                          ? m_editor->m_foldClosed : m_editor->m_foldOpen;
+                painter.drawPixmap(width() - foldPixmapWidth,
+                                   top + (metrics.height() - foldPixmap.height()) / 2,
+                                   foldPixmap);
+            }
         }
 
         block = block.next();
@@ -225,6 +250,21 @@ void SyntaxTextEdit::setShowLineNumbers(bool show)
 bool SyntaxTextEdit::showLineNumbers() const
 {
     return !!(m_config & Config_ShowLineNumbers);
+}
+
+void SyntaxTextEdit::setShowFolding(bool show)
+{
+    if (show)
+        m_config |= Config_ShowFolding;
+    else
+        m_config &= ~Config_ShowFolding;
+    updateMargins();
+    m_lineMargin->update();
+}
+
+bool SyntaxTextEdit::showFolding() const
+{
+    return !!(m_config & Config_ShowFolding);
 }
 
 void SyntaxTextEdit::setShowWhitespace(bool show)
@@ -297,6 +337,45 @@ void SyntaxTextEdit::updateTabMetrics()
     opt.setTabStop(tabWidth);
 #endif
     document()->setDefaultTextOption(opt);
+}
+
+void SyntaxTextEdit::updateTextMetrics()
+{
+    QFontMetricsF metrics(font());
+    const qreal box = qMin(metrics.boundingRect(QLatin1Char('x')).width() * 1.5,
+                           metrics.height());
+    QVector<QPointF> arrowOpen {
+        QPointF(0, box / 4.0),
+        QPointF(box - 1, box / 4.0),
+        QPointF(box / 2.0, 0.75 * box),
+    };
+    QVector<QPointF> arrowClosed {
+        QPointF(box / 4.0, 0),
+        QPointF(box / 4.0, box - 1),
+        QPointF(0.75 * box, box / 2.0),
+    };
+
+    QPainter painter;
+    m_foldOpen = QPixmap(box, box);
+    m_foldOpen.fill(Qt::transparent);
+    painter.begin(&m_foldOpen);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(m_lineMarginFg);
+    painter.setBrush(m_lineMarginFg);
+    painter.drawPolygon(arrowOpen);
+    painter.end();
+
+    m_foldClosed = QPixmap(box, box);
+    m_foldClosed.fill(Qt::transparent);
+    painter.begin(&m_foldClosed);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(m_codeFoldingBg.darker(150));
+    painter.setBrush(m_codeFoldingBg.darker(150));
+    painter.drawPolygon(arrowClosed);
+    painter.end();
+
+    updateMargins();
+    updateTabMetrics();
 }
 
 void SyntaxTextEdit::setIndentationMode(int mode)
@@ -599,8 +678,7 @@ void SyntaxTextEdit::setDefaultFont(const QFont &font)
     // Note:  This will reset the zoom factor to 100%
     setFont(font);
     m_originalFontSize = font.pointSize();
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 QFont SyntaxTextEdit::defaultFont() const
@@ -624,6 +702,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     // Cache other colors used by the widget
     m_lineMarginFg = theme.editorColor(KSyntaxHighlighting::Theme::LineNumbers);
     m_lineMarginBg = theme.editorColor(KSyntaxHighlighting::Theme::IconBorder);
+    m_codeFoldingBg = theme.editorColor(KSyntaxHighlighting::Theme::CodeFolding);
     m_cursorLineBg = theme.editorColor(KSyntaxHighlighting::Theme::CurrentLine);
     m_cursorLineNum = theme.editorColor(KSyntaxHighlighting::Theme::CurrentLineNumber);
     m_longLineBg = theme.editorColor(KSyntaxHighlighting::Theme::WordWrapMarker);
@@ -972,22 +1051,19 @@ void SyntaxTextEdit::outdentSelection()
 void SyntaxTextEdit::zoomIn()
 {
     QPlainTextEdit::zoomIn(1);
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 void SyntaxTextEdit::zoomOut()
 {
     QPlainTextEdit::zoomOut(1);
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 void SyntaxTextEdit::zoomReset()
 {
     setFont(defaultFont());
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
@@ -1310,7 +1386,7 @@ void SyntaxTextEdit::printDocument(QPrinter *printer)
     // Override settings for printing
     auto displayFont = font();
     setFont(defaultFont());
-    updateTabMetrics();
+    updateTextMetrics();
 
     auto displayTheme = m_highlighter->theme();
     auto printingTheme = syntaxRepo()->theme(QStringLiteral("Printing"));
@@ -1335,5 +1411,5 @@ void SyntaxTextEdit::printDocument(QPrinter *printer)
     document()->setDefaultTextOption(displayOption);
     setTheme(displayTheme);
     setFont(displayFont);
-    updateTabMetrics();
+    updateTextMetrics();
 }
