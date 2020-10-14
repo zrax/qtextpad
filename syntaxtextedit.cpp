@@ -58,6 +58,16 @@ protected:
         m_editor->paintLineNumbers(e);
     }
 
+    void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE
+    {
+        m_editor->lineMarginMouseMove(e);
+    }
+
+    void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE
+    {
+        m_editor->lineMarginMousePress(e);
+    }
+
 private:
     SyntaxTextEdit *m_editor;
 };
@@ -100,7 +110,7 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
       m_longLineMarker(80), m_config(), m_indentationMode(),
-      m_originalFontSize()
+      m_originalFontSize(), m_marginSelectStart(-1)
 {
     m_lineMargin = new LineNumberMargin(this);
     m_highlighter = new WhitespaceSyntaxHighlighter(document());
@@ -201,6 +211,35 @@ void SyntaxTextEdit::paintLineNumbers(QPaintEvent *paintEvent)
         block = block.next();
         top = bottom;
         bottom = top + blockBoundingRect(block).height();
+    }
+}
+
+void SyntaxTextEdit::lineMarginMouseMove(QMouseEvent *e)
+{
+    if ((e->buttons() & Qt::LeftButton) && m_marginSelectStart >= 0) {
+        QTextCursor selectCursor = cursorForPosition(QPoint(0, e->y()));
+        const int linePosition = selectCursor.position();
+        selectCursor.setPosition(m_marginSelectStart, QTextCursor::MoveAnchor);
+        if (linePosition >= m_marginSelectStart) {
+            selectCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
+            selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        } else {
+            selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor);
+            selectCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
+        }
+        setTextCursor(selectCursor);
+    } else {
+        m_marginSelectStart = -1;
+    }
+}
+
+void SyntaxTextEdit::lineMarginMousePress(QMouseEvent *e)
+{
+    if (e->button() == Qt::LeftButton) {
+        QTextCursor selectCursor = cursorForPosition(QPoint(0, e->y()));
+        m_marginSelectStart = selectCursor.position();
+        selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        setTextCursor(selectCursor);
     }
 }
 

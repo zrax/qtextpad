@@ -41,7 +41,6 @@ public:
     void deleteLines();
 
     int lineMarginWidth();
-    void paintLineNumbers(QPaintEvent *e);
     void setShowLineNumbers(bool show);
     bool showLineNumbers() const;
 
@@ -165,10 +164,17 @@ private:
     unsigned int m_config;
     IndentationMode m_indentationMode;
     int m_originalFontSize;
+    int m_marginSelectStart;
 
     SearchParams m_liveSearch;
     QList<QTextEdit::ExtraSelection> m_braceMatch;
     QList<QTextEdit::ExtraSelection> m_searchResults;
+
+private:
+    friend class LineNumberMargin;
+    void paintLineNumbers(QPaintEvent *e);
+    void lineMarginMouseMove(QMouseEvent *e);
+    void lineMarginMousePress(QMouseEvent *e);
 };
 
 #endif // _SYNTAXTEXTEDIT_H
