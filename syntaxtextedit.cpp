@@ -41,37 +41,6 @@ enum SyntaxTextEdit_Config
     Config_ExternalUndoRedo = (1U<<6),
 };
 
-class LineNumberMargin : public QWidget
-{
-public:
-    explicit LineNumberMargin(SyntaxTextEdit *editor)
-        : QWidget(editor), m_editor(editor) { }
-
-    QSize sizeHint() const Q_DECL_OVERRIDE
-    {
-        return QSize(m_editor->lineMarginWidth(), 0);
-    }
-
-protected:
-    void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE
-    {
-        m_editor->paintLineNumbers(e);
-    }
-
-    void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE
-    {
-        m_editor->lineMarginMouseMove(e);
-    }
-
-    void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE
-    {
-        m_editor->lineMarginMousePress(e);
-    }
-
-private:
-    SyntaxTextEdit *m_editor;
-};
-
 class WhitespaceSyntaxHighlighter : public KSyntaxHighlighting::SyntaxHighlighter
 {
 public:
@@ -110,9 +79,9 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
       m_longLineMarker(80), m_config(), m_indentationMode(),
-      m_originalFontSize(), m_marginSelectStart(-1)
+      m_originalFontSize()
 {
-    m_lineMargin = new LineNumberMargin(this);
+    m_lineMargin = new LineMargin(this);
     m_highlighter = new WhitespaceSyntaxHighlighter(document());
 
     connect(this, &QPlainTextEdit::blockCountChanged,
@@ -181,43 +150,43 @@ int SyntaxTextEdit::lineMarginWidth()
     return fontMetrics().boundingRect(QString(digits + 1, QLatin1Char('0'))).width() + 2;
 }
 
-void SyntaxTextEdit::paintLineNumbers(QPaintEvent *paintEvent)
+void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
 {
-    if (!showLineNumbers())
+    if (!m_editor->showLineNumbers())
         return;
 
-    QPainter painter(m_lineMargin);
-    painter.fillRect(paintEvent->rect(), m_lineMarginBg);
+    QPainter painter(this);
+    painter.fillRect(paintEvent->rect(), m_editor->m_lineMarginBg);
 
-    QTextBlock block = firstVisibleBlock();
-    qreal top = blockBoundingGeometry(block).translated(contentOffset()).top();
-    qreal bottom = top + blockBoundingRect(block).height();
+    QTextBlock block = m_editor->firstVisibleBlock();
+    qreal top = m_editor->blockBoundingGeometry(block)
+                            .translated(m_editor->contentOffset()).top();
+    qreal bottom = top + m_editor->blockBoundingRect(block).height();
     const QFontMetricsF metrics(font());
     const qreal offset = metrics.width(QLatin1Char('0')) / 2.0;
-    QTextCursor cursor = textCursor();
+    QTextCursor cursor = m_editor->textCursor();
 
     while (block.isValid() && top <= paintEvent->rect().bottom()) {
         if (block.isVisible() && bottom >= paintEvent->rect().top()) {
             const QString lineNum = QString::number(block.blockNumber() + 1);
             if (block.blockNumber() == cursor.blockNumber())
-                painter.setPen(m_cursorLineNum);
+                painter.setPen(m_editor->m_cursorLineNum);
             else
-                painter.setPen(m_lineMarginFg);
-            const QRectF numberRect(0, top, m_lineMargin->width() - offset,
-                                    metrics.height());
+                painter.setPen(m_editor->m_lineMarginFg);
+            const QRectF numberRect(0, top, width() - offset, metrics.height());
             painter.drawText(numberRect, Qt::AlignRight, lineNum);
         }
 
         block = block.next();
         top = bottom;
-        bottom = top + blockBoundingRect(block).height();
+        bottom = top + m_editor->blockBoundingRect(block).height();
     }
 }
 
-void SyntaxTextEdit::lineMarginMouseMove(QMouseEvent *e)
+void SyntaxTextEdit::LineMargin::mouseMoveEvent(QMouseEvent *e)
 {
     if ((e->buttons() & Qt::LeftButton) && m_marginSelectStart >= 0) {
-        QTextCursor selectCursor = cursorForPosition(QPoint(0, e->y()));
+        QTextCursor selectCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
         const int linePosition = selectCursor.position();
         selectCursor.setPosition(m_marginSelectStart, QTextCursor::MoveAnchor);
         if (linePosition >= m_marginSelectStart) {
@@ -227,19 +196,19 @@ void SyntaxTextEdit::lineMarginMouseMove(QMouseEvent *e)
             selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor);
             selectCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
         }
-        setTextCursor(selectCursor);
+        m_editor->setTextCursor(selectCursor);
     } else {
         m_marginSelectStart = -1;
     }
 }
 
-void SyntaxTextEdit::lineMarginMousePress(QMouseEvent *e)
+void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton) {
-        QTextCursor selectCursor = cursorForPosition(QPoint(0, e->y()));
+        QTextCursor selectCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
         m_marginSelectStart = selectCursor.position();
         selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-        setTextCursor(selectCursor);
+        m_editor->setTextCursor(selectCursor);
     }
 }
 

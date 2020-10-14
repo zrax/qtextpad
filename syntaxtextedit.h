@@ -164,17 +164,32 @@ private:
     unsigned int m_config;
     IndentationMode m_indentationMode;
     int m_originalFontSize;
-    int m_marginSelectStart;
 
     SearchParams m_liveSearch;
     QList<QTextEdit::ExtraSelection> m_braceMatch;
     QList<QTextEdit::ExtraSelection> m_searchResults;
 
 private:
-    friend class LineNumberMargin;
-    void paintLineNumbers(QPaintEvent *e);
-    void lineMarginMouseMove(QMouseEvent *e);
-    void lineMarginMousePress(QMouseEvent *e);
+    class LineMargin : public QWidget
+    {
+    public:
+        explicit LineMargin(SyntaxTextEdit *editor)
+            : QWidget(editor), m_editor(editor), m_marginSelectStart(-1) { }
+
+        QSize sizeHint() const Q_DECL_OVERRIDE
+        {
+            return QSize(m_editor->lineMarginWidth(), 0);
+        }
+
+    protected:
+        void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
+        void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
+        void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
+
+    private:
+        SyntaxTextEdit *m_editor;
+        int m_marginSelectStart;
+    };
 };
 
 #endif // _SYNTAXTEXTEDIT_H
