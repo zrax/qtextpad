@@ -137,6 +137,11 @@ public slots:
     void indentSelection();
     void outdentSelection();
 
+    void foldLine();
+    void unfoldLine();
+    void foldAll();
+    void unfoldAll();
+
     void zoomIn();      // Hides QPlainTextEdit::zoomIn(int = 1)
     void zoomOut();     // Hides QPlainTextEdit::zoomOut(int = 1)
     void zoomReset();

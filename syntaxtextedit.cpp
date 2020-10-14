@@ -194,7 +194,7 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
 
             if (m_editor->showFolding() && m_editor->m_highlighter->startsFoldingRegion(block)) {
                 QTextBlock nextBlock = block.next();
-                const QPixmap &foldPixmap = (nextBlock.isValid() && !nextBlock.isVisible())
+                const QPixmap &foldPixmap = (nextBlock.isValid() && nextBlock.userState() >= 0)
                                           ? m_editor->m_foldClosed : m_editor->m_foldOpen;
                 painter.drawPixmap(width() - foldPixmapWidth,
                                    top + (metrics.height() - foldPixmap.height()) / 2,
@@ -1046,6 +1046,88 @@ void SyntaxTextEdit::outdentSelection()
     } while (cursor.blockNumber() <= endBlock);
 
     cursor.endEditBlock();
+}
+
+static void foldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
+{
+    const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
+    block = block.next();
+    while (block.isValid() && block != endBlock) {
+        block.setVisible(false);
+        block.setUserState(block.userState() + 1);
+        block = block.next();
+    }
+
+    // Only hide the last block if it doesn't also start a new fold region
+    if (block.isValid() && !highlighter->startsFoldingRegion(block)) {
+        block.setVisible(false);
+        block.setUserState(block.userState() + 1);
+    }
+}
+
+static void unfoldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
+{
+    const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
+    block = block.next();
+    while (block.isValid() && block != endBlock) {
+        const int foldState = block.userState() - 1;
+        block.setUserState(foldState);
+        if (foldState < 0)
+            block.setVisible(true);
+        block = block.next();
+    }
+
+    if (block.isValid() && !highlighter->startsFoldingRegion(block)) {
+        const int foldState = block.userState() - 1;
+        block.setUserState(foldState);
+        if (foldState < 0)
+            block.setVisible(true);
+    }
+}
+
+void SyntaxTextEdit::foldLine()
+{
+    QTextBlock cursorBlock = textCursor().block();
+    const QTextBlock nextBlock = cursorBlock.next();
+    if (nextBlock.isValid() && nextBlock.userState() >= 0)
+        return;
+    if (m_highlighter->startsFoldingRegion(cursorBlock))
+        foldBlock(cursorBlock, m_highlighter);
+}
+
+void SyntaxTextEdit::unfoldLine()
+{
+    QTextBlock cursorBlock = textCursor().block();
+    const QTextBlock nextBlock = cursorBlock.next();
+    if (nextBlock.isValid() && nextBlock.userState() < 0)
+        return;
+    if (m_highlighter->startsFoldingRegion(cursorBlock))
+        unfoldBlock(cursorBlock, m_highlighter);
+}
+
+void SyntaxTextEdit::foldAll()
+{
+    // Reset folding to a known state
+    unfoldAll();
+
+    QTextBlock block = document()->begin();
+    while (block.isValid()) {
+        if (m_highlighter->startsFoldingRegion(block))
+            foldBlock(block, m_highlighter);
+        block = block.next();
+    }
+}
+
+void SyntaxTextEdit::unfoldAll()
+{
+    QTextBlock block = document()->begin();
+    while (block.isValid()) {
+        // Just make everything visible/unfolded regardless of what state
+        // it was previously in.
+        block.setUserState(-1);
+        block.setVisible(true);
+        block = block.next();
+    }
 }
 
 void SyntaxTextEdit::zoomIn()
