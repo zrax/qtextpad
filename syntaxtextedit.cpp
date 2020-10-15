@@ -1358,6 +1358,27 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         }
     }
 
+    QTextBlock block = firstVisibleBlock();
+    while (block.isValid()) {
+        QRectF blockRect = blockBoundingGeometry(block).translated(contentOffset());
+        if (blockRect.top() > eventRect.bottom())
+            break;
+
+        if (m_highlighter->startsFoldingRegion(block) && isFolded(block)) {
+            QPainter p(viewport());
+            blockRect.setLeft(eventRect.left());
+            blockRect.setRight(eventRect.right());
+            p.setPen(QPen(m_codeFoldingBg, 1.0, Qt::DashLine));
+            // The line is drawn one pixel up from the bottom to avoid getting
+            // missed when scrolling the line into view from the top...
+            p.drawLine(blockRect.left(), blockRect.bottom() - 1,
+                       blockRect.right(), blockRect.bottom() - 1);
+            block = m_highlighter->findFoldingRegionEnd(block);
+        } else {
+            block = block.next();
+        }
+    }
+
     QPlainTextEdit::paintEvent(e);
 
     // Overlay indentation guides after rendering the text
@@ -1448,6 +1469,13 @@ void SyntaxTextEdit::updateScrollBars()
     resizeEvent(&dummyResize);
 }
 
+SyntaxTextEdit::LineMargin::LineMargin(SyntaxTextEdit *editor)
+    : QWidget(editor), m_editor(editor), m_marginSelectStart(-1),
+      m_foldHoverLine(-1)
+{
+    setMouseTracking(true);
+}
+
 void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
 {
     if (!m_editor->showLineNumbers() && !m_editor->showFolding())
@@ -1467,8 +1495,8 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
     QTextCursor cursor = m_editor->textCursor();
 
     while (block.isValid() && top <= paintEvent->rect().bottom()) {
-        if (block.isVisible() && bottom >= paintEvent->rect().top()) {
-            if (m_editor->showLineNumbers()) {
+        if (block.isVisible()) {
+            if (m_editor->showLineNumbers() && bottom >= paintEvent->rect().top()) {
                 const QString lineNum = QString::number(block.blockNumber() + 1);
                 if (block.blockNumber() == cursor.blockNumber())
                     painter.setPen(m_editor->m_cursorLineNum);
@@ -1480,8 +1508,22 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
             }
 
             if (m_editor->showFolding() && m_editor->m_highlighter->startsFoldingRegion(block)) {
-                const QPixmap &foldPixmap = isFolded(block) ? m_editor->m_foldClosed
-                                                            : m_editor->m_foldOpen;
+                const bool blockFolded = isFolded(block);
+                if (block.blockNumber() == m_foldHoverLine) {
+                    const int foldHighlightLeft = width() - foldPixmapWidth
+                                                - (m_editor->showLineNumbers() ? 2 : 0);
+                    QTextBlock endBlock = m_editor->m_highlighter->findFoldingRegionEnd(block);
+                    if (!endBlock.isValid())
+                        endBlock = m_editor->document()->lastBlock();
+                    const qreal foldHighlightBottom = blockFolded ? bottom
+                                        : m_editor->blockBoundingGeometry(endBlock)
+                                                        .translated(m_editor->contentOffset()).bottom();
+                    painter.fillRect(foldHighlightLeft, top, width(), foldHighlightBottom - top,
+                                     m_editor->m_codeFoldingBg);
+                }
+
+                const QPixmap &foldPixmap = blockFolded ? m_editor->m_foldClosed
+                                                        : m_editor->m_foldOpen;
                 painter.drawPixmap(width() - foldPixmapWidth,
                                    top + (metrics.height() - foldPixmap.height()) / 2,
                                    foldPixmap);
@@ -1496,8 +1538,20 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
 
 void SyntaxTextEdit::LineMargin::mouseMoveEvent(QMouseEvent *e)
 {
+    QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
+    const int foldPixmapWidth = m_editor->m_foldOpen.width() + 4;
+
+    m_foldHoverLine = -1;
+    if (m_editor->showFolding()) {
+        if (!m_editor->showLineNumbers() || e->x() >= width() - foldPixmapWidth) {
+            QTextBlock block = lineCursor.block();
+            if (block.isValid() && m_editor->m_highlighter->startsFoldingRegion(block))
+                m_foldHoverLine = block.blockNumber();
+        }
+        update();
+    }
+
     if ((e->buttons() & Qt::LeftButton) && m_marginSelectStart >= 0) {
-        QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
         const int linePosition = lineCursor.position();
         lineCursor.setPosition(m_marginSelectStart);
         if (linePosition >= m_marginSelectStart) {
@@ -1553,4 +1607,11 @@ void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
     }
 
     QWidget::mousePressEvent(e);
+}
+
+void SyntaxTextEdit::LineMargin::leaveEvent(QEvent *e)
+{
+    m_foldHoverLine = -1;
+    update();
+    QWidget::leaveEvent(e);
 }

@@ -186,8 +186,7 @@ private:
     class LineMargin : public QWidget
     {
     public:
-        explicit LineMargin(SyntaxTextEdit *editor)
-            : QWidget(editor), m_editor(editor), m_marginSelectStart(-1) { }
+        explicit LineMargin(SyntaxTextEdit *editor);
 
         QSize sizeHint() const Q_DECL_OVERRIDE
         {
@@ -199,10 +198,12 @@ private:
         void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
         void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
         void wheelEvent(QWheelEvent *e) Q_DECL_OVERRIDE { m_editor->wheelEvent(e); }
+        void leaveEvent(QEvent *e) Q_DECL_OVERRIDE;
 
     private:
         SyntaxTextEdit *m_editor;
         int m_marginSelectStart;
+        int m_foldHoverLine;
     };
 };
 
