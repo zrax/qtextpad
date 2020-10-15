@@ -1026,7 +1026,7 @@ static void unfoldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter
         unhideBlock(block);
 }
 
-void SyntaxTextEdit::foldLine()
+void SyntaxTextEdit::foldCurrentLine()
 {
     QTextBlock cursorBlock = textCursor().block();
     if (m_highlighter->startsFoldingRegion(cursorBlock) && !isFolded(cursorBlock))
@@ -1034,7 +1034,7 @@ void SyntaxTextEdit::foldLine()
     updateScrollBars();
 }
 
-void SyntaxTextEdit::unfoldLine()
+void SyntaxTextEdit::unfoldCurrentLine()
 {
     QTextBlock cursorBlock = textCursor().block();
     if (m_highlighter->startsFoldingRegion(cursorBlock) && isFolded(cursorBlock))
@@ -1054,7 +1054,18 @@ void SyntaxTextEdit::foldAll()
         block = block.next();
     }
 
+    // Move the editing cursor if it was in a folded block
+    QTextCursor cursor = textCursor();
+    block = cursor.block();
+    while (block.isValid() && !block.isVisible())
+        block = block.previous();
+    if (block.isValid()) {
+        cursor.setPosition(block.position());
+        setTextCursor(cursor);
+    }
+
     updateScrollBars();
+    ensureCursorVisible();
 }
 
 void SyntaxTextEdit::unfoldAll()
@@ -1071,6 +1082,7 @@ void SyntaxTextEdit::unfoldAll()
     }
 
     updateScrollBars();
+    ensureCursorVisible();
 }
 
 void SyntaxTextEdit::zoomIn()
@@ -1154,8 +1166,11 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
     // Handle newline insertion
     if (e->matches(QKeySequence::InsertParagraphSeparator)) {
-        QTextCursor undoCursor = textCursor();
-        undoCursor.beginEditBlock();
+        QTextCursor cursor = textCursor();
+        cursor.beginEditBlock();
+
+        if (cursor.atBlockEnd() && isFolded(cursor.block()))
+            unfoldBlock(cursor.block(), m_highlighter);
 
         QPlainTextEdit::keyPressEvent(e);
 
@@ -1195,13 +1210,16 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
                 }
             }
         }
-        undoCursor.endEditBlock();
+        cursor.endEditBlock();
 
         updateCursor();
         return;
     }
     if (e->matches(QKeySequence::InsertLineSeparator)) {
-        QTextCursor undoCursor = textCursor();
+        QTextCursor cursor = textCursor();
+
+        if (cursor.atBlockEnd() && isFolded(cursor.block()))
+            unfoldBlock(cursor.block(), m_highlighter);
 
         // Don't allow QPlainTextEdit to insert a soft break :(
         QKeyEvent retnEvent(e->type(), Qt::Key_Enter, Qt::NoModifier,

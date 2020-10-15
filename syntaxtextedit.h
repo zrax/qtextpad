@@ -137,8 +137,8 @@ public slots:
     void indentSelection();
     void outdentSelection();
 
-    void foldLine();
-    void unfoldLine();
+    void foldCurrentLine();
+    void unfoldCurrentLine();
     void foldAll();
     void unfoldAll();
 
