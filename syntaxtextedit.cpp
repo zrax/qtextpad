@@ -1587,6 +1587,7 @@ void SyntaxTextEdit::LineMargin::mouseMoveEvent(QMouseEvent *e)
 
     if ((e->buttons() & Qt::LeftButton) && m_marginSelectStart >= 0) {
         const int linePosition = lineCursor.position();
+        lineCursor.setVisualNavigation(true);
         lineCursor.setPosition(m_marginSelectStart);
         if (linePosition >= m_marginSelectStart) {
             lineCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
@@ -1612,6 +1613,7 @@ void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
         if (m_editor->showLineNumbers()
                 && (!m_editor->showFolding() || e->x() < width() - foldPixmapWidth)) {
             // Clicked in the number margin
+            lineCursor.setVisualNavigation(true);
             lineCursor.movePosition(QTextCursor::StartOfBlock);
             m_marginSelectStart = lineCursor.position();
             lineCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
