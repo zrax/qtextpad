@@ -160,7 +160,8 @@ private slots:
 private:
     QWidget *m_lineMargin;
     WhitespaceSyntaxHighlighter *m_highlighter;
-    QColor m_lineMarginBg, m_lineMarginFg, m_codeFoldingBg;
+    QColor m_lineMarginBg, m_lineMarginFg;
+    QColor m_codeFoldingBg, m_codeFoldingFg;
     QColor m_cursorLineBg, m_cursorLineNum;
     QColor m_longLineBg, m_longLineEdge, m_longLineCursorBg;
     QColor m_indentGuideFg;

@@ -293,8 +293,8 @@ void SyntaxTextEdit::updateTextMetrics()
     m_foldClosed.fill(Qt::transparent);
     painter.begin(&m_foldClosed);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(m_codeFoldingBg.darker(150));
-    painter.setBrush(m_codeFoldingBg.darker(150));
+    painter.setPen(m_codeFoldingFg);
+    painter.setBrush(m_codeFoldingFg);
     painter.drawPolygon(arrowClosed);
     painter.end();
 
@@ -621,12 +621,13 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     pal.setBrush(QPalette::HighlightedText, Qt::NoBrush);
     setPalette(pal);
 
-    bool darkTheme = pal.color(QPalette::Base).lightness() < 128;
+    const bool darkTheme = pal.color(QPalette::Base).lightness() < 128;
 
     // Cache other colors used by the widget
     m_lineMarginFg = theme.editorColor(KSyntaxHighlighting::Theme::LineNumbers);
     m_lineMarginBg = theme.editorColor(KSyntaxHighlighting::Theme::IconBorder);
     m_codeFoldingBg = theme.editorColor(KSyntaxHighlighting::Theme::CodeFolding);
+    m_codeFoldingFg = darkTheme ? m_codeFoldingBg.lighter(150) : m_codeFoldingBg.darker(150);
     m_cursorLineBg = theme.editorColor(KSyntaxHighlighting::Theme::CurrentLine);
     m_cursorLineNum = theme.editorColor(KSyntaxHighlighting::Theme::CurrentLineNumber);
     m_longLineBg = theme.editorColor(KSyntaxHighlighting::Theme::WordWrapMarker);
@@ -643,6 +644,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     // Update extra highlights to match the new theme
     for (auto &result : m_searchResults)
         result.format.setBackground(m_searchBg);
+    updateTextMetrics();
     updateCursor();
 }
 
