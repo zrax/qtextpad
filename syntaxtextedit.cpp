@@ -68,54 +68,51 @@ public:
 
 static bool isFolded(const QTextBlock &block)
 {
-    const QTextBlock nextBlock = block.next();
-    return nextBlock.isValid() && nextBlock.userState() > block.userState();
+    return block.userState() > 0;
 }
 
-static void hideBlock(QTextBlock block)
+static void hideBlock(QTextBlock block, bool hide)
 {
-    block.setVisible(false);
-    block.setUserState(block.userState() + 1);
+    block.setVisible(!hide);
     block.clearLayout();
-    block.setLineCount(0);
+    block.setLineCount(hide ? 0 : 1);
 }
 
 static void foldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
 {
+    block.setUserState(1);
+
     const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
     block = block.next();
     while (block.isValid() && block != endBlock) {
-        hideBlock(block);
+        hideBlock(block, true);
         block = block.next();
     }
 
     // Only hide the last block if it doesn't also start a new fold region
     if (block.isValid() && !highlighter->startsFoldingRegion(block))
-        hideBlock(block);
-}
-
-static void unhideBlock(QTextBlock block)
-{
-    const int foldState = block.userState() - 1;
-    block.setUserState(foldState);
-    if (foldState < 0) {
-        block.setVisible(true);
-        block.clearLayout();
-        block.setLineCount(1);
-    }
+        hideBlock(block, true);
 }
 
 static void unfoldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
 {
+    block.setUserState(-1);
+
     const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
     block = block.next();
     while (block.isValid() && block != endBlock) {
-        unhideBlock(block);
-        block = block.next();
+        hideBlock(block, false);
+        if (isFolded(block)) {
+            block = highlighter->findFoldingRegionEnd(block);
+            if (block.isValid() && !highlighter->startsFoldingRegion(block))
+                block = block.next();
+        } else {
+            block = block.next();
+        }
     }
 
     if (block.isValid() && !highlighter->startsFoldingRegion(block))
-        unhideBlock(block);
+        hideBlock(block, false);
 }
 
 KSyntaxHighlighting::Repository *SyntaxTextEdit::syntaxRepo()
@@ -898,8 +895,27 @@ void SyntaxTextEdit::updateCursor()
         }
         while (!foldStack.isEmpty())
             unfoldBlock(foldStack.pop(), m_highlighter);
+        hideBlock(cursorBlock, false);
         updateScrollBars();
     }
+
+    // If the previous block is folded but the current block is visible, that
+    // means we've inserted a new block after a folded one and need to unfold
+    // it. This can happen when pressing return at the end of a folded block.
+    QTextBlock previousBlock = cursorBlock.previous();
+    if (previousBlock.isValid() && isFolded(previousBlock)) {
+        if (m_highlighter->startsFoldingRegion(previousBlock)) {
+            unfoldBlock(previousBlock, m_highlighter);
+            updateScrollBars();
+        } else {
+            previousBlock.setUserState(-1);
+        }
+    }
+
+    // Ensure the fold marker for the current line is correct (e.g. in case
+    // of deletion or undo/redo actions)
+    QTextBlock nextBlock = cursorBlock.next();
+    cursorBlock.setUserState(nextBlock.isVisible() ? -1 : 1);
 
     // Ensure the entire viewport gets repainted to account for the
     // "current line" highlight change
@@ -1060,9 +1076,6 @@ void SyntaxTextEdit::unfoldCurrentLine()
 
 void SyntaxTextEdit::foldAll()
 {
-    // Reset folding to a known state
-    unfoldAll();
-
     QTextBlock block = document()->begin();
     while (block.isValid()) {
         if (m_highlighter->startsFoldingRegion(block))
@@ -1091,9 +1104,7 @@ void SyntaxTextEdit::unfoldAll()
         // Just make everything visible/unfolded regardless of what state
         // it was previously in.
         block.setUserState(-1);
-        block.setVisible(true);
-        block.clearLayout();
-        block.setLineCount(1);
+        hideBlock(block, false);
         block = block.next();
     }
 
@@ -1185,9 +1196,6 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         QTextCursor cursor = textCursor();
         cursor.beginEditBlock();
 
-        if (cursor.atBlockEnd() && isFolded(cursor.block()))
-            unfoldBlock(cursor.block(), m_highlighter);
-
         QPlainTextEdit::keyPressEvent(e);
 
         // Simple auto-indent: Just copy the previous non-empty line's
@@ -1233,9 +1241,6 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
     }
     if (e->matches(QKeySequence::InsertLineSeparator)) {
         QTextCursor cursor = textCursor();
-
-        if (cursor.atBlockEnd() && isFolded(cursor.block()))
-            unfoldBlock(cursor.block(), m_highlighter);
 
         // Don't allow QPlainTextEdit to insert a soft break :(
         QKeyEvent retnEvent(e->type(), Qt::Key_Enter, Qt::NoModifier,
