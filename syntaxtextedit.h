@@ -185,6 +185,7 @@ private:
         void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
         void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
         void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
+        void wheelEvent(QWheelEvent *e) Q_DECL_OVERRIDE { m_editor->wheelEvent(e); }
 
     private:
         SyntaxTextEdit *m_editor;
