@@ -180,6 +180,8 @@ private:
     QList<QTextEdit::ExtraSelection> m_braceMatch;
     QList<QTextEdit::ExtraSelection> m_searchResults;
 
+    void updateScrollBars();
+
 private:
     class LineMargin : public QWidget
     {

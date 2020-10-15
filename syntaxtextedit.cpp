@@ -1031,6 +1031,7 @@ void SyntaxTextEdit::foldLine()
     QTextBlock cursorBlock = textCursor().block();
     if (m_highlighter->startsFoldingRegion(cursorBlock) && !isFolded(cursorBlock))
         foldBlock(cursorBlock, m_highlighter);
+    updateScrollBars();
 }
 
 void SyntaxTextEdit::unfoldLine()
@@ -1038,6 +1039,7 @@ void SyntaxTextEdit::unfoldLine()
     QTextBlock cursorBlock = textCursor().block();
     if (m_highlighter->startsFoldingRegion(cursorBlock) && isFolded(cursorBlock))
         unfoldBlock(cursorBlock, m_highlighter);
+    updateScrollBars();
 }
 
 void SyntaxTextEdit::foldAll()
@@ -1051,6 +1053,8 @@ void SyntaxTextEdit::foldAll()
             foldBlock(block, m_highlighter);
         block = block.next();
     }
+
+    updateScrollBars();
 }
 
 void SyntaxTextEdit::unfoldAll()
@@ -1065,6 +1069,8 @@ void SyntaxTextEdit::unfoldAll()
         block.setLineCount(1);
         block = block.next();
     }
+
+    updateScrollBars();
 }
 
 void SyntaxTextEdit::zoomIn()
@@ -1433,6 +1439,15 @@ void SyntaxTextEdit::printDocument(QPrinter *printer)
     updateTextMetrics();
 }
 
+void SyntaxTextEdit::updateScrollBars()
+{
+    // We don't have access to QPlainTextEdit's private APIs for updating
+    // document layout or adjusting the scroll bars, but we can invoke
+    // them by sending a dummy resize event...
+    QResizeEvent dummyResize(size(), size());
+    resizeEvent(&dummyResize);
+}
+
 void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
 {
     if (!m_editor->showLineNumbers() && !m_editor->showFolding())
@@ -1522,8 +1537,10 @@ void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
                     unfoldBlock(block, m_editor->m_highlighter);
                 else
                     foldBlock(block, m_editor->m_highlighter);
+
                 m_editor->viewport()->update();
                 update();
+                m_editor->updateScrollBars();
 
                 // Move the editing cursor if it was in a folded block
                 QTextCursor cursor = m_editor->textCursor();
