@@ -43,6 +43,8 @@ public:
     int lineMarginWidth();
     void setShowLineNumbers(bool show);
     bool showLineNumbers() const;
+    void setShowFolding(bool show);
+    bool showFolding() const;
 
     void setShowWhitespace(bool show);
     bool showWhitespace() const;
@@ -135,6 +137,11 @@ public slots:
     void indentSelection();
     void outdentSelection();
 
+    void foldCurrentLine();
+    void unfoldCurrentLine();
+    void foldAll();
+    void unfoldAll();
+
     void zoomIn();      // Hides QPlainTextEdit::zoomIn(int = 1)
     void zoomOut();     // Hides QPlainTextEdit::zoomOut(int = 1)
     void zoomReset();
@@ -146,6 +153,7 @@ private slots:
     void updateLineNumbers(const QRect &rect, int dy);
     void updateCursor();
     void updateTabMetrics();
+    void updateTextMetrics();
     void updateLiveSearch();
     void updateExtraSelections();
 
@@ -153,6 +161,7 @@ private:
     QWidget *m_lineMargin;
     WhitespaceSyntaxHighlighter *m_highlighter;
     QColor m_lineMarginBg, m_lineMarginFg;
+    QColor m_codeFoldingBg, m_codeFoldingFg;
     QColor m_cursorLineBg, m_cursorLineNum;
     QColor m_longLineBg, m_longLineEdge, m_longLineCursorBg;
     QColor m_indentGuideFg;
@@ -165,16 +174,19 @@ private:
     IndentationMode m_indentationMode;
     int m_originalFontSize;
 
+    QPixmap m_foldOpen, m_foldClosed;
+
     SearchParams m_liveSearch;
     QList<QTextEdit::ExtraSelection> m_braceMatch;
     QList<QTextEdit::ExtraSelection> m_searchResults;
+
+    void updateScrollBars();
 
 private:
     class LineMargin : public QWidget
     {
     public:
-        explicit LineMargin(SyntaxTextEdit *editor)
-            : QWidget(editor), m_editor(editor), m_marginSelectStart(-1) { }
+        explicit LineMargin(SyntaxTextEdit *editor);
 
         QSize sizeHint() const Q_DECL_OVERRIDE
         {
@@ -186,10 +198,12 @@ private:
         void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
         void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
         void wheelEvent(QWheelEvent *e) Q_DECL_OVERRIDE { m_editor->wheelEvent(e); }
+        void leaveEvent(QEvent *e) Q_DECL_OVERRIDE;
 
     private:
         SyntaxTextEdit *m_editor;
         int m_marginSelectStart;
+        int m_foldHoverLine;
     };
 };
 

@@ -56,6 +56,7 @@ public:
     SIMPLE_SETTING(bool, "Editor/IndentationGuides", indentationGuides,
                    setIndentationGuides, false)
     SIMPLE_SETTING(bool, "Editor/LineNumbers", lineNumbers, setLineNumbers, false)
+    SIMPLE_SETTING(bool, "Editor/ShowFolding", showFolding, setShowFolding, false)
     SIMPLE_SETTING(bool, "Editor/ShowWhitespace", showWhitespace, setShowWhitespace, false)
     SIMPLE_SETTING(bool, "Editor/HighlightCurrentLine", highlightCurLine,
                    setHighlightCurLine, true)

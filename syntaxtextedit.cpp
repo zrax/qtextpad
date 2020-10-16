@@ -22,6 +22,7 @@
 #include <QPrinter>
 #include <QRegularExpression>
 #include <QStack>
+#include <QtMath>
 
 #include <KSyntaxHighlighting/Theme>
 #include <KSyntaxHighlighting/Definition>
@@ -39,6 +40,7 @@ enum SyntaxTextEdit_Config
     Config_IndentGuides = (1U<<4),
     Config_LongLineEdge = (1U<<5),
     Config_ExternalUndoRedo = (1U<<6),
+    Config_ShowFolding = (1U<<7),
 };
 
 class WhitespaceSyntaxHighlighter : public KSyntaxHighlighting::SyntaxHighlighter
@@ -63,6 +65,64 @@ public:
         }
     }
 };
+
+static bool isFolded(const QTextBlock &block)
+{
+    return block.userState() > 0;
+}
+
+static bool foldContains(const QTextBlock &foldBlock, const QTextBlock &targetBlock,
+                         KSyntaxHighlighting::SyntaxHighlighter *highlighter)
+{
+    if (!highlighter->startsFoldingRegion(foldBlock))
+        return false;
+    return (targetBlock.position() >= foldBlock.position())
+        && (highlighter->findFoldingRegionEnd(foldBlock).position() >= targetBlock.position());
+}
+
+static void hideBlock(QTextBlock block, bool hide)
+{
+    block.setVisible(!hide);
+    block.clearLayout();
+    block.setLineCount(hide ? 0 : 1);
+}
+
+static void foldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
+{
+    block.setUserState(1);
+
+    const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
+    block = block.next();
+    while (block.isValid() && block != endBlock) {
+        hideBlock(block, true);
+        block = block.next();
+    }
+
+    // Only hide the last block if it doesn't also start a new fold region
+    if (block.isValid() && !highlighter->startsFoldingRegion(block))
+        hideBlock(block, true);
+}
+
+static void unfoldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
+{
+    block.setUserState(-1);
+
+    const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
+    block = block.next();
+    while (block.isValid() && block != endBlock) {
+        hideBlock(block, false);
+        if (isFolded(block)) {
+            block = highlighter->findFoldingRegionEnd(block);
+            if (block.isValid() && !highlighter->startsFoldingRegion(block))
+                block = block.next();
+        } else {
+            block = block.next();
+        }
+    }
+
+    if (block.isValid() && !highlighter->startsFoldingRegion(block))
+        hideBlock(block, false);
+}
 
 KSyntaxHighlighting::Repository *SyntaxTextEdit::syntaxRepo()
 {
@@ -138,78 +198,25 @@ void SyntaxTextEdit::deleteLines()
 
 int SyntaxTextEdit::lineMarginWidth()
 {
-    if (!showLineNumbers())
-        return 0;
-
-    int digits = 1;
-    int maxLine = qMax(1, blockCount());
-    while (maxLine >= 10) {
-        maxLine /= 10;
-        ++digits;
-    }
-    return fontMetrics().boundingRect(QString(digits + 1, QLatin1Char('0'))).width() + 2;
-}
-
-void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
-{
-    if (!m_editor->showLineNumbers())
-        return;
-
-    QPainter painter(this);
-    painter.fillRect(paintEvent->rect(), m_editor->m_lineMarginBg);
-
-    QTextBlock block = m_editor->firstVisibleBlock();
-    qreal top = m_editor->blockBoundingGeometry(block)
-                            .translated(m_editor->contentOffset()).top();
-    qreal bottom = top + m_editor->blockBoundingRect(block).height();
+    qreal margin = 0;
     const QFontMetricsF metrics(font());
-    const qreal offset = metrics.width(QLatin1Char('0')) / 2.0;
-    QTextCursor cursor = m_editor->textCursor();
 
-    while (block.isValid() && top <= paintEvent->rect().bottom()) {
-        if (block.isVisible() && bottom >= paintEvent->rect().top()) {
-            const QString lineNum = QString::number(block.blockNumber() + 1);
-            if (block.blockNumber() == cursor.blockNumber())
-                painter.setPen(m_editor->m_cursorLineNum);
-            else
-                painter.setPen(m_editor->m_lineMarginFg);
-            const QRectF numberRect(0, top, width() - offset, metrics.height());
-            painter.drawText(numberRect, Qt::AlignRight, lineNum);
+    if (showLineNumbers()) {
+        int digits = 1;
+        int maxLine = qMax(1, blockCount());
+        while (maxLine >= 10) {
+            maxLine /= 10;
+            ++digits;
         }
-
-        block = block.next();
-        top = bottom;
-        bottom = top + m_editor->blockBoundingRect(block).height();
+        margin += metrics.boundingRect(QString(digits + 1, QLatin1Char('0'))).width() + qreal(2.0);
     }
-}
 
-void SyntaxTextEdit::LineMargin::mouseMoveEvent(QMouseEvent *e)
-{
-    if ((e->buttons() & Qt::LeftButton) && m_marginSelectStart >= 0) {
-        QTextCursor selectCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
-        const int linePosition = selectCursor.position();
-        selectCursor.setPosition(m_marginSelectStart, QTextCursor::MoveAnchor);
-        if (linePosition >= m_marginSelectStart) {
-            selectCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
-            selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-        } else {
-            selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor);
-            selectCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
-        }
-        m_editor->setTextCursor(selectCursor);
-    } else {
-        m_marginSelectStart = -1;
+    if (showFolding()) {
+        // Fold markers
+        margin += m_foldOpen.width() + (showLineNumbers() ? qreal(2.0) : qreal(4.0));
     }
-}
 
-void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
-{
-    if (e->button() == Qt::LeftButton) {
-        QTextCursor selectCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
-        m_marginSelectStart = selectCursor.position();
-        selectCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-        m_editor->setTextCursor(selectCursor);
-    }
+    return qCeil(margin);
 }
 
 void SyntaxTextEdit::setShowLineNumbers(bool show)
@@ -225,6 +232,21 @@ void SyntaxTextEdit::setShowLineNumbers(bool show)
 bool SyntaxTextEdit::showLineNumbers() const
 {
     return !!(m_config & Config_ShowLineNumbers);
+}
+
+void SyntaxTextEdit::setShowFolding(bool show)
+{
+    if (show)
+        m_config |= Config_ShowFolding;
+    else
+        m_config &= ~Config_ShowFolding;
+    updateMargins();
+    m_lineMargin->update();
+}
+
+bool SyntaxTextEdit::showFolding() const
+{
+    return !!(m_config & Config_ShowFolding);
 }
 
 void SyntaxTextEdit::setShowWhitespace(bool show)
@@ -297,6 +319,45 @@ void SyntaxTextEdit::updateTabMetrics()
     opt.setTabStop(tabWidth);
 #endif
     document()->setDefaultTextOption(opt);
+}
+
+void SyntaxTextEdit::updateTextMetrics()
+{
+    QFontMetricsF metrics(font());
+    const qreal box = qMin(metrics.boundingRect(QLatin1Char('x')).width() * 1.5,
+                           metrics.height());
+    QVector<QPointF> arrowOpen {
+        QPointF(0, box / 4.0),
+        QPointF(box - 1, box / 4.0),
+        QPointF(box / 2.0, 0.75 * box),
+    };
+    QVector<QPointF> arrowClosed {
+        QPointF(box / 4.0, 0),
+        QPointF(box / 4.0, box - 1),
+        QPointF(0.75 * box, box / 2.0),
+    };
+
+    QPainter painter;
+    m_foldOpen = QPixmap(box, box);
+    m_foldOpen.fill(Qt::transparent);
+    painter.begin(&m_foldOpen);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(m_lineMarginFg);
+    painter.setBrush(m_lineMarginFg);
+    painter.drawPolygon(arrowOpen);
+    painter.end();
+
+    m_foldClosed = QPixmap(box, box);
+    m_foldClosed.fill(Qt::transparent);
+    painter.begin(&m_foldClosed);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(m_codeFoldingFg);
+    painter.setBrush(m_codeFoldingFg);
+    painter.drawPolygon(arrowClosed);
+    painter.end();
+
+    updateMargins();
+    updateTabMetrics();
 }
 
 void SyntaxTextEdit::setIndentationMode(int mode)
@@ -599,8 +660,7 @@ void SyntaxTextEdit::setDefaultFont(const QFont &font)
     // Note:  This will reset the zoom factor to 100%
     setFont(font);
     m_originalFontSize = font.pointSize();
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 QFont SyntaxTextEdit::defaultFont() const
@@ -619,11 +679,13 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     pal.setBrush(QPalette::HighlightedText, Qt::NoBrush);
     setPalette(pal);
 
-    bool darkTheme = pal.color(QPalette::Base).lightness() < 128;
+    const bool darkTheme = pal.color(QPalette::Base).lightness() < 128;
 
     // Cache other colors used by the widget
     m_lineMarginFg = theme.editorColor(KSyntaxHighlighting::Theme::LineNumbers);
     m_lineMarginBg = theme.editorColor(KSyntaxHighlighting::Theme::IconBorder);
+    m_codeFoldingBg = theme.editorColor(KSyntaxHighlighting::Theme::CodeFolding);
+    m_codeFoldingFg = darkTheme ? m_codeFoldingBg.lighter(150) : m_codeFoldingBg.darker(150);
     m_cursorLineBg = theme.editorColor(KSyntaxHighlighting::Theme::CurrentLine);
     m_cursorLineNum = theme.editorColor(KSyntaxHighlighting::Theme::CurrentLineNumber);
     m_longLineBg = theme.editorColor(KSyntaxHighlighting::Theme::WordWrapMarker);
@@ -640,6 +702,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     // Update extra highlights to match the new theme
     for (auto &result : m_searchResults)
         result.format.setBackground(m_searchBg);
+    updateTextMetrics();
     updateCursor();
 }
 
@@ -828,6 +891,40 @@ void SyntaxTextEdit::updateCursor()
 
     updateExtraSelections();
 
+    // Ensure the block containing cursor is fully unfolded
+    QTextBlock cursorBlock = textCursor().block();
+    if (!cursorBlock.isVisible()) {
+        QTextBlock block = cursorBlock.previous();
+        QStack<QTextBlock> foldStack;
+        while (block.isValid()) {
+            if (isFolded(block) && foldContains(block, cursorBlock, m_highlighter))
+                foldStack << block;
+            block = block.previous();
+        }
+        while (!foldStack.isEmpty())
+            unfoldBlock(foldStack.pop(), m_highlighter);
+        hideBlock(cursorBlock, false);
+        updateScrollBars();
+    }
+
+    // If the previous block is folded but the current block is visible, that
+    // means we've inserted a new block after a folded one and need to unfold
+    // it. This can happen when pressing return at the end of a folded block.
+    QTextBlock previousBlock = cursorBlock.previous();
+    if (previousBlock.isValid() && isFolded(previousBlock)) {
+        if (m_highlighter->startsFoldingRegion(previousBlock)) {
+            unfoldBlock(previousBlock, m_highlighter);
+            updateScrollBars();
+        } else {
+            previousBlock.setUserState(-1);
+        }
+    }
+
+    // Ensure the fold marker for the current line is correct (e.g. in case
+    // of deletion or undo/redo actions)
+    QTextBlock nextBlock = cursorBlock.next();
+    cursorBlock.setUserState(nextBlock.isVisible() ? -1 : 1);
+
     // Ensure the entire viewport gets repainted to account for the
     // "current line" highlight change
     viewport()->update();
@@ -969,25 +1066,96 @@ void SyntaxTextEdit::outdentSelection()
     cursor.endEditBlock();
 }
 
+void SyntaxTextEdit::foldCurrentLine()
+{
+    QTextCursor cursor = textCursor();
+    QTextBlock block = cursor.block();
+    while (block.isValid() && !foldContains(block, cursor.block(), m_highlighter))
+        block = block.previous();
+    if (block.isValid() && !isFolded(block)) {
+        foldBlock(block, m_highlighter);
+
+        // Move the editing cursor if it was in a folded block
+        if (cursor.block() != block) {
+            cursor.setPosition(block.position());
+            setTextCursor(cursor);
+        }
+
+        viewport()->update();
+        m_lineMargin->update();
+        updateScrollBars();
+    }
+}
+
+void SyntaxTextEdit::unfoldCurrentLine()
+{
+    const QTextBlock cursorBlock = textCursor().block();
+    if (m_highlighter->startsFoldingRegion(cursorBlock) && isFolded(cursorBlock)) {
+        unfoldBlock(cursorBlock, m_highlighter);
+        viewport()->update();
+        m_lineMargin->update();
+        updateScrollBars();
+    }
+}
+
+void SyntaxTextEdit::foldAll()
+{
+    QTextBlock block = document()->begin();
+    while (block.isValid()) {
+        if (m_highlighter->startsFoldingRegion(block))
+            foldBlock(block, m_highlighter);
+        block = block.next();
+    }
+
+    // Move the editing cursor if it was in a folded block
+    QTextCursor cursor = textCursor();
+    block = cursor.block();
+    while (block.isValid() && !block.isVisible())
+        block = block.previous();
+    if (block.isValid()) {
+        cursor.setPosition(block.position());
+        setTextCursor(cursor);
+    }
+
+    viewport()->update();
+    m_lineMargin->update();
+    updateScrollBars();
+    ensureCursorVisible();
+}
+
+void SyntaxTextEdit::unfoldAll()
+{
+    QTextBlock block = document()->begin();
+    while (block.isValid()) {
+        // Just make everything visible/unfolded regardless of what state
+        // it was previously in.
+        block.setUserState(-1);
+        hideBlock(block, false);
+        block = block.next();
+    }
+
+    viewport()->update();
+    m_lineMargin->update();
+    updateScrollBars();
+    ensureCursorVisible();
+}
+
 void SyntaxTextEdit::zoomIn()
 {
     QPlainTextEdit::zoomIn(1);
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 void SyntaxTextEdit::zoomOut()
 {
     QPlainTextEdit::zoomOut(1);
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 void SyntaxTextEdit::zoomReset()
 {
     setFont(defaultFont());
-    updateMargins();
-    updateTabMetrics();
+    updateTextMetrics();
 }
 
 void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
@@ -1053,8 +1221,8 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
 
     // Handle newline insertion
     if (e->matches(QKeySequence::InsertParagraphSeparator)) {
-        QTextCursor undoCursor = textCursor();
-        undoCursor.beginEditBlock();
+        QTextCursor cursor = textCursor();
+        cursor.beginEditBlock();
 
         QPlainTextEdit::keyPressEvent(e);
 
@@ -1094,13 +1262,13 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
                 }
             }
         }
-        undoCursor.endEditBlock();
+        cursor.endEditBlock();
 
         updateCursor();
         return;
     }
     if (e->matches(QKeySequence::InsertLineSeparator)) {
-        QTextCursor undoCursor = textCursor();
+        QTextCursor cursor = textCursor();
 
         // Don't allow QPlainTextEdit to insert a soft break :(
         QKeyEvent retnEvent(e->type(), Qt::Key_Enter, Qt::NoModifier,
@@ -1257,6 +1425,27 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         }
     }
 
+    QTextBlock block = firstVisibleBlock();
+    while (block.isValid()) {
+        QRectF blockRect = blockBoundingGeometry(block).translated(contentOffset());
+        if (blockRect.top() > eventRect.bottom())
+            break;
+
+        if (m_highlighter->startsFoldingRegion(block) && isFolded(block)) {
+            QPainter p(viewport());
+            blockRect.setLeft(eventRect.left());
+            blockRect.setRight(eventRect.right());
+            p.setPen(QPen(m_codeFoldingBg, 1.0, Qt::DashLine));
+            // The line is drawn one pixel up from the bottom to avoid getting
+            // missed when scrolling the line into view from the top...
+            p.drawLine(blockRect.left(), blockRect.bottom() - 1,
+                       blockRect.right(), blockRect.bottom() - 1);
+            block = m_highlighter->findFoldingRegionEnd(block);
+        } else {
+            block = block.next();
+        }
+    }
+
     QPlainTextEdit::paintEvent(e);
 
     // Overlay indentation guides after rendering the text
@@ -1310,7 +1499,7 @@ void SyntaxTextEdit::printDocument(QPrinter *printer)
     // Override settings for printing
     auto displayFont = font();
     setFont(defaultFont());
-    updateTabMetrics();
+    updateTextMetrics();
 
     auto displayTheme = m_highlighter->theme();
     auto printingTheme = syntaxRepo()->theme(QStringLiteral("Printing"));
@@ -1335,5 +1524,163 @@ void SyntaxTextEdit::printDocument(QPrinter *printer)
     document()->setDefaultTextOption(displayOption);
     setTheme(displayTheme);
     setFont(displayFont);
-    updateTabMetrics();
+    updateTextMetrics();
+}
+
+void SyntaxTextEdit::updateScrollBars()
+{
+    // We don't have access to QPlainTextEdit's private APIs for updating
+    // document layout or adjusting the scroll bars, but we can invoke
+    // them by sending a dummy resize event...
+    QResizeEvent dummyResize(size(), size());
+    resizeEvent(&dummyResize);
+}
+
+SyntaxTextEdit::LineMargin::LineMargin(SyntaxTextEdit *editor)
+    : QWidget(editor), m_editor(editor), m_marginSelectStart(-1),
+      m_foldHoverLine(-1)
+{
+    setMouseTracking(true);
+}
+
+void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
+{
+    if (!m_editor->showLineNumbers() && !m_editor->showFolding())
+        return;
+
+    QPainter painter(this);
+    painter.fillRect(paintEvent->rect(), m_editor->m_lineMarginBg);
+
+    QTextBlock block = m_editor->firstVisibleBlock();
+    qreal top = m_editor->blockBoundingGeometry(block)
+                            .translated(m_editor->contentOffset()).top();
+    qreal bottom = top + m_editor->blockBoundingRect(block).height();
+    const QFontMetricsF metrics(font());
+    const int foldPixmapWidth = m_editor->m_foldOpen.width() + 2;
+    const qreal numOffset = metrics.boundingRect(QLatin1Char('0')).width() / 2.0
+                          + (m_editor->showFolding() ? foldPixmapWidth : 0);
+    QTextCursor cursor = m_editor->textCursor();
+
+    while (block.isValid() && top <= paintEvent->rect().bottom()) {
+        if (block.isVisible()) {
+            if (m_editor->showLineNumbers() && bottom >= paintEvent->rect().top()) {
+                const QString lineNum = QString::number(block.blockNumber() + 1);
+                if (block.blockNumber() == cursor.blockNumber())
+                    painter.setPen(m_editor->m_cursorLineNum);
+                else
+                    painter.setPen(m_editor->m_lineMarginFg);
+                const QRectF numberRect(0, top, width() - numOffset,
+                                        metrics.height());
+                painter.drawText(numberRect, Qt::AlignRight, lineNum);
+            }
+
+            if (m_editor->showFolding() && m_editor->m_highlighter->startsFoldingRegion(block)) {
+                const bool blockFolded = isFolded(block);
+                if (block.blockNumber() == m_foldHoverLine) {
+                    const int foldHighlightLeft = width() - foldPixmapWidth
+                                                - (m_editor->showLineNumbers() ? 2 : 0);
+                    QTextBlock endBlock = m_editor->m_highlighter->findFoldingRegionEnd(block);
+                    if (!endBlock.isValid())
+                        endBlock = m_editor->document()->lastBlock();
+                    const qreal foldHighlightBottom = blockFolded ? bottom
+                                        : m_editor->blockBoundingGeometry(endBlock)
+                                                        .translated(m_editor->contentOffset()).bottom();
+                    painter.fillRect(foldHighlightLeft, top, width(), foldHighlightBottom - top,
+                                     m_editor->m_codeFoldingBg);
+                }
+
+                const QPixmap &foldPixmap = blockFolded ? m_editor->m_foldClosed
+                                                        : m_editor->m_foldOpen;
+                painter.drawPixmap(width() - foldPixmapWidth,
+                                   top + (metrics.height() - foldPixmap.height()) / 2,
+                                   foldPixmap);
+            }
+        }
+
+        block = block.next();
+        top = bottom;
+        bottom = top + m_editor->blockBoundingRect(block).height();
+    }
+}
+
+void SyntaxTextEdit::LineMargin::mouseMoveEvent(QMouseEvent *e)
+{
+    QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
+    const int foldPixmapWidth = m_editor->m_foldOpen.width() + 4;
+
+    m_foldHoverLine = -1;
+    if (m_editor->showFolding()) {
+        if (!m_editor->showLineNumbers() || e->x() >= width() - foldPixmapWidth) {
+            QTextBlock block = lineCursor.block();
+            if (block.isValid() && m_editor->m_highlighter->startsFoldingRegion(block))
+                m_foldHoverLine = block.blockNumber();
+        }
+        update();
+    }
+
+    if ((e->buttons() & Qt::LeftButton) && m_marginSelectStart >= 0) {
+        const int linePosition = lineCursor.position();
+        lineCursor.setVisualNavigation(true);
+        lineCursor.setPosition(m_marginSelectStart);
+        if (linePosition >= m_marginSelectStart) {
+            lineCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
+            lineCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        } else {
+            lineCursor.movePosition(QTextCursor::NextBlock);
+            lineCursor.setPosition(linePosition, QTextCursor::KeepAnchor);
+        }
+        m_editor->setTextCursor(lineCursor);
+    } else {
+        m_marginSelectStart = -1;
+    }
+
+    QWidget::mouseMoveEvent(e);
+}
+
+void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
+{
+    m_marginSelectStart = -1;
+    if (e->button() == Qt::LeftButton) {
+        const int foldPixmapWidth = m_editor->m_foldOpen.width() + 4;
+        QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
+        if (m_editor->showLineNumbers()
+                && (!m_editor->showFolding() || e->x() < width() - foldPixmapWidth)) {
+            // Clicked in the number margin
+            lineCursor.setVisualNavigation(true);
+            lineCursor.movePosition(QTextCursor::StartOfBlock);
+            m_marginSelectStart = lineCursor.position();
+            lineCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+            m_editor->setTextCursor(lineCursor);
+        } else if (m_editor->showFolding()
+                && (!m_editor->showLineNumbers() || e->x() >= width() - foldPixmapWidth)) {
+            // Clicked in the folding margin
+            QTextBlock block = lineCursor.block();
+            if (block.isValid() && m_editor->m_highlighter->startsFoldingRegion(block)) {
+                if (isFolded(block))
+                    unfoldBlock(block, m_editor->m_highlighter);
+                else
+                    foldBlock(block, m_editor->m_highlighter);
+
+                m_editor->viewport()->update();
+                update();
+                m_editor->updateScrollBars();
+
+                // Move the editing cursor if it was in a folded block
+                QTextCursor cursor = m_editor->textCursor();
+                if (!cursor.block().isVisible()) {
+                    cursor.setPosition(block.position());
+                    m_editor->setTextCursor(cursor);
+                }
+            }
+        }
+    }
+
+    QWidget::mousePressEvent(e);
+}
+
+void SyntaxTextEdit::LineMargin::leaveEvent(QEvent *e)
+{
+    m_foldHoverLine = -1;
+    update();
+    QWidget::leaveEvent(e);
 }

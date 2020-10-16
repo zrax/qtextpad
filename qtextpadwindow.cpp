@@ -128,6 +128,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     QTextPadSettings settings;
     m_editor->setShowLineNumbers(settings.lineNumbers());
+    m_editor->setShowFolding(settings.showFolding());
     m_editor->setAutoIndent(settings.autoIndent());
     m_editor->setMatchBraces(settings.matchBraces());
     m_editor->setHighlightCurrentLine(settings.highlightCurLine());
@@ -285,6 +286,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
     showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_L);
     showLineNumbersAction->setCheckable(true);
+    auto showFoldingAction = viewMenu->addAction(tr("Show &Fold Margin"));
+    showFoldingAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_H);
+    showFoldingAction->setCheckable(true);
     auto showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
     showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
     showWhitespaceAction->setCheckable(true);
@@ -330,6 +334,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
                 m_editor->setShowLineNumbers(show);
                 QTextPadSettings().setLineNumbers(show);
             });
+    connect(showFoldingAction, &QAction::toggled, this,
+            [this](bool show) {
+                m_editor->setShowFolding(show);
+                QTextPadSettings().setShowFolding(show);
+            });
     connect(showWhitespaceAction, &QAction::toggled, this,
             [this](bool show) {
                 m_editor->setShowWhitespace(show);
@@ -372,6 +381,17 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
     auto joinLinesAction = toolsMenu->addAction(tr("&Join Lines"));
     joinLinesAction->setShortcut(Qt::CTRL | Qt::Key_J);
+    (void) toolsMenu->addSeparator();
+    QMenu *foldMenu = toolsMenu->addMenu(tr("Code &Folding"));
+    auto foldAction = foldMenu->addAction(tr("&Collapse"));
+    foldAction->setShortcut(Qt::CTRL | Qt::Key_BracketLeft);
+    auto unfoldAction = foldMenu->addAction(tr("&Expand"));
+    unfoldAction->setShortcut(Qt::CTRL | Qt::Key_BracketRight);
+    (void) foldMenu->addSeparator();
+    auto foldAllAction = foldMenu->addAction(tr("Collapse &All"));
+    foldAllAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Minus);
+    auto unfoldAllAction = foldMenu->addAction(tr("E&xpand All"));
+    unfoldAllAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Plus);
 
     connect(insertDTL, &QAction::triggered, this, [this](bool) {
         insertDateTime(QLocale::LongFormat);
@@ -388,6 +408,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         m_editor->moveLines(QTextCursor::NextBlock);
     });
     connect(joinLinesAction, &QAction::triggered, this, &QTextPadWindow::joinLines);
+    connect(foldAction, &QAction::triggered, m_editor, &SyntaxTextEdit::foldCurrentLine);
+    connect(unfoldAction, &QAction::triggered, m_editor, &SyntaxTextEdit::unfoldCurrentLine);
+    connect(foldAllAction, &QAction::triggered, m_editor, &SyntaxTextEdit::foldAll);
+    connect(unfoldAllAction, &QAction::triggered, m_editor, &SyntaxTextEdit::unfoldAll);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
     auto fontAction = settingsMenu->addAction(tr("Editor &Font..."));
@@ -502,6 +526,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     longLineAction->setChecked(m_editor->showLongLineEdge());
     indentGuidesAction->setChecked(m_editor->showIndentGuides());
     showLineNumbersAction->setChecked(m_editor->showLineNumbers());
+    showFoldingAction->setChecked(m_editor->showFolding());
     showWhitespaceAction->setChecked(m_editor->showWhitespace());
     scrollPastEndOfFileAction->setChecked(m_editor->scrollPastEndOfFile());
     showCurrentLineAction->setChecked(m_editor->highlightCurrentLine());
