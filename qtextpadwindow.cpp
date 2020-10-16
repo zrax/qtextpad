@@ -381,6 +381,17 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     linesDownAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Down);
     auto joinLinesAction = toolsMenu->addAction(tr("&Join Lines"));
     joinLinesAction->setShortcut(Qt::CTRL | Qt::Key_J);
+    (void) toolsMenu->addSeparator();
+    QMenu *foldMenu = toolsMenu->addMenu(tr("Code &Folding"));
+    auto foldAction = foldMenu->addAction(tr("&Collapse"));
+    foldAction->setShortcut(Qt::CTRL | Qt::Key_BracketLeft);
+    auto unfoldAction = foldMenu->addAction(tr("&Expand"));
+    unfoldAction->setShortcut(Qt::CTRL | Qt::Key_BracketRight);
+    (void) foldMenu->addSeparator();
+    auto foldAllAction = foldMenu->addAction(tr("Collapse &All"));
+    foldAllAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Minus);
+    auto unfoldAllAction = foldMenu->addAction(tr("E&xpand All"));
+    unfoldAllAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Plus);
 
     connect(insertDTL, &QAction::triggered, this, [this](bool) {
         insertDateTime(QLocale::LongFormat);
@@ -397,6 +408,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         m_editor->moveLines(QTextCursor::NextBlock);
     });
     connect(joinLinesAction, &QAction::triggered, this, &QTextPadWindow::joinLines);
+    connect(foldAction, &QAction::triggered, m_editor, &SyntaxTextEdit::foldCurrentLine);
+    connect(unfoldAction, &QAction::triggered, m_editor, &SyntaxTextEdit::unfoldCurrentLine);
+    connect(foldAllAction, &QAction::triggered, m_editor, &SyntaxTextEdit::foldAll);
+    connect(unfoldAllAction, &QAction::triggered, m_editor, &SyntaxTextEdit::unfoldAll);
 
     QMenu *settingsMenu = menuBar()->addMenu(tr("&Settings"));
     auto fontAction = settingsMenu->addAction(tr("Editor &Font..."));

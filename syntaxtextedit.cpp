@@ -1081,6 +1081,8 @@ void SyntaxTextEdit::foldCurrentLine()
             setTextCursor(cursor);
         }
 
+        viewport()->update();
+        m_lineMargin->update();
         updateScrollBars();
     }
 }
@@ -1088,9 +1090,12 @@ void SyntaxTextEdit::foldCurrentLine()
 void SyntaxTextEdit::unfoldCurrentLine()
 {
     const QTextBlock cursorBlock = textCursor().block();
-    if (m_highlighter->startsFoldingRegion(cursorBlock) && isFolded(cursorBlock))
+    if (m_highlighter->startsFoldingRegion(cursorBlock) && isFolded(cursorBlock)) {
         unfoldBlock(cursorBlock, m_highlighter);
-    updateScrollBars();
+        viewport()->update();
+        m_lineMargin->update();
+        updateScrollBars();
+    }
 }
 
 void SyntaxTextEdit::foldAll()
@@ -1112,6 +1117,8 @@ void SyntaxTextEdit::foldAll()
         setTextCursor(cursor);
     }
 
+    viewport()->update();
+    m_lineMargin->update();
     updateScrollBars();
     ensureCursorVisible();
 }
@@ -1127,6 +1134,8 @@ void SyntaxTextEdit::unfoldAll()
         block = block.next();
     }
 
+    viewport()->update();
+    m_lineMargin->update();
     updateScrollBars();
     ensureCursorVisible();
 }
