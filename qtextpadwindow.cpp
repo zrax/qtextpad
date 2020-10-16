@@ -1193,7 +1193,7 @@ void QTextPadWindow::updateTitle()
         title += tr(" (Not Current)");
     else if ((m_fileState & FS_New) != 0)
         title += tr(" (New File)");
-    title += QStringLiteral(" \u2013 qtextpad");  // n-dash
+    title += QStringLiteral(u" \u2013 qtextpad");  // n-dash
     if (isDocumentModified())
         title = QStringLiteral("* ") + title;
 

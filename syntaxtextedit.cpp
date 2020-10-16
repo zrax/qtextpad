@@ -1183,8 +1183,6 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         return;
     }
     if (e->matches(QKeySequence::InsertLineSeparator)) {
-        QTextCursor cursor = textCursor();
-
         // Don't allow QPlainTextEdit to insert a soft break :(
         QKeyEvent retnEvent(e->type(), Qt::Key_Enter, Qt::NoModifier,
                             e->nativeScanCode(), e->nativeVirtualKey(),
