@@ -17,6 +17,7 @@
 #include "syntaxhighlighter.h"
 
 #include <KSyntaxHighlighting/Theme>
+#include <KSyntaxHighlighting/Definition>
 
 #include <QRegularExpression>
 
@@ -30,17 +31,17 @@ void SyntaxHighlighter::hideBlock(QTextBlock block, bool hide)
 bool SyntaxHighlighter::foldContains(const QTextBlock &foldBlock,
                                      const QTextBlock &targetBlock) const
 {
-    if (!startsFoldingRegion(foldBlock))
+    if (!isFoldable(foldBlock))
         return false;
     return (targetBlock.position() >= foldBlock.position())
-        && (findFoldingRegionEnd(foldBlock).position() >= targetBlock.position());
+        && (findFoldEnd(foldBlock).position() >= targetBlock.position());
 }
 
 void SyntaxHighlighter::foldBlock(QTextBlock block) const
 {
     block.setUserState(1);
 
-    const QTextBlock endBlock = findFoldingRegionEnd(block);
+    const QTextBlock endBlock = findFoldEnd(block);
     block = block.next();
     while (block.isValid() && block != endBlock) {
         hideBlock(block, true);
@@ -48,7 +49,7 @@ void SyntaxHighlighter::foldBlock(QTextBlock block) const
     }
 
     // Only hide the last block if it doesn't also start a new fold region
-    if (block.isValid() && !startsFoldingRegion(block))
+    if (block.isValid() && !isFoldable(block))
         hideBlock(block, true);
 }
 
@@ -56,21 +57,104 @@ void SyntaxHighlighter::unfoldBlock(QTextBlock block) const
 {
     block.setUserState(-1);
 
-    const QTextBlock endBlock = findFoldingRegionEnd(block);
+    const QTextBlock endBlock = findFoldEnd(block);
     block = block.next();
     while (block.isValid() && block != endBlock) {
         hideBlock(block, false);
         if (isFolded(block)) {
-            block = findFoldingRegionEnd(block);
-            if (block.isValid() && !startsFoldingRegion(block))
+            block = findFoldEnd(block);
+            if (block.isValid() && !isFoldable(block))
                 block = block.next();
         } else {
             block = block.next();
         }
     }
 
-    if (block.isValid() && !startsFoldingRegion(block))
+    if (block.isValid() && !isFoldable(block))
         hideBlock(block, false);
+}
+
+int SyntaxHighlighter::leadingIndentation(const QString &blockText, int *indentPos) const
+{
+    int leadingIndent = 0;
+    int startOfLine = 0;
+    for (const auto ch : blockText) {
+        if (ch == QLatin1Char('\t')) {
+            leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
+            startOfLine += 1;
+        } else if (ch == QLatin1Char(' ')) {
+            leadingIndent += 1;
+            startOfLine += 1;
+        } else {
+            break;
+        }
+    }
+    if (indentPos)
+        *indentPos = startOfLine;
+    return leadingIndent;
+}
+
+static QList<QRegularExpression> reCompileAll(const QStringList &regexList)
+{
+    QList<QRegularExpression> compiled;
+    compiled.reserve(regexList.size());
+    for (const QString &expr : regexList)
+        compiled << QRegularExpression(QStringLiteral("^") + expr + QStringLiteral("$"));
+    return compiled;
+}
+
+static bool lineEmpty(const QString &text, const QList<QRegularExpression> &regexList)
+{
+    if (text.isEmpty())
+        return true;
+
+    return std::any_of(regexList.begin(), regexList.end(), [text](const QRegularExpression &re) {
+        const QRegularExpressionMatch m = re.match(text);
+        return m.hasMatch();
+    });
+}
+
+bool SyntaxHighlighter::isFoldable(const QTextBlock &block) const
+{
+    if (startsFoldingRegion(block))
+        return true;
+    if (definition().indentationBasedFoldingEnabled()) {
+        const auto emptyList = reCompileAll(definition().foldingIgnoreList());
+        if (lineEmpty(block.text(), emptyList))
+            return false;
+
+        const int curIndent = leadingIndentation(block.text());
+        QTextBlock nextBlock = block.next();
+        while (nextBlock.isValid() && lineEmpty(nextBlock.text(), emptyList))
+            nextBlock = nextBlock.next();
+        if (nextBlock.isValid() && leadingIndentation(nextBlock.text()) > curIndent)
+            return true;
+    }
+    return false;
+}
+
+QTextBlock SyntaxHighlighter::findFoldEnd(const QTextBlock &startBlock) const
+{
+    if (startsFoldingRegion(startBlock))
+        return findFoldingRegionEnd(startBlock);
+
+    if (definition().indentationBasedFoldingEnabled()) {
+        const auto emptyList = reCompileAll(definition().foldingIgnoreList());
+
+        const int curIndent = leadingIndentation(startBlock.text());
+        QTextBlock block = startBlock.next();
+        QTextBlock endBlock;
+        for ( ;; ) {
+            while (block.isValid() && lineEmpty(block.text(), emptyList))
+                block = block.next();
+            if (!block.isValid() || leadingIndentation(block.text()) <= curIndent)
+                break;
+            endBlock = block;
+            block = block.next();
+        }
+        return endBlock;
+    }
+    return QTextBlock();
 }
 
 void SyntaxHighlighter::highlightBlock(const QString &text)

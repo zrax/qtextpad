@@ -23,8 +23,12 @@ class SyntaxHighlighter : public KSyntaxHighlighting::SyntaxHighlighter
 {
 public:
     explicit SyntaxHighlighter(QTextDocument *document)
-        : KSyntaxHighlighting::SyntaxHighlighter(document)
+        : KSyntaxHighlighting::SyntaxHighlighter(document),
+          m_tabCharSize()
     { }
+
+    void setTabWidth(int width) { m_tabCharSize = width; }
+    int tabWidth() const { return m_tabCharSize; }
 
     static void hideBlock(QTextBlock block, bool hide);
 
@@ -38,8 +42,16 @@ public:
     void foldBlock(QTextBlock block) const;
     void unfoldBlock(QTextBlock block) const;
 
+    int leadingIndentation(const QString &blockText, int *indentPos = nullptr) const;
+
+    bool isFoldable(const QTextBlock &block) const;
+    QTextBlock findFoldEnd(const QTextBlock &startBlock) const;
+
 protected:
     void highlightBlock(const QString &text) Q_DECL_OVERRIDE;
+
+private:
+    int m_tabCharSize;
 };
 
 #endif // _SYNTAXHIGHLIGHTER_H

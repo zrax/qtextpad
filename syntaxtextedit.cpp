@@ -64,6 +64,7 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
 {
     m_lineMargin = new LineMargin(this);
     m_highlighter = new SyntaxHighlighter(document());
+    m_highlighter->setTabWidth(m_tabCharSize);
 
     connect(this, &QPlainTextEdit::blockCountChanged,
             this, &SyntaxTextEdit::updateMargins);
@@ -218,6 +219,7 @@ bool SyntaxTextEdit::highlightCurrentLine() const
 void SyntaxTextEdit::setTabWidth(int width)
 {
     m_tabCharSize = width;
+    m_highlighter->setTabWidth(width);
     updateTabMetrics();
 }
 
@@ -834,7 +836,7 @@ void SyntaxTextEdit::updateCursor()
     // it. This can happen when pressing return at the end of a folded block.
     QTextBlock previousBlock = cursorBlock.previous();
     if (previousBlock.isValid() && SyntaxHighlighter::isFolded(previousBlock)) {
-        if (m_highlighter->startsFoldingRegion(previousBlock)) {
+        if (m_highlighter->isFoldable(previousBlock)) {
             m_highlighter->unfoldBlock(previousBlock);
             updateScrollBars();
         } else {
@@ -898,20 +900,10 @@ void SyntaxTextEdit::indentSelection()
                          ? cursor.blockNumber() - 1 : cursor.blockNumber();
     cursor.setPosition(startPos);
     do {
-        int leadingIndent = 0;
         int startOfLine = 0;
-        const auto blockText = cursor.block().text();
-        for (const auto ch : blockText) {
-            if (ch == QLatin1Char('\t')) {
-                leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
-                startOfLine += 1;
-            } else if (ch == QLatin1Char(' ')) {
-                leadingIndent += 1;
-                startOfLine += 1;
-            } else {
-                break;
-            }
-        }
+        const QString blockText = cursor.block().text();
+        const int leadingIndent = m_highlighter->leadingIndentation(cursor.block().text(),
+                                                                    &startOfLine);
 
         if (!blockText.isEmpty()) {
             cursor.movePosition(QTextCursor::StartOfLine);
@@ -1012,7 +1004,7 @@ void SyntaxTextEdit::foldCurrentLine()
 void SyntaxTextEdit::unfoldCurrentLine()
 {
     const QTextBlock cursorBlock = textCursor().block();
-    if (m_highlighter->startsFoldingRegion(cursorBlock)
+    if (m_highlighter->isFoldable(cursorBlock)
             && SyntaxHighlighter::isFolded(cursorBlock)) {
         m_highlighter->unfoldBlock(cursorBlock);
         viewport()->update();
@@ -1025,7 +1017,7 @@ void SyntaxTextEdit::foldAll()
 {
     QTextBlock block = document()->begin();
     while (block.isValid()) {
-        if (m_highlighter->startsFoldingRegion(block))
+        if (m_highlighter->isFoldable(block))
             m_highlighter->foldBlock(block);
         block = block.next();
     }
@@ -1354,7 +1346,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         if (blockRect.top() > eventRect.bottom())
             break;
 
-        if (m_highlighter->startsFoldingRegion(block) && SyntaxHighlighter::isFolded(block)) {
+        if (m_highlighter->isFoldable(block) && SyntaxHighlighter::isFolded(block)) {
             QPainter p(viewport());
             blockRect.setLeft(eventRect.left());
             blockRect.setRight(eventRect.right());
@@ -1363,7 +1355,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
             // missed when scrolling the line into view from the top...
             p.drawLine(blockRect.left(), blockRect.bottom() - 1,
                        blockRect.right(), blockRect.bottom() - 1);
-            block = m_highlighter->findFoldingRegionEnd(block);
+            block = m_highlighter->findFoldEnd(block);
         } else {
             block = block.next();
         }
@@ -1497,12 +1489,12 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
                 painter.drawText(numberRect, Qt::AlignRight, lineNum);
             }
 
-            if (m_editor->showFolding() && m_editor->m_highlighter->startsFoldingRegion(block)) {
+            if (m_editor->showFolding() && m_editor->m_highlighter->isFoldable(block)) {
                 const bool blockFolded = SyntaxHighlighter::isFolded(block);
                 if (block.blockNumber() == m_foldHoverLine) {
                     const int foldHighlightLeft = width() - foldPixmapWidth
                                                 - (m_editor->showLineNumbers() ? 2 : 0);
-                    QTextBlock endBlock = m_editor->m_highlighter->findFoldingRegionEnd(block);
+                    QTextBlock endBlock = m_editor->m_highlighter->findFoldEnd(block);
                     if (!endBlock.isValid())
                         endBlock = m_editor->document()->lastBlock();
                     const qreal foldHighlightBottom = blockFolded ? bottom
@@ -1535,7 +1527,7 @@ void SyntaxTextEdit::LineMargin::mouseMoveEvent(QMouseEvent *e)
     if (m_editor->showFolding()) {
         if (!m_editor->showLineNumbers() || e->x() >= width() - foldPixmapWidth) {
             QTextBlock block = lineCursor.block();
-            if (block.isValid() && m_editor->m_highlighter->startsFoldingRegion(block))
+            if (block.isValid() && m_editor->m_highlighter->isFoldable(block))
                 m_foldHoverLine = block.blockNumber();
         }
         update();
@@ -1578,7 +1570,7 @@ void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
                 && (!m_editor->showLineNumbers() || e->x() >= width() - foldPixmapWidth)) {
             // Clicked in the folding margin
             QTextBlock block = lineCursor.block();
-            if (block.isValid() && m_editor->m_highlighter->startsFoldingRegion(block)) {
+            if (block.isValid() && m_editor->m_highlighter->isFoldable(block)) {
                 if (SyntaxHighlighter::isFolded(block))
                     m_editor->m_highlighter->unfoldBlock(block);
                 else
