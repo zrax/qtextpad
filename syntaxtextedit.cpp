@@ -71,6 +71,15 @@ static bool isFolded(const QTextBlock &block)
     return block.userState() > 0;
 }
 
+static bool foldContains(const QTextBlock &foldBlock, const QTextBlock &targetBlock,
+                         KSyntaxHighlighting::SyntaxHighlighter *highlighter)
+{
+    if (!highlighter->startsFoldingRegion(foldBlock))
+        return false;
+    return (targetBlock.position() >= foldBlock.position())
+        && (highlighter->findFoldingRegionEnd(foldBlock).position() >= targetBlock.position());
+}
+
 static void hideBlock(QTextBlock block, bool hide)
 {
     block.setVisible(!hide);
@@ -888,8 +897,7 @@ void SyntaxTextEdit::updateCursor()
         QTextBlock block = cursorBlock.previous();
         QStack<QTextBlock> foldStack;
         while (block.isValid()) {
-            if (m_highlighter->startsFoldingRegion(block) && isFolded(block)
-                    && m_highlighter->findFoldingRegionEnd(block).position() >= cursorBlock.position())
+            if (isFolded(block) && foldContains(block, cursorBlock, m_highlighter))
                 foldStack << block;
             block = block.previous();
         }
@@ -1060,15 +1068,26 @@ void SyntaxTextEdit::outdentSelection()
 
 void SyntaxTextEdit::foldCurrentLine()
 {
-    QTextBlock cursorBlock = textCursor().block();
-    if (m_highlighter->startsFoldingRegion(cursorBlock) && !isFolded(cursorBlock))
-        foldBlock(cursorBlock, m_highlighter);
-    updateScrollBars();
+    QTextCursor cursor = textCursor();
+    QTextBlock block = cursor.block();
+    while (block.isValid() && !foldContains(block, cursor.block(), m_highlighter))
+        block = block.previous();
+    if (block.isValid() && !isFolded(block)) {
+        foldBlock(block, m_highlighter);
+
+        // Move the editing cursor if it was in a folded block
+        if (cursor.block() != block) {
+            cursor.setPosition(block.position());
+            setTextCursor(cursor);
+        }
+
+        updateScrollBars();
+    }
 }
 
 void SyntaxTextEdit::unfoldCurrentLine()
 {
-    QTextBlock cursorBlock = textCursor().block();
+    const QTextBlock cursorBlock = textCursor().block();
     if (m_highlighter->startsFoldingRegion(cursorBlock) && isFolded(cursorBlock))
         unfoldBlock(cursorBlock, m_highlighter);
     updateScrollBars();
