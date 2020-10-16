@@ -26,7 +26,7 @@ namespace KSyntaxHighlighting
     class Theme;
 }
 
-class WhitespaceSyntaxHighlighter;
+class SyntaxHighlighter;
 
 class QPrinter;
 
@@ -159,7 +159,7 @@ private slots:
 
 private:
     QWidget *m_lineMargin;
-    WhitespaceSyntaxHighlighter *m_highlighter;
+    SyntaxHighlighter *m_highlighter;
     QColor m_lineMarginBg, m_lineMarginFg;
     QColor m_codeFoldingBg, m_codeFoldingFg;
     QColor m_cursorLineBg, m_cursorLineNum;

@@ -31,6 +31,8 @@
 
 #include <cmath>
 
+#include "syntaxhighlighter.h"
+
 enum SyntaxTextEdit_Config
 {
     Config_ShowLineNumbers = (1U<<0),
@@ -42,87 +44,6 @@ enum SyntaxTextEdit_Config
     Config_ExternalUndoRedo = (1U<<6),
     Config_ShowFolding = (1U<<7),
 };
-
-class WhitespaceSyntaxHighlighter : public KSyntaxHighlighting::SyntaxHighlighter
-{
-public:
-    explicit WhitespaceSyntaxHighlighter(QTextDocument *document)
-        : KSyntaxHighlighting::SyntaxHighlighter(document)
-    { }
-
-    void highlightBlock(const QString &text) Q_DECL_OVERRIDE
-    {
-        KSyntaxHighlighting::SyntaxHighlighter::highlightBlock(text);
-
-        static const QRegularExpression ws_regex(QStringLiteral("\\s+"));
-        auto iter = ws_regex.globalMatch(text);
-        QTextCharFormat ws_format;
-        const QBrush ws_brush(theme().editorColor(KSyntaxHighlighting::Theme::TabMarker));
-        ws_format.setForeground(ws_brush);
-        while (iter.hasNext()) {
-            const auto match = iter.next();
-            setFormat(match.capturedStart(), match.capturedLength(), ws_format);
-        }
-    }
-};
-
-static bool isFolded(const QTextBlock &block)
-{
-    return block.userState() > 0;
-}
-
-static bool foldContains(const QTextBlock &foldBlock, const QTextBlock &targetBlock,
-                         KSyntaxHighlighting::SyntaxHighlighter *highlighter)
-{
-    if (!highlighter->startsFoldingRegion(foldBlock))
-        return false;
-    return (targetBlock.position() >= foldBlock.position())
-        && (highlighter->findFoldingRegionEnd(foldBlock).position() >= targetBlock.position());
-}
-
-static void hideBlock(QTextBlock block, bool hide)
-{
-    block.setVisible(!hide);
-    block.clearLayout();
-    block.setLineCount(hide ? 0 : 1);
-}
-
-static void foldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
-{
-    block.setUserState(1);
-
-    const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
-    block = block.next();
-    while (block.isValid() && block != endBlock) {
-        hideBlock(block, true);
-        block = block.next();
-    }
-
-    // Only hide the last block if it doesn't also start a new fold region
-    if (block.isValid() && !highlighter->startsFoldingRegion(block))
-        hideBlock(block, true);
-}
-
-static void unfoldBlock(QTextBlock block, KSyntaxHighlighting::SyntaxHighlighter *highlighter)
-{
-    block.setUserState(-1);
-
-    const QTextBlock endBlock = highlighter->findFoldingRegionEnd(block);
-    block = block.next();
-    while (block.isValid() && block != endBlock) {
-        hideBlock(block, false);
-        if (isFolded(block)) {
-            block = highlighter->findFoldingRegionEnd(block);
-            if (block.isValid() && !highlighter->startsFoldingRegion(block))
-                block = block.next();
-        } else {
-            block = block.next();
-        }
-    }
-
-    if (block.isValid() && !highlighter->startsFoldingRegion(block))
-        hideBlock(block, false);
-}
 
 KSyntaxHighlighting::Repository *SyntaxTextEdit::syntaxRepo()
 {
@@ -142,7 +63,7 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
       m_originalFontSize()
 {
     m_lineMargin = new LineMargin(this);
-    m_highlighter = new WhitespaceSyntaxHighlighter(document());
+    m_highlighter = new SyntaxHighlighter(document());
 
     connect(this, &QPlainTextEdit::blockCountChanged,
             this, &SyntaxTextEdit::updateMargins);
@@ -897,13 +818,14 @@ void SyntaxTextEdit::updateCursor()
         QTextBlock block = cursorBlock.previous();
         QStack<QTextBlock> foldStack;
         while (block.isValid()) {
-            if (isFolded(block) && foldContains(block, cursorBlock, m_highlighter))
+            if (SyntaxHighlighter::isFolded(block)
+                    && m_highlighter->foldContains(block, cursorBlock))
                 foldStack << block;
             block = block.previous();
         }
         while (!foldStack.isEmpty())
-            unfoldBlock(foldStack.pop(), m_highlighter);
-        hideBlock(cursorBlock, false);
+            m_highlighter->unfoldBlock(foldStack.pop());
+        SyntaxHighlighter::hideBlock(cursorBlock, false);
         updateScrollBars();
     }
 
@@ -911,9 +833,9 @@ void SyntaxTextEdit::updateCursor()
     // means we've inserted a new block after a folded one and need to unfold
     // it. This can happen when pressing return at the end of a folded block.
     QTextBlock previousBlock = cursorBlock.previous();
-    if (previousBlock.isValid() && isFolded(previousBlock)) {
+    if (previousBlock.isValid() && SyntaxHighlighter::isFolded(previousBlock)) {
         if (m_highlighter->startsFoldingRegion(previousBlock)) {
-            unfoldBlock(previousBlock, m_highlighter);
+            m_highlighter->unfoldBlock(previousBlock);
             updateScrollBars();
         } else {
             previousBlock.setUserState(-1);
@@ -1070,10 +992,10 @@ void SyntaxTextEdit::foldCurrentLine()
 {
     QTextCursor cursor = textCursor();
     QTextBlock block = cursor.block();
-    while (block.isValid() && !foldContains(block, cursor.block(), m_highlighter))
+    while (block.isValid() && !m_highlighter->foldContains(block, cursor.block()))
         block = block.previous();
-    if (block.isValid() && !isFolded(block)) {
-        foldBlock(block, m_highlighter);
+    if (block.isValid() && !SyntaxHighlighter::isFolded(block)) {
+        m_highlighter->foldBlock(block);
 
         // Move the editing cursor if it was in a folded block
         if (cursor.block() != block) {
@@ -1090,8 +1012,9 @@ void SyntaxTextEdit::foldCurrentLine()
 void SyntaxTextEdit::unfoldCurrentLine()
 {
     const QTextBlock cursorBlock = textCursor().block();
-    if (m_highlighter->startsFoldingRegion(cursorBlock) && isFolded(cursorBlock)) {
-        unfoldBlock(cursorBlock, m_highlighter);
+    if (m_highlighter->startsFoldingRegion(cursorBlock)
+            && SyntaxHighlighter::isFolded(cursorBlock)) {
+        m_highlighter->unfoldBlock(cursorBlock);
         viewport()->update();
         m_lineMargin->update();
         updateScrollBars();
@@ -1103,7 +1026,7 @@ void SyntaxTextEdit::foldAll()
     QTextBlock block = document()->begin();
     while (block.isValid()) {
         if (m_highlighter->startsFoldingRegion(block))
-            foldBlock(block, m_highlighter);
+            m_highlighter->foldBlock(block);
         block = block.next();
     }
 
@@ -1130,7 +1053,7 @@ void SyntaxTextEdit::unfoldAll()
         // Just make everything visible/unfolded regardless of what state
         // it was previously in.
         block.setUserState(-1);
-        hideBlock(block, false);
+        SyntaxHighlighter::hideBlock(block, false);
         block = block.next();
     }
 
@@ -1431,7 +1354,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         if (blockRect.top() > eventRect.bottom())
             break;
 
-        if (m_highlighter->startsFoldingRegion(block) && isFolded(block)) {
+        if (m_highlighter->startsFoldingRegion(block) && SyntaxHighlighter::isFolded(block)) {
             QPainter p(viewport());
             blockRect.setLeft(eventRect.left());
             blockRect.setRight(eventRect.right());
@@ -1575,7 +1498,7 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
             }
 
             if (m_editor->showFolding() && m_editor->m_highlighter->startsFoldingRegion(block)) {
-                const bool blockFolded = isFolded(block);
+                const bool blockFolded = SyntaxHighlighter::isFolded(block);
                 if (block.blockNumber() == m_foldHoverLine) {
                     const int foldHighlightLeft = width() - foldPixmapWidth
                                                 - (m_editor->showLineNumbers() ? 2 : 0);
@@ -1656,10 +1579,10 @@ void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
             // Clicked in the folding margin
             QTextBlock block = lineCursor.block();
             if (block.isValid() && m_editor->m_highlighter->startsFoldingRegion(block)) {
-                if (isFolded(block))
-                    unfoldBlock(block, m_editor->m_highlighter);
+                if (SyntaxHighlighter::isFolded(block))
+                    m_editor->m_highlighter->unfoldBlock(block);
                 else
-                    foldBlock(block, m_editor->m_highlighter);
+                    m_editor->m_highlighter->foldBlock(block);
 
                 m_editor->viewport()->update();
                 update();

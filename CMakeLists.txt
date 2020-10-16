@@ -46,6 +46,8 @@ if(QTEXTPAD_WIDGET_ONLY)
             charsets.h
             charsets.cpp
             cp437codec.cpp
+            syntaxhighlighter.h
+            syntaxhighlighter.cpp
             syntaxtextedit.h
             syntaxtextedit.cpp
     )
@@ -98,6 +100,8 @@ else()
             searchdialog.cpp
             settingspopup.h
             settingspopup.cpp
+            syntaxhighlighter.h
+            syntaxhighlighter.cpp
             syntaxtextedit.h
             syntaxtextedit.cpp
             undocommands.h
