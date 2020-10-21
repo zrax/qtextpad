@@ -16,6 +16,7 @@
 
 #include "qtextpadwindow.h"
 
+#include <QActionGroup>
 #include <QLabel>
 #include <QToolButton>
 #include <QPushButton>

@@ -61,7 +61,7 @@ IndentSettingsDialog::IndentSettingsDialog(QWidget *parent)
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     auto layout = new QGridLayout(this);
-    layout->setMargin(10);
+    layout->setContentsMargins(10, 10, 10, 10);
     layout->setSpacing(5);
     layout->addWidget(indentModeLabel, 0, 0);
     layout->addWidget(m_indentMode, 0, 1);

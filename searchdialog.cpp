@@ -244,7 +244,7 @@ SearchDialog::SearchDialog(QWidget *parent)
     auto buttonBox = new QWidget(this);
     buttonBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::MinimumExpanding);
     auto buttonLayout = new QVBoxLayout(buttonBox);
-    buttonLayout->setMargin(0);
+    buttonLayout->setContentsMargins(0, 0, 0, 0);
     buttonLayout->setSpacing(5);
     auto findNext = new QPushButton(tr("Find &Next"), this);
     buttonLayout->addWidget(findNext);
@@ -270,7 +270,7 @@ SearchDialog::SearchDialog(QWidget *parent)
     connect(closeButton, &QPushButton::clicked, this, &QDialog::close);
 
     auto layout = new QGridLayout(this);
-    layout->setMargin(10);
+    layout->setContentsMargins(10, 10, 10, 10);
     layout->setVerticalSpacing(5);
     layout->setHorizontalSpacing(10);
     auto searchLabel = new QLabel(tr("&Find:"), this);

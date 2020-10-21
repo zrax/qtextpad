@@ -230,11 +230,20 @@ void SyntaxTextEdit::setIndentWidth(int width)
         viewport()->update();
 }
 
+static qreal indentAdvance(const QFontMetricsF &fm, int indentChars)
+{
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
+    return fm.horizontalAdvance(QString(indentChars, QLatin1Char(' ')));
+#else
+    return fm.width(QString(indentChars, QLatin1Char(' ')));
+#endif
+}
+
 void SyntaxTextEdit::updateTabMetrics()
 {
     // setTabStopWidth only allows int widths, which doesn't line up correctly
     // on many fonts.  Hack from QtCreator: Set it in the text option instead
-    const qreal tabWidth = QFontMetricsF(font()).width(QString(m_tabCharSize, QLatin1Char(' ')));
+    const qreal tabWidth = indentAdvance(QFontMetricsF(font()), m_tabCharSize);
     QTextOption opt = document()->defaultTextOption();
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     opt.setTabStopDistance(tabWidth);
@@ -1321,11 +1330,13 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
 
     if (showLongLineEdge() && m_longLineMarker > 0) {
         QFontMetricsF fm(font());
-        // averageCharWidth() and width('x') don't seem to give an accurate
-        // enough position.  I'm sure I'm missing something, but this works
-        // for now and doesn't seem to be too slow (yet).
-        const qreal longLinePos = fm.width(QString(m_longLineMarker, QLatin1Char('x')))
-                                  + contentOffset().x() + document()->documentMargin();
+        const qreal longLinePos =
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
+                fm.horizontalAdvance(QString(m_longLineMarker, QLatin1Char('x')))
+#else
+                fm.width(QString(m_longLineMarker, QLatin1Char('x')))
+#endif
+                + contentOffset().x() + document()->documentMargin();
         if (longLinePos < viewRect.width()) {
             QPainter p(viewport());
             QRectF longLineRect(longLinePos, eventRect.top(),
@@ -1369,7 +1380,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         const QFontMetricsF fm(font());
         const int guideWidth = (m_indentationMode == IndentTabs
                                 ? m_tabCharSize : m_indentWidth);
-        const qreal indentLine = fm.width(QString(guideWidth, QLatin1Char(' ')));
+        const qreal indentLine = indentAdvance(fm, guideWidth);
         const qreal lineOffset = contentOffset().x() + document()->documentMargin();
         while (block.isValid()) {
             QString blockText = block.text();

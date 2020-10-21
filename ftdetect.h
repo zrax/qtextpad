@@ -19,6 +19,8 @@
 
 #include "qtextpadwindow.h"
 
+class QTextCodec;
+
 class FileDetection
 {
 public:
