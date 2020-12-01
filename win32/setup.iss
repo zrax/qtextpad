@@ -13,7 +13,6 @@ ArchitecturesInstallIn64BitMode=x64
 ArchitecturesAllowed=x64
 DefaultDirName={commonpf}\QTextPad
 DefaultGroupName=QTextPad
-LicenseFile=..\COPYING
 UninstallDisplayIcon={app}\qtextpad.exe
 WizardStyle=modern
 
