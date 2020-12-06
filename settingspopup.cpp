@@ -104,7 +104,7 @@ FilteredTreePopup::FilteredTreePopup(QWidget *parent)
     m_tree->header()->hide();
     layout->addWidget(m_tree);
 
-    connect(m_filter, &TreeFilterEdit::navigateDown, this, [this]() {
+    connect(m_filter, &TreeFilterEdit::navigateDown, this, [this] {
         m_tree->setFocus();
         auto topItem = firstVisibleItem(m_tree->invisibleRootItem());
         if (topItem)

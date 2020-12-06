@@ -73,7 +73,7 @@ protected:
     QWidget *createWidget(QWidget *menuParent) Q_DECL_OVERRIDE
     {
         auto popup = new EncodingPopup(menuParent);
-        connect(popup, &EncodingPopup::encodingSelected,
+        connect(popup, &EncodingPopup::encodingSelected, this,
                 [this](const QString &codecName) {
             auto window = qobject_cast<QTextPadWindow *>(parent());
             window->changeEncoding(codecName);
@@ -100,7 +100,7 @@ protected:
     QWidget *createWidget(QWidget *menuParent) Q_DECL_OVERRIDE
     {
         auto popup = new SyntaxPopup(menuParent);
-        connect(popup, &SyntaxPopup::syntaxSelected,
+        connect(popup, &SyntaxPopup::syntaxSelected, this,
                 [this](const KSyntaxHighlighting::Definition &syntax) {
             auto window = qobject_cast<QTextPadWindow *>(parent());
             window->setSyntax(syntax);
@@ -146,8 +146,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     m_editor->setExternalUndoRedo(true);
     m_undoStack = new QUndoStack(this);
-    connect(m_editor->document(), &QTextDocument::undoCommandAdded,
-            [this]() { m_undoStack->push(new TextEditorUndoCommand(m_editor)); });
+    connect(m_editor->document(), &QTextDocument::undoCommandAdded, this,
+            [this] { m_undoStack->push(new TextEditorUndoCommand(m_editor)); });
     connect(m_editor, &SyntaxTextEdit::undoRequested, m_undoStack, &QUndoStack::undo);
     connect(m_editor, &SyntaxTextEdit::redoRequested, m_undoStack, &QUndoStack::redo);
 
@@ -178,7 +178,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     quitAction->setShortcut(QKeySequence::Quit);
 
     connect(newAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
-    connect(newWindowAction, &QAction::triggered, this, [](bool) {
+    connect(newWindowAction, &QAction::triggered, [](bool) {
         QProcess::startDetached(QCoreApplication::applicationFilePath(), QStringList());
     });
     connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
@@ -257,7 +257,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_editor, &QPlainTextEdit::copyAvailable, clearAction, &QAction::setEnabled);
     clearAction->setEnabled(false);
 
-    connect(QApplication::clipboard(), &QClipboard::dataChanged, [this, pasteAction]() {
+    connect(QApplication::clipboard(), &QClipboard::dataChanged, this, [this, pasteAction] {
         pasteAction->setEnabled(m_editor->canPaste());
     });
     pasteAction->setEnabled(m_editor->canPaste());
@@ -453,9 +453,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showFilePathAction->setChecked(m_showFilePath);
 
     connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
-    connect(crOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(CROnly); });
-    connect(lfOnlyAction, &QAction::triggered, [this]() { changeLineEndingMode(LFOnly); });
-    connect(crlfAction, &QAction::triggered, [this]() { changeLineEndingMode(CRLF); });
+    connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(CROnly); });
+    connect(lfOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(LFOnly); });
+    connect(crlfAction, &QAction::triggered, this, [this] { changeLineEndingMode(CRLF); });
     connect(tabSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptTabSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
     connect(showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
@@ -551,7 +551,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
             this, &QTextPadWindow::updateCursorPosition);
     connect(m_editor, &SyntaxTextEdit::selectionChanged,
             this, &QTextPadWindow::updateCursorPosition);
-    connect(m_undoStack, &QUndoStack::cleanChanged, [this](bool) { updateTitle(); });
+    connect(m_undoStack, &QUndoStack::cleanChanged, this,
+            [this](bool) { updateTitle(); });
 
     // Set up the editor and status for a clean, empty document
     newDocument();
@@ -1578,7 +1579,7 @@ void QTextPadWindow::populateRecentFiles()
         QFileInfo info(recent);
         const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
         auto recentFileAction = m_recentFiles->addAction(label);
-        connect(recentFileAction, &QAction::triggered, [this, recent]() {
+        connect(recentFileAction, &QAction::triggered, this, [this, recent] {
             if (!promptForSave())
                 return;
             loadDocumentFrom(recent);
@@ -1587,7 +1588,7 @@ void QTextPadWindow::populateRecentFiles()
 
     (void) m_recentFiles->addSeparator();
     auto clearListAction = m_recentFiles->addAction(tr("Clear List"));
-    connect(clearListAction, &QAction::triggered, [this]() {
+    connect(clearListAction, &QAction::triggered, this, [this] {
         QTextPadSettings settings;
         settings.clearRecentFiles();
         populateRecentFiles();
@@ -1602,7 +1603,7 @@ void QTextPadWindow::populateSyntaxMenu()
     plainText->setCheckable(true);
     plainText->setActionGroup(m_syntaxActions);
     plainText->setData(QVariant::fromValue(SyntaxTextEdit::nullSyntax()));
-    connect(plainText, &QAction::triggered, [this]() {
+    connect(plainText, &QAction::triggered, this, [this] {
         setSyntax(SyntaxTextEdit::nullSyntax());
     });
 
@@ -1622,13 +1623,13 @@ void QTextPadWindow::populateSyntaxMenu()
         item->setCheckable(true);
         item->setActionGroup(m_syntaxActions);
         item->setData(QVariant::fromValue(def));
-        connect(item, &QAction::triggered, [this, def]() { setSyntax(def); });
+        connect(item, &QAction::triggered, this, [this, def] { setSyntax(def); });
     }
 
 #if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
     (void) m_syntaxMenu->addSeparator();
     auto updateAction = m_syntaxMenu->addAction(tr("Update Definitions"));
-    connect(updateAction, &QAction::triggered, this, [this]() {
+    connect(updateAction, &QAction::triggered, this, [this] {
         auto downloadDialog = new DefinitionDownloadDialog(SyntaxTextEdit::syntaxRepo(), this);
         downloadDialog->setAttribute(Qt::WA_DeleteOnClose);
         downloadDialog->show();
@@ -1649,7 +1650,7 @@ void QTextPadWindow::populateThemeMenu()
         item->setCheckable(true);
         item->setActionGroup(m_themeActions);
         item->setData(QVariant::fromValue(theme));
-        connect(item, &QAction::triggered, [this, theme]() { setTheme(theme); });
+        connect(item, &QAction::triggered, this, [this, theme] { setTheme(theme); });
     }
 }
 
@@ -1678,7 +1679,7 @@ void QTextPadWindow::populateEncodingMenu()
             seItem->setCheckable(true);
             seItem->setActionGroup(m_setEncodingActions);
             seItem->setData(codecName);
-            connect(seItem, &QAction::triggered, [this, codecName]() {
+            connect(seItem, &QAction::triggered, this, [this, codecName] {
                 changeEncoding(codecName);
             });
         }
@@ -1719,7 +1720,7 @@ void QTextPadWindow::populateIndentButtonMenu()
     for (auto action : m_tabWidthActions->actions()) {
         if (action == tabWidthOtherAction)
             continue;
-        connect(action, &QAction::triggered, [this, action]() {
+        connect(action, &QAction::triggered, this, [this, action] {
             const int width = action->data().toInt();
             m_editor->setTabWidth(width);
             QTextPadSettings().setTabWidth(width);
@@ -1757,7 +1758,7 @@ void QTextPadWindow::populateIndentButtonMenu()
     for (auto action : m_indentWidthActions->actions()) {
         if (action == indentWidthOtherAction)
             continue;
-        connect(action, &QAction::triggered, [this, action]() {
+        connect(action, &QAction::triggered, this, [this, action] {
             const int width = action->data().toInt();
             m_editor->setIndentWidth(width);
             QTextPadSettings().setIndentWidth(width);
@@ -1790,7 +1791,7 @@ void QTextPadWindow::populateIndentButtonMenu()
     indentMixedAction->setData(static_cast<int>(SyntaxTextEdit::IndentMixed));
 
     for (auto action : m_indentModeActions->actions()) {
-        connect(action, &QAction::triggered, [this, action]() {
+        connect(action, &QAction::triggered, this, [this, action] {
             const int mode = action->data().toInt();
             m_editor->setIndentationMode(mode);
             QTextPadSettings().setIndentMode(mode);

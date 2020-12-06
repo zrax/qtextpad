@@ -90,7 +90,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     auto buttons = new QDialogButtonBox(this);
     buttons->setStandardButtons(QDialogButtonBox::Close);
     auto aboutQt = buttons->addButton(tr("About Qt"), QDialogButtonBox::ActionRole);
-    connect(aboutQt, &QAbstractButton::clicked, [this](bool) {
+    connect(aboutQt, &QAbstractButton::clicked, this, [this](bool) {
         QMessageBox::aboutQt(this, tr("About Qt"));
     });
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);

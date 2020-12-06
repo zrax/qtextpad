@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
             printf("%s\n", qPrintable(msg));
         });
         QObject::connect(&downloader, &KSyntaxHighlighting::DefinitionDownloader::done,
-                         []() { QCoreApplication::exit(0); });
+                         [] { QCoreApplication::exit(0); });
         downloader.start();
         return app.exec();
     }
