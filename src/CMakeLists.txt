@@ -77,8 +77,6 @@ endif()
 
 target_link_libraries(qtextpad
     PUBLIC
-        Qt5::Core
-        Qt5::Widgets
-        Qt5::PrintSupport
+        ${QTEXTPAD_QT_LIBS}
         KF5::SyntaxHighlighting
 )
