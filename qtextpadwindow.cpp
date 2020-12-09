@@ -436,7 +436,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     crlfAction->setActionGroup(m_lineEndingActions);
     crlfAction->setData(static_cast<int>(CRLF));
     (void) settingsMenu->addSeparator();
-    auto tabSettingsAction = settingsMenu->addAction(tr("&Tab Settings..."));
+    auto indentSettingsAction = settingsMenu->addAction(tr("&Indentation Settings..."));
     m_autoIndentAction = settingsMenu->addAction(tr("&Auto Indent"));
     m_autoIndentAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
     m_autoIndentAction->setCheckable(true);
@@ -456,7 +456,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(CROnly); });
     connect(lfOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(LFOnly); });
     connect(crlfAction, &QAction::triggered, this, [this] { changeLineEndingMode(CRLF); });
-    connect(tabSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptTabSettings);
+    connect(indentSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptIndentSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
     connect(showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
 
@@ -1343,7 +1343,7 @@ void QTextPadWindow::changeUtfBOM()
     }
 }
 
-void QTextPadWindow::promptTabSettings()
+void QTextPadWindow::promptIndentSettings()
 {
     auto dialog = new IndentSettingsDialog(this);
     dialog->loadSettings(m_editor);
@@ -1728,7 +1728,7 @@ void QTextPadWindow::populateIndentButtonMenu()
         });
     }
     connect(tabWidthOtherAction, &QAction::triggered,
-            this, &QTextPadWindow::promptTabSettings);
+            this, &QTextPadWindow::promptIndentSettings);
 
     headerLabel = new QLabel(tr("Indentation Width"), this);
     headerLabel->setAlignment(Qt::AlignCenter);
@@ -1766,7 +1766,7 @@ void QTextPadWindow::populateIndentButtonMenu()
         });
     }
     connect(indentWidthOtherAction, &QAction::triggered,
-            this, &QTextPadWindow::promptTabSettings);
+            this, &QTextPadWindow::promptIndentSettings);
 
     headerLabel = new QLabel(tr("Indentation Mode"), this);
     headerLabel->setAlignment(Qt::AlignCenter);

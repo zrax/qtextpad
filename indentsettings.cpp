@@ -28,7 +28,7 @@
 IndentSettingsDialog::IndentSettingsDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setWindowTitle(tr("Tab Settings"));
+    setWindowTitle(tr("Indentation Settings"));
 
     auto indentModeLabel = new QLabel(tr("Indentation &Mode:"), this);
     m_indentMode = new QComboBox(this);

@@ -97,7 +97,7 @@ public slots:
     void nextLineEndingMode();
     void updateIndentStatus();
     void chooseEditorFont();
-    void promptTabSettings();
+    void promptIndentSettings();
     void promptLongLineWidth();
     void navigateToLine();
     void toggleFilePath(bool show);
