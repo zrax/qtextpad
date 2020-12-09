@@ -497,6 +497,24 @@ bool SyntaxTextEdit::wordWrap() const
     return wordWrapMode() != QTextOption::NoWrap;
 }
 
+template <typename Findable>
+QTextCursor safeFindNext(QTextDocument *document, const Findable &search,
+                         const QTextCursor &start, QTextDocument::FindFlags flags)
+{
+    // If a search returns the same starting cursor, we need to skip over it
+    // to find the next match (which could be equal to the skipped cursor).
+    // Otherwise, certain types of searches could result in an infinite loop.
+
+    QTextCursor cursor = document->find(search, start, flags);
+    if (cursor == start) {
+        if (cursor.atEnd())
+            return QTextCursor();
+        cursor.movePosition(QTextCursor::NextCharacter);
+        cursor = document->find(search, cursor, flags);
+    }
+    return cursor;
+}
+
 QTextCursor SyntaxTextEdit::textSearch(const QTextCursor &start, const SearchParams &params,
                                        bool reverse, QRegularExpressionMatch *regexMatch)
 {
@@ -513,12 +531,14 @@ QTextCursor SyntaxTextEdit::textSearch(const QTextCursor &start, const SearchPar
                                                     ? QRegularExpression::NoPatternOption
                                                     : QRegularExpression::CaseInsensitiveOption;
         const QRegularExpression re(params.searchText, csOption);
-        QTextCursor cursor = document()->find(re, start, flags);
+        QTextCursor cursor = safeFindNext(document(), re, start, flags);
+        if (cursor.isNull())
+            return cursor;
         if (regexMatch)
             *regexMatch = re.match(cursor.selectedText());
         return cursor;
     } else {
-        return document()->find(params.searchText, start, flags);
+        return safeFindNext(document(), params.searchText, start, flags);
     }
 }
 
@@ -545,10 +565,12 @@ void SyntaxTextEdit::updateLiveSearch()
         searchCursor.movePosition(QTextCursor::Start);
         searchCursor = textSearch(searchCursor, m_liveSearch);
         while (!searchCursor.isNull()) {
-            QTextEdit::ExtraSelection selection;
-            selection.format.setBackground(m_searchBg);
-            selection.cursor = searchCursor;
-            m_searchResults.append(selection);
+            if (searchCursor.hasSelection()) {
+                QTextEdit::ExtraSelection selection;
+                selection.format.setBackground(m_searchBg);
+                selection.cursor = searchCursor;
+                m_searchResults.append(selection);
+            }
             searchCursor = textSearch(searchCursor, m_liveSearch);
         }
     }
