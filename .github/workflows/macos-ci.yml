@@ -5,10 +5,9 @@ on:
   pull_request:
 
 env:
-  KF5_VERSION: "5.75"
-  KF5_FULLVER: "5.75.0"
-  QT_VERSION: "5.12.9"
-  MACOSX_DEPLOYMENT_TARGET: "10.12"
+  KF5_VERSION: "5.76"
+  KF5_FULLVER: "5.76.0"
+  QT_VERSION: "5.15.2"
 
 jobs:
   build:
@@ -21,6 +20,8 @@ jobs:
           arch: clang_64
           version: ${{ env.QT_VERSION }}
       - name: Build Qt5 Libs
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
         run: |
           mkdir -p $HOME/build-libs
           cd $HOME/build-libs
@@ -40,6 +41,8 @@ jobs:
                 -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release ..
           make -j2 && make install
       - name: Build qtextpad
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
         run: |
           cd $GITHUB_WORKSPACE
           mkdir build && cd build
