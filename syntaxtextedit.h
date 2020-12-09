@@ -97,7 +97,8 @@ public:
         SearchParams() : caseSensitive(), wholeWord(), regex() { }
     };
     QTextCursor textSearch(const QTextCursor &start, const SearchParams& params,
-                           bool reverse = false, QRegularExpressionMatch *regexMatch = nullptr);
+                           bool matchFirst, bool reverse = false,
+                           QRegularExpressionMatch *regexMatch = nullptr);
     void setLiveSearch(const SearchParams& params);
     void clearLiveSearch();
 

@@ -134,13 +134,12 @@ void SearchWidget::searchNext(bool reverse)
         return;
 
     auto searchCursor = m_editor->textSearch(m_editor->textCursor(),
-                                             m_searchParams, reverse,
-                                             nullptr);
+                                             m_searchParams, false, reverse);
     if (searchCursor.isNull() && m_wrapSearch->isChecked()) {
         QTextCursor wrapCursor = m_editor->textCursor();
         wrapCursor.movePosition(reverse ? QTextCursor::End : QTextCursor::Start);
         searchCursor = m_editor->textSearch(wrapCursor, m_searchParams,
-                                            reverse, nullptr);
+                                            true, reverse);
     }
 
     if (searchCursor.isNull())
@@ -530,13 +529,13 @@ QTextCursor SearchDialog::searchNext(bool reverse)
         return QTextCursor();
 
     auto searchCursor = m_editor->textSearch(m_editor->textCursor(),
-                                             m_searchParams, reverse,
+                                             m_searchParams, false, reverse,
                                              &m_regexMatch);
     if (searchCursor.isNull() && m_wrapSearch->isChecked()) {
         QTextCursor wrapCursor = m_editor->textCursor();
         wrapCursor.movePosition(reverse ? QTextCursor::End : QTextCursor::Start);
         searchCursor = m_editor->textSearch(wrapCursor, m_searchParams,
-                                            reverse, &m_regexMatch);
+                                            true, reverse, &m_regexMatch);
     }
 
     if (searchCursor.isNull())
@@ -601,8 +600,8 @@ void SearchDialog::performReplaceAll(ReplaceAllMode mode)
         searchCursor.setPosition(m_editor->textCursor().selectionStart());
     else
         searchCursor.movePosition(QTextCursor::Start);
-    searchCursor = m_editor->textSearch(searchCursor, m_searchParams, false,
-                                        &m_regexMatch);
+    searchCursor = m_editor->textSearch(searchCursor, m_searchParams, true,
+                                        false, &m_regexMatch);
     if (searchCursor.isNull()) {
         QMessageBox::information(this, QString(), tr("The specified text was not found"));
         return;
@@ -628,7 +627,7 @@ void SearchDialog::performReplaceAll(ReplaceAllMode mode)
         else
             replaceCursor.insertText(replaceText);
         replaceCursor = m_editor->textSearch(replaceCursor, m_searchParams,
-                                             false, &m_regexMatch);
+                                             false, false, &m_regexMatch);
         ++replacements;
     }
     searchCursor.endEditBlock();

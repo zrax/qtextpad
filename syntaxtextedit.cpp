@@ -499,14 +499,15 @@ bool SyntaxTextEdit::wordWrap() const
 
 template <typename Findable>
 QTextCursor safeFindNext(QTextDocument *document, const Findable &search,
-                         const QTextCursor &start, QTextDocument::FindFlags flags)
+                         const QTextCursor &start, QTextDocument::FindFlags flags,
+                         bool matchFirst)
 {
     // If a search returns the same starting cursor, we need to skip over it
     // to find the next match (which could be equal to the skipped cursor).
     // Otherwise, certain types of searches could result in an infinite loop.
 
     QTextCursor cursor = document->find(search, start, flags);
-    if (cursor == start) {
+    if (cursor == start && !matchFirst) {
         if (cursor.atEnd())
             return QTextCursor();
         cursor.movePosition(QTextCursor::NextCharacter);
@@ -516,7 +517,8 @@ QTextCursor safeFindNext(QTextDocument *document, const Findable &search,
 }
 
 QTextCursor SyntaxTextEdit::textSearch(const QTextCursor &start, const SearchParams &params,
-                                       bool reverse, QRegularExpressionMatch *regexMatch)
+                                       bool matchFirst, bool reverse,
+                                       QRegularExpressionMatch *regexMatch)
 {
     QTextDocument::FindFlags flags;
     if (params.caseSensitive)
@@ -531,14 +533,14 @@ QTextCursor SyntaxTextEdit::textSearch(const QTextCursor &start, const SearchPar
                                                     ? QRegularExpression::NoPatternOption
                                                     : QRegularExpression::CaseInsensitiveOption;
         const QRegularExpression re(params.searchText, csOption);
-        QTextCursor cursor = safeFindNext(document(), re, start, flags);
+        QTextCursor cursor = safeFindNext(document(), re, start, flags, matchFirst);
         if (cursor.isNull())
             return cursor;
         if (regexMatch)
             *regexMatch = re.match(cursor.selectedText());
         return cursor;
     } else {
-        return safeFindNext(document(), params.searchText, start, flags);
+        return safeFindNext(document(), params.searchText, start, flags, matchFirst);
     }
 }
 
@@ -563,7 +565,7 @@ void SyntaxTextEdit::updateLiveSearch()
     if (!m_liveSearch.searchText.isEmpty()) {
         auto searchCursor = textCursor();
         searchCursor.movePosition(QTextCursor::Start);
-        searchCursor = textSearch(searchCursor, m_liveSearch);
+        searchCursor = textSearch(searchCursor, m_liveSearch, true);
         while (!searchCursor.isNull()) {
             if (searchCursor.hasSelection()) {
                 QTextEdit::ExtraSelection selection;
@@ -571,7 +573,7 @@ void SyntaxTextEdit::updateLiveSearch()
                 selection.cursor = searchCursor;
                 m_searchResults.append(selection);
             }
-            searchCursor = textSearch(searchCursor, m_liveSearch);
+            searchCursor = textSearch(searchCursor, m_liveSearch, false);
         }
     }
     updateExtraSelections();
