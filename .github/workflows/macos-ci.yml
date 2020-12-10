@@ -59,6 +59,7 @@ jobs:
               -executable=QTextPad.app/Contents/MacOS/QTextPad
           mkdir -p $GITHUB_WORKSPACE/macOS
           mv QTextPad.dmg $GITHUB_WORKSPACE/macOS/
+          cp $GITHUB_WORKSPACE/COPYING $GITHUB_WORKSPACE/macOS/
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
