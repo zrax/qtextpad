@@ -55,11 +55,14 @@ jobs:
       - name: Create package
         run: |
           cd $HOME/dist
-          $RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64/bin/macdeployqt QTextPad.app -dmg \
+          $RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64/bin/macdeployqt QTextPad.app \
               -executable=QTextPad.app/Contents/MacOS/QTextPad
+          cp $GITHUB_WORKSPACE/COPYING ./
           mkdir -p $GITHUB_WORKSPACE/macOS
-          mv QTextPad.dmg $GITHUB_WORKSPACE/macOS/
-          cp $GITHUB_WORKSPACE/COPYING $GITHUB_WORKSPACE/macOS/
+          cd $GITHUB_WORKSPACE/macOS
+          buildver=$(git describe --dirty)
+          hdiutil create qtextpad-macOS-${buildver}.dmg -srcfolder $HOME/dist \
+              -format UDZO -fs HFS+ -volname "QTextPad ${buildver}"
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
