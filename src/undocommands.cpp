@@ -46,6 +46,20 @@ void ChangeLineEndingCommand::redo()
     m_window->setLineEndingMode(static_cast<QTextPadWindow::LineEndingMode>(m_newMode));
 }
 
+bool ChangeLineEndingCommand::mergeWith(const QUndoCommand *cmd)
+{
+    if (cmd->id() != id())
+        return false;
+
+    m_newMode = static_cast<const ChangeLineEndingCommand*>(cmd)->m_newMode;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    if (m_oldMode == m_newMode)
+        setObsolete(true);
+#endif
+
+    return true;
+}
+
 
 ChangeEncodingCommand::ChangeEncodingCommand(QTextPadWindow *window,
                                              QString newEncoding)
@@ -64,6 +78,20 @@ void ChangeEncodingCommand::redo()
     m_window->setEncoding(m_newEncoding);
 }
 
+bool ChangeEncodingCommand::mergeWith(const QUndoCommand *cmd)
+{
+    if (cmd->id() != id())
+        return false;
+
+    m_newEncoding = static_cast<const ChangeEncodingCommand*>(cmd)->m_newEncoding;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    if (m_oldEncoding == m_newEncoding)
+        setObsolete(true);
+#endif
+
+    return true;
+}
+
 
 ChangeUtfBOMCommand::ChangeUtfBOMCommand(QTextPadWindow *window)
     : m_window(window), m_utfBOM(window->utfBOM())
@@ -78,4 +106,17 @@ void ChangeUtfBOMCommand::undo()
 void ChangeUtfBOMCommand::redo()
 {
     m_window->setUtfBOM(m_utfBOM);
+}
+
+bool ChangeUtfBOMCommand::mergeWith(const QUndoCommand *cmd)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    if (cmd->id() != id())
+        return false;
+
+    setObsolete(true);
+    return true;
+#else
+    return false;
+#endif
 }

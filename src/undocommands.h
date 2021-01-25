@@ -43,6 +43,9 @@ public:
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;
 
+    int id() const Q_DECL_OVERRIDE { return 101; }
+    bool mergeWith(const QUndoCommand *cmd) Q_DECL_OVERRIDE;
+
 private:
     QTextPadWindow *m_window;
     int m_oldMode, m_newMode;
@@ -56,6 +59,9 @@ public:
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;
 
+    int id() const Q_DECL_OVERRIDE { return 102; }
+    bool mergeWith(const QUndoCommand *cmd) Q_DECL_OVERRIDE;
+
 private:
     QTextPadWindow *m_window;
     QString m_oldEncoding, m_newEncoding;
@@ -68,6 +74,9 @@ public:
 
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;
+
+    int id() const Q_DECL_OVERRIDE { return 103; }
+    bool mergeWith(const QUndoCommand *cmd) Q_DECL_OVERRIDE;
 
 private:
     QTextPadWindow *m_window;
