@@ -37,21 +37,10 @@ endif()
 # Force conversions to/from 8-bit text to be explicit
 add_definitions(-DQT_NO_CAST_FROM_ASCII -DQT_NO_CAST_TO_ASCII)
 
-# Set this in your project before including qtextpad to build only the widget
-# and the charset loader / text codecs.
-if(QTEXTPAD_WIDGET_ONLY)
-    add_library(qtextpad "")
-    target_sources(qtextpad
-        PRIVATE
-            charsets.h
-            charsets.cpp
-            cp437codec.cpp
-            syntaxhighlighter.h
-            syntaxhighlighter.cpp
-            syntaxtextedit.h
-            syntaxtextedit.cpp
-    )
-else()
+# NOTE: Set QTEXTPAD_WIDGET_ONLY in your project before including qtextpad to
+# build only the widget and the charset loader / text codecs.
+
+if(NOT QTEXTPAD_WIDGET_ONLY)
     set(APP_MAJOR 1)
     set(APP_MINOR 8)
     set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}-pre")
@@ -68,62 +57,9 @@ else()
             endif()
         endif()
     endif()
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/appversion.h" "\
-    namespace QTextPadVersion\n\
-    {\n\
-        inline QString versionString() { return QStringLiteral(\"${APP_VERSION}\"); }\n\
-    }\n\
-    ")
-
-    add_executable(qtextpad WIN32 MACOSX_BUNDLE main.cpp)
-    target_include_directories(qtextpad PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-
-    target_sources(qtextpad
-        PRIVATE
-            aboutdialog.h
-            aboutdialog.cpp
-            activationlabel.h
-            appsettings.h
-            appsettings.cpp
-            charsets.h
-            charsets.cpp
-            cp437codec.cpp
-            definitiondownload.h
-            definitiondownload.cpp
-            ftdetect.h
-            ftdetect.cpp
-            indentsettings.h
-            indentsettings.cpp
-            qtextpadwindow.h
-            qtextpadwindow.cpp
-            searchdialog.h
-            searchdialog.cpp
-            settingspopup.h
-            settingspopup.cpp
-            syntaxhighlighter.h
-            syntaxhighlighter.cpp
-            syntaxtextedit.h
-            syntaxtextedit.cpp
-            undocommands.h
-            undocommands.cpp
-
-            # AUTORCC:
-            qtextpad.qrc
-    )
-
-    if(WIN32)
-        configure_file(app_winrc.h.in app_winrc.h @ONLY)
-        target_sources(qtextpad PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/qtextpad.rc")
-    endif()
 endif()
 
-target_link_libraries(qtextpad
-    PUBLIC
-        Qt5::Core
-        Qt5::Widgets
-        Qt5::PrintSupport
-        KF5::SyntaxHighlighting
-)
+add_subdirectory(src)
 
 if(NOT QTEXTPAD_WIDGET_ONLY)
     if(APPLE)
@@ -139,13 +75,13 @@ if(NOT QTEXTPAD_WIDGET_ONLY)
         )
 
         install(TARGETS qtextpad BUNDLE DESTINATION .)
-        install(FILES icons/qtextpad.icns DESTINATION QTextPad.app/Contents/Resources)
+        install(FILES src/icons/qtextpad.icns DESTINATION QTextPad.app/Contents/Resources)
     elseif(WIN32)
         install(TARGETS qtextpad RUNTIME DESTINATION .)
     else()
         install(TARGETS qtextpad RUNTIME DESTINATION bin)
         install(FILES qtextpad.desktop DESTINATION share/applications)
-        install(FILES icons/qtextpad-128.png DESTINATION share/pixmaps
+        install(FILES src/icons/qtextpad-128.png DESTINATION share/pixmaps
                 RENAME qtextpad.png)
     endif()
 endif()
