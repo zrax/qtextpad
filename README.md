@@ -41,7 +41,7 @@ KDE Plasma, dark theme:
 
 * **Windows**:  You can download an installer or a portable zip file from
   the GitHub [releases](https://github.com/zrax/qtextpad/releases) page.
-* **macOS**:  You can download a dmg compatible with macOS 10.12 (Sierra)
+* **macOS**:  You can download a dmg compatible with macOS 10.13 (High Sierra)
   or later from the GitHub [releases](https://github.com/zrax/qtextpad/releases)
   page.  Note that these packages are currently not signed.
 * **Arch Linux**:  Install [qtextpad](https://aur.archlinux.org/packages/qtextpad)
