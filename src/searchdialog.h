@@ -47,7 +47,7 @@ public:
     }
 
     void setSearchText(const QString &text);
-    void activate();
+    void activate(bool grabFocus);
 
 public slots:
     void searchNext(bool reverse);

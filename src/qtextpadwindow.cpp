@@ -613,9 +613,10 @@ void QTextPadWindow::showSearchBar(bool show)
         const QTextCursor cursor = m_editor->textCursor();
         if (cursor.hasSelection())
             m_searchWidget->setSearchText(cursor.selectedText());
-        m_searchWidget->activate();
+        m_searchWidget->activate(true);
     } else {
         m_editor->clearLiveSearch();
+        m_editor->setFocus(Qt::OtherFocusReason);
     }
 }
 
