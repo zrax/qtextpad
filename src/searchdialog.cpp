@@ -135,7 +135,6 @@ void SearchWidget::searchNext(bool reverse)
     if (m_searchParams.searchText.isEmpty())
         return;
 
-    m_editor->setFocus(Qt::OtherFocusReason);
     auto searchCursor = m_editor->textSearch(m_editor->textCursor(),
                                              m_searchParams, false, reverse);
     if (searchCursor.isNull() && m_wrapSearch->isChecked()) {
