@@ -35,6 +35,8 @@ namespace KSyntaxHighlighting
 
 class DefinitionDownloadDialog : public QDialog
 {
+    Q_OBJECT
+
 public:
     DefinitionDownloadDialog(KSyntaxHighlighting::Repository *repository, QWidget *parent);
 

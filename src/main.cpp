@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
         QCoreApplication::installTranslator(&qtTranslator);
 
     QTranslator appTranslator;
-    if (appTranslator.load(QLocale(), QStringLiteral("qtextedit"), QStringLiteral("_")))
+    if (appTranslator.load(QLocale(), QStringLiteral("qtextpad"), QStringLiteral("_")))
         QCoreApplication::installTranslator(&appTranslator);
 
     QCommandLineParser parser;
