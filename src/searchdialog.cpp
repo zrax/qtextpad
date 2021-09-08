@@ -105,7 +105,7 @@ void SearchWidget::setSearchText(const QString &text)
     m_searchText->setText(text);
 }
 
-void SearchWidget::activate(bool grabFocus)
+void SearchWidget::activate()
 {
     QTextPadSettings settings;
     m_caseSensitive->setChecked(settings.searchCaseSensitive());
@@ -118,10 +118,8 @@ void SearchWidget::activate(bool grabFocus)
     m_searchParams.wholeWord = m_wholeWord->isChecked();
     m_searchParams.regex = m_regex->isChecked();
 
-    if (grabFocus) {
-        setFocus(Qt::OtherFocusReason);
-        m_searchText->selectAll();
-    }
+    setFocus(Qt::OtherFocusReason);
+    m_searchText->selectAll();
     m_editor->setLiveSearch(m_searchParams);
 }
 
@@ -130,7 +128,7 @@ void SearchWidget::searchNext(bool reverse)
     if (!isVisible()) {
         setVisible(true);
         setEnabled(true);
-        activate(false);
+        activate();
     }
     if (m_searchParams.searchText.isEmpty())
         return;

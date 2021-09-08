@@ -554,6 +554,15 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_undoStack, &QUndoStack::cleanChanged, this,
             [this](bool) { updateTitle(); });
 
+    connect(m_editor, &SyntaxTextEdit::textChanged, [this] {
+        if (m_searchWidget->isVisible())
+            showSearchBar(false);
+    });
+    connect(qApp, &QApplication::focusChanged, [this](QWidget *prevFocus, QWidget *focus) {
+        if (focus == m_editor && m_searchWidget->isVisible())
+            showSearchBar(false);
+    });
+
     // Set up the editor and status for a clean, empty document
     newDocument();
 
@@ -613,7 +622,7 @@ void QTextPadWindow::showSearchBar(bool show)
         const QTextCursor cursor = m_editor->textCursor();
         if (cursor.hasSelection())
             m_searchWidget->setSearchText(cursor.selectedText());
-        m_searchWidget->activate(true);
+        m_searchWidget->activate();
     } else {
         m_editor->clearLiveSearch();
         m_editor->setFocus(Qt::OtherFocusReason);
