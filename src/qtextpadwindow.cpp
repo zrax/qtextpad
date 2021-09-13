@@ -558,7 +558,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         if (m_searchWidget->isVisible())
             showSearchBar(false);
     });
-    connect(qApp, &QApplication::focusChanged, [this](QWidget *prevFocus, QWidget *focus) {
+    connect(qApp, &QApplication::focusChanged, [this](QWidget *, QWidget *focus) {
         if (focus == m_editor && m_searchWidget->isVisible())
             showSearchBar(false);
     });
