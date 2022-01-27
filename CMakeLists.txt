@@ -59,7 +59,10 @@ if(NOT QTEXTPAD_WIDGET_ONLY)
     endif()
 endif()
 
-add_subdirectory(src)
+add_subdirectory(lib)
+if(NOT QTEXTPAD_WIDGET_ONLY)
+    add_subdirectory(src)
+endif()
 
 if(NOT QTEXTPAD_WIDGET_ONLY)
     if(APPLE)
