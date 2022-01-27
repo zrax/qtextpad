@@ -14,31 +14,43 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _FTDETECT_H
-#define _FTDETECT_H
+#ifndef _FILETYPEINFO_H
+#define _FILETYPEINFO_H
 
-#include "qtextpadwindow.h"
+#include <QByteArray>
 
 class QTextCodec;
 
-class FileDetection
+namespace KSyntaxHighlighting
+{
+    class Definition;
+}
+
+class FileTypeInfo
 {
 public:
-    FileDetection() : m_params() { }
-    ~FileDetection();
+    enum LineEndingType
+    {
+        CROnly,
+        LFOnly,
+        CRLF,
+    };
 
-    static FileDetection detect(const QByteArray &buffer);
+    FileTypeInfo() : m_params() { }
+    ~FileTypeInfo();
 
-    FileDetection(const FileDetection &) = delete;
-    FileDetection &operator=(const FileDetection &) = delete;
+    static FileTypeInfo detect(const QByteArray &buffer);
 
-    FileDetection(FileDetection &&move) Q_DECL_NOEXCEPT
+    FileTypeInfo(const FileTypeInfo &) = delete;
+    FileTypeInfo &operator=(const FileTypeInfo &) = delete;
+
+    FileTypeInfo(FileTypeInfo &&move) Q_DECL_NOEXCEPT
         : m_params(move.m_params)
     {
         move.m_params = Q_NULLPTR;
     }
 
-    FileDetection &operator=(FileDetection &&move) Q_DECL_NOEXCEPT
+    FileTypeInfo &operator=(FileTypeInfo &&move) Q_DECL_NOEXCEPT
     {
         Q_ASSERT(m_params == Q_NULLPTR);
         m_params = move.m_params;
@@ -50,7 +62,7 @@ public:
 
     QTextCodec *textCodec() const;
     int bomOffset() const;
-    QTextPadWindow::LineEndingMode lineEndings() const;
+    LineEndingType lineEndings() const;
 
     static KSyntaxHighlighting::Definition definitionForFileMagic(const QString &filename);
 
@@ -58,4 +70,4 @@ private:
     void *m_params;
 };
 
-#endif  // _FTDETECT_H
+#endif  // _FILETYPEINFO_H

@@ -21,6 +21,8 @@
 #include <QDateTime>
 #include <QLocale>
 
+#include "filetypeinfo.h"
+
 class SyntaxTextEdit;
 class SearchWidget;
 class ActivationLabel;
@@ -59,14 +61,8 @@ public:
     void setOverwriteMode(bool overwrite);
     void setAutoIndent(bool ai);
 
-    enum LineEndingMode
-    {
-        CROnly,
-        LFOnly,
-        CRLF,
-    };
-    void setLineEndingMode(LineEndingMode mode);
-    LineEndingMode lineEndingMode() const { return m_lineEndingMode; }
+    void setLineEndingMode(FileTypeInfo::LineEndingType mode);
+    FileTypeInfo::LineEndingType lineEndingMode() const { return m_lineEndingMode; }
 
     bool saveDocumentTo(const QString &filename);
     bool loadDocumentFrom(const QString &filename,
@@ -113,7 +109,7 @@ public slots:
 
     // User-triggered actions that store commands in the Undo stack
     void changeEncoding(const QString &encoding);
-    void changeLineEndingMode(LineEndingMode mode);
+    void changeLineEndingMode(FileTypeInfo::LineEndingType mode);
     void changeUtfBOM();
 
 protected:
@@ -168,7 +164,7 @@ private:
     QToolButton *m_indentButton;
     QToolButton *m_encodingButton;
     QToolButton *m_syntaxButton;
-    LineEndingMode m_lineEndingMode;
+    FileTypeInfo::LineEndingType m_lineEndingMode;
 
     // Custom Undo Stack for adding non-editor undo items
     QUndoStack *m_undoStack;

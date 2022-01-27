@@ -38,12 +38,12 @@ ChangeLineEndingCommand::ChangeLineEndingCommand(QTextPadWindow *window,
 
 void ChangeLineEndingCommand::undo()
 {
-    m_window->setLineEndingMode(static_cast<QTextPadWindow::LineEndingMode>(m_oldMode));
+    m_window->setLineEndingMode(static_cast<FileTypeInfo::LineEndingType>(m_oldMode));
 }
 
 void ChangeLineEndingCommand::redo()
 {
-    m_window->setLineEndingMode(static_cast<QTextPadWindow::LineEndingMode>(m_newMode));
+    m_window->setLineEndingMode(static_cast<FileTypeInfo::LineEndingType>(m_newMode));
 }
 
 bool ChangeLineEndingCommand::mergeWith(const QUndoCommand *cmd)

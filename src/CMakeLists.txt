@@ -48,8 +48,8 @@ else()
             cp437codec.cpp
             definitiondownload.h
             definitiondownload.cpp
-            ftdetect.h
-            ftdetect.cpp
+            filetypeinfo.h
+            filetypeinfo.cpp
             indentsettings.h
             indentsettings.cpp
             qtextpadwindow.h

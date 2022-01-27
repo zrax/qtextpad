@@ -14,7 +14,7 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ftdetect.h"
+#include "filetypeinfo.h"
 
 #include <QTextCodec>
 #include <QRegularExpression>
@@ -36,33 +36,33 @@ struct DetectionParams_p
 {
     QTextCodec *textCodec;
     int bomOffset;
-    QTextPadWindow::LineEndingMode lineEndings;
+    FileTypeInfo::LineEndingType lineEndings;
 };
 
 
-FileDetection::~FileDetection()
+FileTypeInfo::~FileTypeInfo()
 {
     delete reinterpret_cast<DetectionParams_p *>(m_params);
 }
 
-QTextCodec *FileDetection::textCodec() const
+QTextCodec *FileTypeInfo::textCodec() const
 {
     return reinterpret_cast<DetectionParams_p *>(m_params)->textCodec;
 }
 
-int FileDetection::bomOffset() const
+int FileTypeInfo::bomOffset() const
 {
     return reinterpret_cast<DetectionParams_p *>(m_params)->bomOffset;
 }
 
-QTextPadWindow::LineEndingMode FileDetection::lineEndings() const
+FileTypeInfo::LineEndingType FileTypeInfo::lineEndings() const
 {
     return reinterpret_cast<DetectionParams_p *>(m_params)->lineEndings;
 }
 
-FileDetection FileDetection::detect(const QByteArray &buffer)
+FileTypeInfo FileTypeInfo::detect(const QByteArray &buffer)
 {
-    FileDetection result;
+    FileTypeInfo result;
     auto params = new DetectionParams_p;
     result.m_params = params;
 
@@ -72,9 +72,9 @@ FileDetection FileDetection::detect(const QByteArray &buffer)
     params->textCodec = Q_NULLPTR;
     params->bomOffset = 0;
 #ifdef _WIN32
-    params->lineEndings = QTextPadWindow::CRLF;
+    params->lineEndings = CRLF;
 #else
-    params->lineEndings = QTextPadWindow::LFOnly;
+    params->lineEndings = LFOnly;
 #endif
     if (buffer.size() >= 3) {
         if ((uchar)buffer.at(0) == 0xef && (uchar)buffer.at(1) == 0xbb
@@ -150,18 +150,18 @@ FileDetection FileDetection::detect(const QByteArray &buffer)
         }
     }
     if (lfCount > crlfCount && lfCount > crCount)
-        params->lineEndings = QTextPadWindow::LFOnly;
+        params->lineEndings = LFOnly;
     else if (crlfCount > lfCount && crlfCount > crCount)
-        params->lineEndings = QTextPadWindow::CRLF;
+        params->lineEndings = CRLF;
     else if (crCount > crlfCount && crCount > lfCount)
-        params->lineEndings = QTextPadWindow::CROnly;
+        params->lineEndings = CROnly;
 
     return result;
 }
 
 // For some reason, KSyntaxHighlighting::Repository doesn't provide a lookup
 // for MIME types like it does for names...
-KSyntaxHighlighting::Definition FileDetection::definitionForFileMagic(const QString &filename)
+KSyntaxHighlighting::Definition FileTypeInfo::definitionForFileMagic(const QString &filename)
 {
     using KSyntaxHighlighting::Definition;
 
