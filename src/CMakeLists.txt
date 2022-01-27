@@ -13,19 +13,29 @@
 # You should have received a copy of the GNU General Public License
 # along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
 
-if(QTEXTPAD_WIDGET_ONLY)
-    add_library(qtextpad "")
-    target_sources(qtextpad
-        PRIVATE
-            charsets.h
-            charsets.cpp
-            cp437codec.cpp
-            syntaxhighlighter.h
-            syntaxhighlighter.cpp
-            syntaxtextedit.h
-            syntaxtextedit.cpp
-    )
-else()
+add_library(syntaxtextedit "")
+target_sources(syntaxtextedit
+    PRIVATE
+        charsets.h
+        charsets.cpp
+        cp437codec.cpp
+        filetypeinfo.h
+        filetypeinfo.cpp
+        syntaxhighlighter.h
+        syntaxhighlighter.cpp
+        syntaxtextedit.h
+        syntaxtextedit.cpp
+)
+
+target_link_libraries(syntaxtextedit
+    PUBLIC
+        Qt5::Core
+        Qt5::Widgets
+        Qt5::PrintSupport
+        KF5::SyntaxHighlighting
+)
+
+if(NOT QTEXTPAD_WIDGET_ONLY)
     add_executable(qtextpad WIN32 MACOSX_BUNDLE main.cpp)
     target_include_directories(qtextpad PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -43,13 +53,8 @@ else()
             activationlabel.h
             appsettings.h
             appsettings.cpp
-            charsets.h
-            charsets.cpp
-            cp437codec.cpp
             definitiondownload.h
             definitiondownload.cpp
-            filetypeinfo.h
-            filetypeinfo.cpp
             indentsettings.h
             indentsettings.cpp
             qtextpadwindow.h
@@ -58,10 +63,6 @@ else()
             searchdialog.cpp
             settingspopup.h
             settingspopup.cpp
-            syntaxhighlighter.h
-            syntaxhighlighter.cpp
-            syntaxtextedit.h
-            syntaxtextedit.cpp
             undocommands.h
             undocommands.cpp
 
@@ -73,12 +74,6 @@ else()
         configure_file(app_winrc.h.in app_winrc.h @ONLY)
         target_sources(qtextpad PRIVATE qtextpad.rc)
     endif()
-endif()
 
-target_link_libraries(qtextpad
-    PUBLIC
-        Qt5::Core
-        Qt5::Widgets
-        Qt5::PrintSupport
-        KF5::SyntaxHighlighting
-)
+    target_link_libraries(qtextpad PRIVATE syntaxtextedit)
+endif()
