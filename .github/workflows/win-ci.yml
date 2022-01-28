@@ -1,58 +1,64 @@
 name: Win64-CI
 on:
   push:
-    branches: [master]
+    branches: [master, qt6]
   pull_request:
-
-env:
-  KF5_VERSION: "5.85"
-  KF5_FULLVER: "5.85.0"
-  QT_VERSION: "5.15.2"
-  CM_GENERATOR: "Visual Studio 16 2019"
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019
+    name: "Windows-x64-Qt${{ matrix.cfg.qt_version }}"
+    strategy:
+      matrix:
+        cfg:
+          - { kf5_version: "5.91", kf5_fullver: "5.91.0", qt_version: "5.15.2",
+              qt_modules: "", cmake_generator: "Visual Studio 16 2019",
+              kf5_cmake_args: "" }
+          - { kf5_version: "5.91", kf5_fullver: "5.91.0", qt_version: "6.2.3",
+              qt_modules: "qt5compat", cmake_generator: "Visual Studio 16 2019",
+              kf5_cmake_args: "-DBUILD_WITH_QT6=ON" }
+
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Install Qt5
+      - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
           arch: win64_msvc2019_64
-          version: ${{ env.QT_VERSION }}
-      - name: Build Qt5 Libs
+          version: ${{ matrix.cfg.qt_version }}
+          modules: ${{ matrix.cfg.qt_modules }}
+      - name: Build Qt Libs
         run: |
           mkdir build_deps
           cd build_deps
-          curl -LO https://download.kde.org/stable/frameworks/${Env:KF5_VERSION}/extra-cmake-modules-${Env:KF5_FULLVER}.zip
-          curl -LO https://download.kde.org/stable/frameworks/${Env:KF5_VERSION}/syntax-highlighting-${Env:KF5_FULLVER}.zip
-          cmake -E tar xf extra-cmake-modules-${Env:KF5_FULLVER}.zip
-          cd extra-cmake-modules-${Env:KF5_FULLVER}
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.zip
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.zip
+          cmake -E tar xf extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.zip
+          cd extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}
           mkdir build
           cd build
-          cmake -G "${Env:CM_GENERATOR}" -A x64 `
-              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
-              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
-              -DCMAKE_BUILD_TYPE=Release ..
+          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
+              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
+              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
+              -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf5_cmake_args }} ..
           cmake --build . --config Release --target install
           cd ..\..
-          cmake -E tar xf syntax-highlighting-${Env:KF5_FULLVER}.zip
-          cd syntax-highlighting-${Env:KF5_FULLVER}
+          cmake -E tar xf syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.zip
+          cd syntax-highlighting-${{ matrix.cfg.kf5_fullver }}
           mkdir build && cd build
-          cmake -G "${Env:CM_GENERATOR}" -A x64 `
-              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
-              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
-              -DCMAKE_BUILD_TYPE=Release ..
+          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
+              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
+              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
+              -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf5_cmake_args }} ..
           cmake --build . --config Release
           cmake --build . --config Release --target install
       - name: Build qtextpad
         run: |
           mkdir build
           cd build
-          cmake -G "${Env:CM_GENERATOR}" -A x64 `
-            "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${Env:QT_VERSION}/msvc2019_64" `
+          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
+            "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
             "-DCMAKE_INSTALL_PREFIX=${Env:GITHUB_WORKSPACE}/dist/qtextpad-win64" `
             -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . --config Release
@@ -64,9 +70,9 @@ jobs:
           cd "${Env:GITHUB_WORKSPACE}\dist"
           windeployqt qtextpad-win64\qtextpad.exe --release --no-angle --no-opengl-sw
           cmake -E copy "${Env:GITHUB_WORKSPACE}\COPYING" `
-              "${Env:RUNNER_WORKSPACE}\Qt\${Env:QT_VERSION}\msvc2019_64\bin\KF5SyntaxHighlighting.dll" `
+              "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\KF5SyntaxHighlighting.dll" `
               qtextpad-win64
-          cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${Env:QT_VERSION}\msvc2019_64\bin\data" `
+          cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\data" `
               qtextpad-win64\data
           windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-angle --no-opengl-sw
 

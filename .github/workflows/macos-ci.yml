@@ -1,12 +1,12 @@
 name: macOS-CI
 on:
   push:
-    branches: [master]
+    branches: [master, qt6]
   pull_request:
 
 env:
-  KF5_VERSION: "5.85"
-  KF5_FULLVER: "5.85.0"
+  KF5_VERSION: "5.91"
+  KF5_FULLVER: "5.91.0"
   QT_VERSION: "5.15.2"
 
 jobs:
