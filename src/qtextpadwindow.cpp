@@ -55,7 +55,6 @@
 #include "indentsettings.h"
 #include "appsettings.h"
 #include "undocommands.h"
-#include "ftdetect.h"
 #include "charsets.h"
 #include "aboutdialog.h"
 
@@ -426,15 +425,15 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto crOnlyAction = lineEndingMenu->addAction(tr("Classic Mac (CR)"));
     crOnlyAction->setCheckable(true);
     crOnlyAction->setActionGroup(m_lineEndingActions);
-    crOnlyAction->setData(static_cast<int>(CROnly));
+    crOnlyAction->setData(static_cast<int>(FileTypeInfo::CROnly));
     auto lfOnlyAction = lineEndingMenu->addAction(tr("UNIX (LF)"));
     lfOnlyAction->setCheckable(true);
     lfOnlyAction->setActionGroup(m_lineEndingActions);
-    lfOnlyAction->setData(static_cast<int>(LFOnly));
+    lfOnlyAction->setData(static_cast<int>(FileTypeInfo::LFOnly));
     auto crlfAction = lineEndingMenu->addAction(tr("Windows/DOS (CRLF)"));
     crlfAction->setCheckable(true);
     crlfAction->setActionGroup(m_lineEndingActions);
-    crlfAction->setData(static_cast<int>(CRLF));
+    crlfAction->setData(static_cast<int>(FileTypeInfo::CRLF));
     (void) settingsMenu->addSeparator();
     auto indentSettingsAction = settingsMenu->addAction(tr("&Indentation Settings..."));
     m_autoIndentAction = settingsMenu->addAction(tr("&Auto Indent"));
@@ -453,9 +452,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showFilePathAction->setChecked(m_showFilePath);
 
     connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
-    connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(CROnly); });
-    connect(lfOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(LFOnly); });
-    connect(crlfAction, &QAction::triggered, this, [this] { changeLineEndingMode(CRLF); });
+    connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CROnly); });
+    connect(lfOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::LFOnly); });
+    connect(crlfAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CRLF); });
     connect(indentSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptIndentSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
     connect(showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
@@ -715,18 +714,18 @@ void QTextPadWindow::setAutoIndent(bool ai)
     updateIndentStatus();
 }
 
-void QTextPadWindow::setLineEndingMode(LineEndingMode mode)
+void QTextPadWindow::setLineEndingMode(FileTypeInfo::LineEndingType mode)
 {
     m_lineEndingMode = mode;
 
     switch (mode) {
-    case CROnly:
+    case FileTypeInfo::CROnly:
         m_crlfLabel->setText(tr("CR"));
         break;
-    case LFOnly:
+    case FileTypeInfo::LFOnly:
         m_crlfLabel->setText(tr("LF"));
         break;
-    case CRLF:
+    case FileTypeInfo::CRLF:
         m_crlfLabel->setText(tr("CRLF"));
         break;
     }
@@ -785,13 +784,13 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
 #endif
 
     switch (m_lineEndingMode) {
-    case CROnly:
+    case FileTypeInfo::CROnly:
         document.replace(QLatin1Char('\n'), QLatin1Char('\r'));
         break;
-    case LFOnly:
+    case FileTypeInfo::LFOnly:
         // No action
         break;
-    case CRLF:
+    case FileTypeInfo::CRLF:
         document.replace(QLatin1Char('\n'), QStringLiteral("\r\n"));
         break;
     }
@@ -858,7 +857,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     const QString codecName = textEncoding.isEmpty() ? fileModes.encoding : textEncoding;
 
     auto detectBuffer = file.read(DETECTION_SIZE);
-    auto detect = FileDetection::detect(detectBuffer);
+    auto detect = FileTypeInfo::detect(detectBuffer);
     setLineEndingMode(detect.lineEndings());
 
     QTextCodec *codec = Q_NULLPTR;
@@ -898,7 +897,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     if (!definition.isValid())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
     if (!definition.isValid())
-        definition = FileDetection::definitionForFileMagic(filename);
+        definition = FileTypeInfo::definitionForFileMagic(filename);
 
     if (definition.isValid())
         setSyntax(definition);
@@ -1031,10 +1030,10 @@ void QTextPadWindow::resetEditor()
     setSyntax(SyntaxTextEdit::nullSyntax());
     setEncoding(QStringLiteral("UTF-8"));
 #ifdef _WIN32
-    setLineEndingMode(CRLF);
+    setLineEndingMode(FileTypeInfo::CRLF);
 #else
     // OSX uses LF as well, and we don't support building for classic MacOS
-    setLineEndingMode(LFOnly);
+    setLineEndingMode(FileTypeInfo::LFOnly);
 #endif
 
     setOpenFilename(QString());
@@ -1220,14 +1219,14 @@ void QTextPadWindow::nextInsertMode()
 void QTextPadWindow::nextLineEndingMode()
 {
     switch (m_lineEndingMode) {
-    case CROnly:
-        changeLineEndingMode(LFOnly);
+    case FileTypeInfo::CROnly:
+        changeLineEndingMode(FileTypeInfo::LFOnly);
         break;
-    case LFOnly:
-        changeLineEndingMode(CRLF);
+    case FileTypeInfo::LFOnly:
+        changeLineEndingMode(FileTypeInfo::CRLF);
         break;
-    case CRLF:
-        changeLineEndingMode(CROnly);
+    case FileTypeInfo::CRLF:
+        changeLineEndingMode(FileTypeInfo::CROnly);
         break;
     }
 }
@@ -1333,7 +1332,7 @@ void QTextPadWindow::changeEncoding(const QString &encoding)
     }
 }
 
-void QTextPadWindow::changeLineEndingMode(LineEndingMode mode)
+void QTextPadWindow::changeLineEndingMode(FileTypeInfo::LineEndingType mode)
 {
     if (!documentExists()) {
         // Don't save changes in the undo stack if we are creating a new file
