@@ -29,6 +29,7 @@
 #include <QCompleter>
 #include <QMessageBox>
 #include <QPainter>
+#include <QStringRef>
 
 #include "qtextpadwindow.h"
 #include "appsettings.h"
@@ -331,7 +332,7 @@ SearchDialog *SearchDialog::create(QTextPadWindow *parent)
     return s_instance;
 }
 
-static QString translateCharEscape(const QStringView &digits, int *advance)
+static QString translateCharEscape(const QStringRef &digits, int *advance)
 {
     Q_ASSERT(digits.size() > 0);
     Q_ASSERT(advance);
@@ -384,7 +385,7 @@ static QString translateCharEscape(const QStringView &digits, int *advance)
     }
 }
 
-QString SearchDialog::translateEscapes(const QStringView &text)
+QString SearchDialog::translateEscapes(const QString &text)
 {
     QString result;
     result.reserve(text.size());
@@ -394,7 +395,7 @@ QString SearchDialog::translateEscapes(const QStringView &text)
         if (pos < 0 || pos + 1 >= text.size())
             break;
 
-        result.append(text.mid(start, pos - start));
+        result.append(QStringRef(&text).mid(start, pos - start));
         QChar next = text.at(pos + 1);
         start = pos + 2;
         switch (next.unicode()) {
@@ -433,7 +434,7 @@ QString SearchDialog::translateEscapes(const QStringView &text)
         case 'U':   // Unicode character (32-bit)
             {
                 int advance;
-                const QString chars = translateCharEscape(text.mid(pos + 1), &advance);
+                const QString chars = translateCharEscape(QStringRef(&text).mid(pos + 1), &advance);
                 if (chars.isEmpty()) {
                     // Translation failed
                     result.append(QLatin1Char('\\'));
@@ -452,11 +453,11 @@ QString SearchDialog::translateEscapes(const QStringView &text)
         }
     }
 
-    result.append(text.mid(start));
+    result.append(QStringRef(&text).mid(start));
     return result;
 }
 
-QString SearchDialog::regexReplace(const QStringView &text,
+QString SearchDialog::regexReplace(const QString &text,
                                    const QRegularExpressionMatch &regexMatch)
 {
     QString result;
@@ -467,14 +468,14 @@ QString SearchDialog::regexReplace(const QStringView &text,
         if (pos < 0 || pos + 1 >= text.size())
             break;
 
-        result.append(text.mid(start, pos - start));
+        result.append(QStringRef(&text).mid(start, pos - start));
         QChar next = text.at(pos + 1);
         if (next.unicode() >= '0' && next.unicode() <= '9') {
             // We support up to 99 replacements...
-            QByteArray number = text.mid(pos + 1, 2).toLatin1();
+            QByteArray number = QStringRef(&text).mid(pos + 1, 2).toLatin1();
             char *end;
             ulong ref = strtoul(number.constData(), &end, 10);
-            result.append(regexMatch.capturedView(ref));
+            result.append(regexMatch.captured(ref));
             start = pos + 1 + (end - number.constData());
         } else {
             result.append(QLatin1Char('\\'));
@@ -483,7 +484,7 @@ QString SearchDialog::regexReplace(const QStringView &text,
         }
     }
 
-    result.append(text.mid(start));
+    result.append(QStringRef(&text).mid(start));
     return result;
 }
 

@@ -79,8 +79,8 @@ public:
 
     ~SearchDialog() Q_DECL_OVERRIDE;
 
-    static QString translateEscapes(const QStringView &text);
-    static QString regexReplace(const QStringView &text,
+    static QString translateEscapes(const QString &text);
+    static QString regexReplace(const QString &text,
                                 const QRegularExpressionMatch &regexMatch);
 
 public slots:

@@ -136,11 +136,7 @@ int main(int argc, char *argv[])
         if (arg.startsWith(QLatin1Char('+'))) {
             bool ok;
             QStringList parts = arg.split(QLatin1Char(','));
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-            startupLine = QStringView(parts.at(0)).mid(1).toInt(&ok, 0);
-#else
-            startupLine = parts.at(0).midRef(1).toInt(&ok, 0);
-#endif
+            startupLine = parts.at(0).mid(1).toInt(&ok, 0);
             if (!ok) {
                 qWarning("%s", qPrintable(
                     QCoreApplication::translate("main", "Invalid startup line parameter: '%1'").arg(arg)));
