@@ -13,10 +13,10 @@ jobs:
         cfg:
           - { kf5_version: "5.91", kf5_fullver: "5.91.0", qt_version: "5.15.2",
               qt_modules: "", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "" }
+              kf5_cmake_args: "", build_installer: "$false" }
           - { kf5_version: "5.91", kf5_fullver: "5.91.0", qt_version: "6.2.3",
               qt_modules: "qt5compat", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "-DBUILD_WITH_QT6=ON" }
+              kf5_cmake_args: "-DBUILD_WITH_QT6=ON", build_installer: "$true" }
 
     steps:
       - uses: actions/checkout@v2
@@ -66,6 +66,7 @@ jobs:
       - name: Package qtextpad
         run: |
           $buildver = ((git describe --dirty) | Out-String).Trim()
+          $buildver += "-qt" + "${{ matrix.cfg.qt_version }}"[0]
           $Env:VCINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC"
           cd "${Env:GITHUB_WORKSPACE}\dist"
           windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw
@@ -85,8 +86,10 @@ jobs:
           cmake -E tar cf "..\qtextpad-win64-${buildver}.zip" --format=zip qtextpad-win64
           cd ..\win32
           cmake -E tar xf "..\qtextpad-win64-${buildver}.zip"
-          iscc setup.iss
-          cmake -E rename qtextpad-win64.exe "..\qtextpad-win64-${buildver}.exe"
+          if (${{ matrix.cfg.build_installer }}) {
+              iscc setup.iss
+              cmake -E rename qtextpad-win64.exe "..\qtextpad-win64-${buildver}.exe"
+          }
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:

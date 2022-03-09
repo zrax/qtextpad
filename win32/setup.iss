@@ -23,26 +23,24 @@ Source: qtextpad-win64\qtextpad.exe; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\KF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\libcrypto-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\libssl-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\Qt5Core.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\Qt5Gui.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\Qt5Network.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\Qt5PrintSupport.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\Qt5Svg.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\Qt5Widgets.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\bearer\qgenericbearer.dll; DestDir: {app}\bearer; Flags: ignoreversion
+Source: qtextpad-win64\Qt6Core.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\Qt6Core5Compat.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\Qt6Gui.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\Qt6Network.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\Qt6PrintSupport.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\Qt6Svg.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\Qt6Widgets.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\iconengines\qsvgicon.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qgif.dll; DestDir: {app}\imageformats; Flags: ignoreversion
-Source: qtextpad-win64\imageformats\qicns.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qico.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qjpeg.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qsvg.dll; DestDir: {app}\imageformats; Flags: ignoreversion
-Source: qtextpad-win64\imageformats\qtga.dll; DestDir: {app}\imageformats; Flags: ignoreversion
-Source: qtextpad-win64\imageformats\qtiff.dll; DestDir: {app}\imageformats; Flags: ignoreversion
-Source: qtextpad-win64\imageformats\qwbmp.dll; DestDir: {app}\imageformats; Flags: ignoreversion
-Source: qtextpad-win64\imageformats\qwebp.dll; DestDir: {app}\imageformats; Flags: ignoreversion
+Source: qtextpad-win64\networkinformation\qnetworklistmanager.dll; DestDir: {app}\networkinformation; Flags: ignoreversion
 Source: qtextpad-win64\platforms\qwindows.dll; DestDir: {app}\platforms; Flags: ignoreversion
-Source: qtextpad-win64\printsupport\windowsprintersupport.dll; DestDir: {app}\printsupport; Flags: ignoreversion
 Source: qtextpad-win64\styles\qwindowsvistastyle.dll; DestDir: {app}\styles; Flags: ignoreversion
+Source: qtextpad-win64\tls\qcertonlybackend.dll; DestDir: {app}\tls; Flags: ignoreversion
+Source: qtextpad-win64\tls\qopensslbackend.dll; DestDir: {app}\tls; Flags: ignoreversion
+Source: qtextpad-win64\tls\qschannelbackend.dll; DestDir: {app}\tls; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ar.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_bg.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ca.qm; DestDir: {app}\translations; Flags: ignoreversion
@@ -51,22 +49,30 @@ Source: qtextpad-win64\translations\qt_da.qm; DestDir: {app}\translations; Flags
 Source: qtextpad-win64\translations\qt_de.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_en.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_es.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_fa.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_fi.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_fr.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_gd.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_he.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_hr.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_hu.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_it.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ja.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ko.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_lv.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_nl.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_nn.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_pl.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_pt_BR.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ru.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_sk.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_tr.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_uk.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_zh_CN.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_zh_TW.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\af\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\af\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\ar\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\ar\LC_MESSAGES; Flags: ignoreversion
+Source: qtextpad-win64\data\locale\az\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\az\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\be\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\be\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\bg\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\bg\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\bn\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\bn\LC_MESSAGES; Flags: ignoreversion
@@ -149,7 +155,8 @@ Source: qtextpad-win64\data\locale\wa\LC_MESSAGES\syntaxhighlighting5_qt.qm; Des
 Source: qtextpad-win64\data\locale\xh\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\xh\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\zh_CN\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\zh_CN\LC_MESSAGES; Flags: ignoreversion
 Source: qtextpad-win64\data\locale\zh_TW\LC_MESSAGES\syntaxhighlighting5_qt.qm; DestDir: {app}\data\locale\zh_TW\LC_MESSAGES; Flags: ignoreversion
-Source: qtextpad-win64\data\qlogging-categories5\ksyntaxhighlighting.categories; DestDir: {app}\data\qlogging-categories5; Flags: ignoreversion
+Source: qtextpad-win64\data\qlogging-categories6\ksyntaxhighlighting.categories; DestDir: {app}\data\qlogging-categories6; Flags: ignoreversion
+Source: qtextpad-win64\data\qlogging-categories6\ksyntaxhighlighting.renamecategories; DestDir: {app}\data\qlogging-categories6; Flags: ignoreversion
 
 [Run]
 Filename: {tmp}\vc_redist.x64.exe; Parameters: /q /norestart
@@ -165,7 +172,24 @@ Name: {app}\libstdc++-6.dll; Type: files
 Name: {app}\libsystre-0.dll; Type: files
 Name: {app}\libtre-5.dll; Type: files
 Name: {app}\libwinpthread-1.dll; Type: files
+Name: {app}\Qt5Core.dll; Type: files
+Name: {app}\Qt5Gui.dll; Type: files
+Name: {app}\Qt5Network.dll; Type: files
+Name: {app}\Qt5PrintSupport.dll; Type: files
+Name: {app}\Qt5Svg.dll; Type: files
+Name: {app}\Qt5Widgets.dll; Type: files
+Name: {app}\bearer\qgenericbearer.dll; Type: files
+Name: {app}\bearer; Type: dirifempty
+Name: {app}\imageformats\qicns.dll; Type: files
+Name: {app}\imageformats\qtga.dll; Type: files
+Name: {app}\imageformats\qtiff.dll; Type: files
+Name: {app}\imageformats\qwbmp.dll; Type: files
+Name: {app}\imageformats\qwebp.dll; Type: files
+Name: {app}\printsupport\windowsprintersupport.dll; Type: files
+Name: {app}\printsupport; Type: dirifempty
+Name: {app}\data\qlogging-categories5\ksyntaxhighlighting.categories; Type: files
 Name: {app}\data\qlogging-categories5\org_kde_ksyntaxhighlighting.categories; Type: files
+Name: {app}\data\qlogging-categories5; Type: dirifempty
 
 [UninstallDelete]
 Name: {app}; Type: dirifempty
