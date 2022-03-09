@@ -68,13 +68,13 @@ jobs:
           $buildver = ((git describe --dirty) | Out-String).Trim()
           $Env:VCINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC"
           cd "${Env:GITHUB_WORKSPACE}\dist"
-          windeployqt qtextpad-win64\qtextpad.exe --release --no-angle --no-opengl-sw
+          windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw
           cmake -E copy "${Env:GITHUB_WORKSPACE}\COPYING" `
               "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\KF5SyntaxHighlighting.dll" `
               qtextpad-win64
           cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\data" `
               qtextpad-win64\data
-          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-angle --no-opengl-sw
+          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-opengl-sw
 
           # TODO: Use the Qt versions of the OpenSSL libs.  Depends on
           # https://github.com/jurplel/install-qt-action/issues/16
