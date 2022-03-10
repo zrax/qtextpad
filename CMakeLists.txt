@@ -26,7 +26,7 @@ find_package(Qt6 COMPONENTS Core Widgets PrintSupport Network Core5Compat)
 if(Qt6_FOUND)
     set(QTEXTPAD_QT_LIBS Qt::Core Qt::Widgets Qt::PrintSupport Qt::Core5Compat)
 else()
-    find_package(Qt5 5.10 REQUIRED COMPONENTS Core Widgets PrintSupport Network)
+    find_package(Qt5 5.6 REQUIRED COMPONENTS Core Widgets PrintSupport Network)
     set(QTEXTPAD_QT_LIBS Qt5::Core Qt5::Widgets Qt5::PrintSupport)
 endif()
 

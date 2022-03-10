@@ -22,6 +22,7 @@
 #include <QPrinter>
 #include <QRegularExpression>
 #include <QStack>
+#include <QStringRef>
 #include <QtMath>
 
 #include <KSyntaxHighlighting/Theme>
@@ -1236,7 +1237,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         } else if (m_indentationMode == IndentSpaces) {
             QTextCursor cursor = textCursor();
             const QString blockText = cursor.block().text();
-            const QStringView cursorText = QStringView(blockText).left(cursor.positionInBlock());
+            const QStringRef cursorText = QStringRef(&blockText).left(cursor.positionInBlock());
             int vpos = 0;
             for (const auto ch : cursorText) {
                 if (ch == QLatin1Char('\t'))
@@ -1249,7 +1250,7 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         } else {
             QTextCursor cursor = textCursor();
             const QString blockText = cursor.block().text();
-            const QStringView cursorText = QStringView(blockText).left(cursor.positionInBlock());
+            const QStringRef cursorText = QStringRef(&blockText).left(cursor.positionInBlock());
             int vpos = 0, cpos = 0;
             int wsvStart = 0, wscStart = 0;
             for (const auto ch : cursorText) {
