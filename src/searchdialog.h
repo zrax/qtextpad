@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SEARCHDIALOG_H
-#define _SEARCHDIALOG_H
+#ifndef QTEXTPAD_SEARCHDIALOG_H
+#define QTEXTPAD_SEARCHDIALOG_H
 
 #include <QDialog>
 #include <QList>
@@ -114,4 +114,4 @@ private:
     QRegularExpressionMatch m_regexMatch;
 };
 
-#endif // _SEARCHDIALOG_H
+#endif // QTEXTPAD_SEARCHDIALOG_H

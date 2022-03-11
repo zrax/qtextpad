@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DEFINITIONDOWNLOAD_H
-#define _DEFINITIONDOWNLOAD_H
+#ifndef QTEXTPAD_DEFINITIONDOWNLOAD_H
+#define QTEXTPAD_DEFINITIONDOWNLOAD_H
 
 #include <ksyntaxhighlighting_version.h>
 
@@ -55,4 +55,4 @@ private:
 
 #endif // SyntaxHighlighting_VERSION check
 
-#endif // _DEFINITIONDOWNLOAD_H
+#endif // QTEXTPAD_DEFINITIONDOWNLOAD_H

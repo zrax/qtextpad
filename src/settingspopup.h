@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SETTINGSPOPUP_H
-#define _SETTINGSPOPUP_H
+#ifndef QTEXTPAD_SETTINGSPOPUP_H
+#define QTEXTPAD_SETTINGSPOPUP_H
 
 #include <QIcon>
 #include <QLineEdit>
@@ -103,4 +103,4 @@ private slots:
 // Needed for serializing Definition objects into QVariant
 Q_DECLARE_METATYPE(KSyntaxHighlighting::Definition)
 
-#endif // _SETTINGSPOPUP_H
+#endif // QTEXTPAD_SETTINGSPOPUP_H

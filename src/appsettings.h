@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _APPSETTINGS_H
-#define _APPSETTINGS_H
+#ifndef QTEXTPAD_APPSETTINGS_H
+#define QTEXTPAD_APPSETTINGS_H
 
 #include <QSettings>
 #include <QSize>
@@ -112,4 +112,4 @@ private:
 /* Helper for loading theme icons */
 #define ICON(name)  QIcon::fromTheme(QStringLiteral(name))
 
-#endif // _APPSETTINGS_H
+#endif // QTEXTPAD_APPSETTINGS_H

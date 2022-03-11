@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _ACTIVATIONLABEL_H
-#define _ACTIVATIONLABEL_H
+#ifndef QTEXTPAD_ACTIVATIONLABEL_H
+#define QTEXTPAD_ACTIVATIONLABEL_H
 
 #include <QLabel>
 
@@ -37,4 +37,4 @@ protected:
     }
 };
 
-#endif // _ACTIVATIONLABEL_H
+#endif // QTEXTPAD_ACTIVATIONLABEL_H

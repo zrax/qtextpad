@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SYNTAXHIGHLIGHTER_H
-#define _SYNTAXHIGHLIGHTER_H
+#ifndef QTEXTPAD_SYNTAXHIGHLIGHTER_H
+#define QTEXTPAD_SYNTAXHIGHLIGHTER_H
 
 #include <KSyntaxHighlighting/SyntaxHighlighter>
 
@@ -54,4 +54,4 @@ private:
     int m_tabCharSize;
 };
 
-#endif // _SYNTAXHIGHLIGHTER_H
+#endif // QTEXTPAD_SYNTAXHIGHLIGHTER_H

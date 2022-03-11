@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _INDENTSETTINGS_H
-#define _INDENTSETTINGS_H
+#ifndef QTEXTPAD_INDENTSETTINGS_H
+#define QTEXTPAD_INDENTSETTINGS_H
 
 #include <QDialog>
 
@@ -39,4 +39,4 @@ private:
     QSpinBox *m_indentWidth;
 };
 
-#endif
+#endif // QTEXTPAD_INDENTSETTINGS_H

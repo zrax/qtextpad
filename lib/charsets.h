@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CHARSETS_H
-#define _CHARSETS_H
+#ifndef QTEXTPAD_CHARSETS_H
+#define QTEXTPAD_CHARSETS_H
 
 #include <QSet>
 #include <QByteArray>
@@ -69,4 +69,4 @@ private:
     QSet<QByteArray> m_encodingNames;
 };
 
-#endif // _CHARSETS_H
+#endif // QTEXTPAD_CHARSETS_H

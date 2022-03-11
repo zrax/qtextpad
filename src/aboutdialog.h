@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _ABOUTDIALOG_H
-#define _ABOUTDIALOG_H
+#ifndef QTEXTPAD_ABOUTDIALOG_H
+#define QTEXTPAD_ABOUTDIALOG_H
 
 #include <QDialog>
 
@@ -27,4 +27,4 @@ public:
     AboutDialog(QWidget *parent);
 };
 
-#endif // _ABOUTDIALOG_H
+#endif // QTEXTPAD_ABOUTDIALOG_H

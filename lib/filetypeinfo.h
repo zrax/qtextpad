@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _FILETYPEINFO_H
-#define _FILETYPEINFO_H
+#ifndef QTEXTPAD_FILETYPEINFO_H
+#define QTEXTPAD_FILETYPEINFO_H
 
 #include <QByteArray>
 
@@ -70,4 +70,4 @@ private:
     void *m_params;
 };
 
-#endif  // _FILETYPEINFO_H
+#endif  // QTEXTPAD_FILETYPEINFO_H

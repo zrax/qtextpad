@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _QTEXTPADWINDOW_H
-#define _QTEXTPADWINDOW_H
+#ifndef QTEXTPAD_WINDOW_H
+#define QTEXTPAD_WINDOW_H
 
 #include <QMainWindow>
 #include <QDateTime>
@@ -178,4 +178,4 @@ private:
     void populateIndentButtonMenu();
 };
 
-#endif // _QTEXTPADWINDOW_H
+#endif // QTEXTPAD_WINDOW_H

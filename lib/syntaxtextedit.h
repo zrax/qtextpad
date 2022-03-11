@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SYNTAXTEXTEDIT_H
-#define _SYNTAXTEXTEDIT_H
+#ifndef QTEXTPAD_SYNTAXTEXTEDIT_H
+#define QTEXTPAD_SYNTAXTEXTEDIT_H
 
 #include <QPlainTextEdit>
 
@@ -208,4 +208,4 @@ private:
     };
 };
 
-#endif // _SYNTAXTEXTEDIT_H
+#endif // QTEXTPAD_SYNTAXTEXTEDIT_H

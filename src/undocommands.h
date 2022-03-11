@@ -14,8 +14,8 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _UNDOCOMMANDS_H
-#define _UNDOCOMMANDS_H
+#ifndef QTEXTPAD_UNDOCOMMANDS_H
+#define QTEXTPAD_UNDOCOMMANDS_H
 
 #include <QUndoCommand>
 
@@ -83,4 +83,4 @@ private:
     bool m_utfBOM;
 };
 
-#endif // _UNDOCOMMANDS_H
+#endif // QTEXTPAD_UNDOCOMMANDS_H
