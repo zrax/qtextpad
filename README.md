@@ -49,7 +49,8 @@ KDE Plasma, dark theme:
 * **Build from source**:
   * Requirements:
     * [CMake](https://cmake.org/download)
-    * [Qt5](https://www.qt.io/download) and
+    * [Qt 5.6+ or 6.0+](https://www.qt.io/download) and
     * [KF5 Syntax Highlighting](https://download.kde.org/stable/frameworks)
+      * NOTE: KF5 5.91 or later is required for Qt6 compatibility
   * On recent Linux platforms, you can usually find all of the above
     requirements in your distribution's repositories.
