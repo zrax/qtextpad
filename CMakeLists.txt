@@ -22,18 +22,24 @@ set(CMAKE_CXX_STANDARD 11)
 
 include(FeatureSummary)
 
-find_package(Qt6 COMPONENTS Core Widgets PrintSupport Network Core5Compat)
-if(Qt6_FOUND)
-    set(QTEXTPAD_QT_LIBS Qt::Core Qt::Widgets Qt::PrintSupport Qt::Core5Compat)
-else()
-    find_package(Qt5 5.6 REQUIRED COMPONENTS Core Widgets PrintSupport Network)
-    set(QTEXTPAD_QT_LIBS Qt5::Core Qt5::Widgets Qt5::PrintSupport)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} 5.6 REQUIRED COMPONENTS
+    Core Widgets PrintSupport Network)
+if(QT_VERSION_MAJOR GREATER 5)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core5Compat)
+elseif(Qt5_FOUND AND NOT TARGET Qt::Core)
+    # The version-generic targets were only added in Qt 5.15
+    foreach(_qt_lib Core Widgets PrintSupport)
+        add_library(Qt::${_qt_lib} INTERFACE IMPORTED)
+        set_target_properties(Qt::${_qt_lib} PROPERTIES
+            INTERFACE_LINK_LIBRARIES "Qt5::${_qt_lib}")
+    endforeach()
 endif()
 
 find_package(KF5SyntaxHighlighting REQUIRED)
 set_package_properties(KF5SyntaxHighlighting PROPERTIES
     URL "https://community.kde.org/Frameworks"
-    DESCRIPTION "Syntax Highlighting framework for Qt5"
+    DESCRIPTION "Syntax Highlighting framework for Qt"
     TYPE REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")

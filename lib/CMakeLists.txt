@@ -29,6 +29,12 @@ target_sources(syntaxtextedit
 
 target_link_libraries(syntaxtextedit
     PUBLIC
-        ${QTEXTPAD_QT_LIBS}
+        Qt::Core
+        Qt::Widgets
+        Qt::PrintSupport
         KF5::SyntaxHighlighting
 )
+
+if(TARGET Qt::Core5Compat)
+    target_link_libraries(syntaxtextedit PUBLIC Qt::Core5Compat)
+endif()
