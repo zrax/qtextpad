@@ -58,9 +58,10 @@
 #include "charsets.h"
 #include "aboutdialog.h"
 
+#include <memory>
+
 #define LARGE_FILE_SIZE     (10*1024*1024)  // 10 MiB
 #define DETECTION_SIZE      (      4*1024)
-#define DECODE_BLOCK_SIZE   (     16*1024)
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -799,7 +800,7 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
     if (!utfBOM())
         codecFlags |= QTextCodec::IgnoreHeader;
 
-    auto encoder = codec->makeEncoder(codecFlags);
+    std::unique_ptr<QTextEncoder> encoder(codec->makeEncoder(codecFlags));
     const auto buffer = encoder->fromUnicode(document);
     qint64 count = file.write(buffer);
     if (count < 0) {
@@ -872,15 +873,11 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         codec = detect.textCodec();
     setEncoding(QString::fromLatin1(codec->name()));
 
-    auto decoder = codec->makeDecoder();
-    QStringList pieces;
-    pieces << decoder->toUnicode(detectBuffer.mid(detect.bomOffset()));
-    for ( ;; ) {
-        const auto buffer = file.read(DECODE_BLOCK_SIZE);
-        if (buffer.size() == 0)
-            break;
-        pieces << decoder->toUnicode(buffer);
-    }
+    std::unique_ptr<QTextDecoder> decoder(codec->makeDecoder());
+    QByteArray buffer = detectBuffer + file.readAll();
+    QString document = decoder->toUnicode(buffer);
+    if (!document.isEmpty() && document[0] == 0xFEFF)
+        document = document.mid(1);
 
     // Don't search while we're in the middle of loading a new file
     showSearchBar(false);
@@ -888,7 +885,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     // Don't let the syntax highlighter hinder us while setting the new content
     m_editor->clear();
     setSyntax(SyntaxTextEdit::nullSyntax());
-    m_editor->setPlainText(pieces.join(QString()));
+    m_editor->setPlainText(document);
     m_editor->document()->clearUndoRedoStacks();
 
     KSyntaxHighlighting::Definition definition;
