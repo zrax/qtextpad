@@ -876,7 +876,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     std::unique_ptr<QTextDecoder> decoder(codec->makeDecoder());
     QByteArray buffer = detectBuffer + file.readAll();
     QString document = decoder->toUnicode(buffer);
-    if (!document.isEmpty() && document[0] == 0xFEFF)
+    if (!document.isEmpty() && document[0] == QChar(0xFEFF))
         document = document.mid(1);
 
     // Don't search while we're in the middle of loading a new file
