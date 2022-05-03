@@ -857,8 +857,8 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     const auto fileModes = QTextPadSettings::fileModes(filename);
     const QString codecName = textEncoding.isEmpty() ? fileModes.encoding : textEncoding;
 
-    auto detectBuffer = file.read(DETECTION_SIZE);
-    auto detect = FileTypeInfo::detect(detectBuffer);
+    auto buffer = file.read(DETECTION_SIZE);
+    auto detect = FileTypeInfo::detect(buffer);
     setLineEndingMode(detect.lineEndings());
 
     QTextCodec *codec = Q_NULLPTR;
@@ -874,7 +874,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     setEncoding(QString::fromLatin1(codec->name()));
 
     std::unique_ptr<QTextDecoder> decoder(codec->makeDecoder());
-    QByteArray buffer = detectBuffer + file.readAll();
+    buffer.append(file.readAll());
     QString document = decoder->toUnicode(buffer);
     if (!document.isEmpty() && document[0] == QChar(0xFEFF))
         document = document.mid(1);
