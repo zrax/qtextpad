@@ -24,14 +24,6 @@
 #include "charsets.h"
 #include "syntaxtextedit.h"
 
-#define LATIN1_MIB             4    // A.K.A. ISO-8859-1
-#define UTF8_MIB             106
-#define UTF7_MIB            1012
-#define UTF16_BE_MIB        1013
-#define UTF16_LE_MIB        1014
-#define UTF32_BE_MIB        1018
-#define UTF32_LE_MIB        1019
-
 struct DetectionParams_p
 {
     TextCodec *textCodec;
@@ -79,32 +71,32 @@ FileTypeInfo FileTypeInfo::detect(const QByteArray &buffer)
     if (buffer.size() >= 3) {
         if ((uchar)buffer.at(0) == 0xef && (uchar)buffer.at(1) == 0xbb
                 && (uchar)buffer.at(2) == 0xbf) {
-            params->textCodec = QTextPadCharsets::codecForMib(UTF8_MIB);
+            params->textCodec = QTextPadCharsets::codecForName("UTF-8");
             params->bomOffset = 3;
         }
     }
     if (buffer.size() >= 4 && params->textCodec == Q_NULLPTR) {
         if ((uchar)buffer.at(0) == 0x00 && (uchar)buffer.at(1) == 0x00
                 && (uchar)buffer.at(2) == 0xfe && (uchar)buffer.at(3) == 0xff) {
-            params->textCodec = QTextPadCharsets::codecForMib(UTF32_BE_MIB);
+            params->textCodec = QTextPadCharsets::codecForName("UTF-32BE");
             params->bomOffset = 4;
         } else if ((uchar)buffer.at(0) == 0xff && (uchar)buffer.at(1) == 0xfe
                 && (uchar)buffer.at(2) == 0x00 && (uchar)buffer.at(3) == 0x00) {
-            params->textCodec = QTextPadCharsets::codecForMib(UTF32_LE_MIB);
+            params->textCodec = QTextPadCharsets::codecForName("UTF-32LE");
             params->bomOffset = 4;
         } else if (buffer.at(0) == '+' && buffer.at(1) == '/' && buffer.at(2) == 'v'
                 && (buffer.at(3) == '8' || buffer.at(3) == '9' || buffer.at(3) == '+'
                         || buffer.at(3) == '/')) {
-            params->textCodec = QTextPadCharsets::codecForMib(UTF7_MIB);
+            params->textCodec = QTextPadCharsets::codecForName("UTF-7");
             params->bomOffset = 4;
         }
     }
     if (buffer.size() >= 2 && params->textCodec == Q_NULLPTR) {
         if ((uchar)buffer.at(0) == 0xfe && (uchar)buffer.at(1) == 0xff) {
-            params->textCodec = QTextPadCharsets::codecForMib(UTF16_BE_MIB);
+            params->textCodec = QTextPadCharsets::codecForName("UTF-16BE");
             params->bomOffset = 2;
         } else if ((uchar)buffer.at(0) == 0xff && (uchar)buffer.at(1) == 0xfe) {
-            params->textCodec = QTextPadCharsets::codecForMib(UTF16_LE_MIB);
+            params->textCodec = QTextPadCharsets::codecForName("UTF-16LE");
             params->bomOffset = 2;
         }
     }
@@ -112,7 +104,7 @@ FileTypeInfo FileTypeInfo::detect(const QByteArray &buffer)
     // If we don't have a recognizable BOM, try seeing if Qt's UTF-8 codec
     // can decode it without any errors
     if (params->textCodec == Q_NULLPTR) {
-        auto codec = QTextPadCharsets::codecForMib(UTF8_MIB);
+        auto codec = QTextPadCharsets::codecForName("UTF-8");
         if (codec->canDecode(buffer))
             params->textCodec = codec;
     }
@@ -124,7 +116,7 @@ FileTypeInfo FileTypeInfo::detect(const QByteArray &buffer)
         if (codec->canDecode(buffer))
             params->textCodec = codec;
         else
-            params->textCodec = QTextPadCharsets::codecForMib(LATIN1_MIB);
+            params->textCodec = QTextPadCharsets::codecForName("ISO-8859-1");
     }
 
     // Now try to detect line endings.  If there are no line endings, or

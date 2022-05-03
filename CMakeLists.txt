@@ -14,7 +14,7 @@
 # along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
 
 project(qtextpad)
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.7)
 
 set(CMAKE_AUTOMOC TRUE)
 set(CMAKE_AUTORCC TRUE)
@@ -40,6 +40,12 @@ find_package(KF5SyntaxHighlighting REQUIRED)
 set_package_properties(KF5SyntaxHighlighting PROPERTIES
     URL "https://community.kde.org/Frameworks"
     DESCRIPTION "Syntax Highlighting framework for Qt"
+    TYPE REQUIRED)
+
+find_package(ICU REQUIRED COMPONENTS uc)
+set_package_properties(ICU PROPERTIES
+    URL "https://icu.unicode.org"
+    DESCRIPTION "International Components for Unicode"
     TYPE REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")

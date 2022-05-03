@@ -23,7 +23,7 @@
 class TextCodec
 {
 public:
-    virtual QString name() const = 0;
+    virtual QByteArray name() const = 0;
 
     virtual QByteArray fromUnicode(const QString &text, bool addHeader) = 0;
     virtual QString toUnicode(const QByteArray &text) = 0;
@@ -42,8 +42,7 @@ class QTextPadCharsets
     Q_DECLARE_TR_FUNCTIONS(QTextPadCharsets)
 
 public:
-    static TextCodec *codecForName(const QString &name);
-    static TextCodec *codecForMib(int mib);
+    static TextCodec *codecForName(const QByteArray &name);
     static TextCodec *codecForLocale();
 
     static QList<QStringList> encodingsByScript();
