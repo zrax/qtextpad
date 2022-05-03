@@ -18,6 +18,7 @@ target_sources(syntaxtextedit
     PRIVATE
         charsets.h
         charsets.cpp
+        cp437codec_p.h
         cp437codec.cpp
         filetypeinfo.h
         filetypeinfo.cpp

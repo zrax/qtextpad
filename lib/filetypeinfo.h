@@ -19,7 +19,7 @@
 
 #include <QByteArray>
 
-class QTextCodec;
+class TextCodec;
 
 namespace KSyntaxHighlighting
 {
@@ -60,7 +60,7 @@ public:
 
     bool isValid() const { return m_params != Q_NULLPTR; }
 
-    QTextCodec *textCodec() const;
+    TextCodec *textCodec() const;
     int bomOffset() const;
     LineEndingType lineEndings() const;
 

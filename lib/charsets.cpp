@@ -15,6 +15,7 @@
  */
 
 #include "charsets.h"
+#include "cp437codec_p.h"
 
 #include <QTextCodec>
 #include <QCoreApplication>
@@ -23,17 +24,78 @@
 
 Q_LOGGING_CATEGORY(CsLog, "qtextpad.charsets", QtInfoMsg)
 
+struct TextCodecCache
+{
+    ~TextCodecCache()
+    {
+        for (TextCodec *codec : m_cache)
+            delete codec;
+    }
+
+    QSet<TextCodec *> m_cache;
+};
+static TextCodecCache s_codecs;
+
+class Qt_TextCodec : public TextCodec
+{
+public:
+    static TextCodec *create(QTextCodec *codec)
+    {
+        for (TextCodec *cacheCodec : s_codecs.m_cache) {
+            auto checkCodec = dynamic_cast<Qt_TextCodec *>(cacheCodec);
+            if (checkCodec && checkCodec->m_codec == codec)
+                return cacheCodec;
+        }
+
+        auto newCodec = new Qt_TextCodec(codec);
+        s_codecs.m_cache.insert(newCodec);
+        return newCodec;
+    }
+
+    QString name() const override
+    {
+        return QString::fromLatin1(m_codec->name());
+    }
+
+    QByteArray fromUnicode(const QString &text, bool addHeader) override
+    {
+        QTextCodec::ConversionFlags codecFlags = QTextCodec::DefaultConversion;
+        if (!addHeader)
+            codecFlags |= QTextCodec::IgnoreHeader;
+
+        QScopedPointer<QTextEncoder> encoder(m_codec->makeEncoder(codecFlags));
+        return encoder->fromUnicode(text);
+    }
+
+    QString toUnicode(const QByteArray &text) override
+    {
+        QScopedPointer<QTextDecoder> decoder(m_codec->makeDecoder());
+        return decoder->toUnicode(text);
+    }
+
+    bool canDecode(const QByteArray &text) override
+    {
+        QTextCodec::ConverterState state;
+        (void) m_codec->toUnicode(text.constData(), text.size(), &state);
+        return (state.invalidChars == 0);
+    }
+
+private:
+    Qt_TextCodec(QTextCodec *codec) : m_codec(codec) { }
+    QTextCodec *m_codec;
+};
+
 // Greatly simplified version from KCharsets with no Latin-1 fallback
-QTextCodec *QTextPadCharsets::codecForName(const QString &name)
+TextCodec *QTextPadCharsets::codecForName(const QString &name)
 {
     // KCharsets handles this one specially...  Not sure why
     if (name == QLatin1String("gb2312") || name == QLatin1String("gbk"))
-        return QTextCodec::codecForName("gb18030");
+        return Qt_TextCodec::create(QTextCodec::codecForName("gb18030"));
 
     QByteArray nameLatin1 = name.toLatin1();
     auto codec = QTextCodec::codecForName(nameLatin1);
     if (codec)
-        return codec;
+        return Qt_TextCodec::create(codec);
 
     nameLatin1 = nameLatin1.toLower();
     if (nameLatin1.endsWith("_charset"))
@@ -44,7 +106,17 @@ QTextCodec *QTextPadCharsets::codecForName(const QString &name)
     if (nameLatin1.isEmpty())
         return Q_NULLPTR;
 
-    return QTextCodec::codecForName(nameLatin1);
+    return Qt_TextCodec::create(QTextCodec::codecForName(nameLatin1));
+}
+
+TextCodec *QTextPadCharsets::codecForMib(int mib)
+{
+    return Qt_TextCodec::create(QTextCodec::codecForMib(mib));
+}
+
+TextCodec *QTextPadCharsets::codecForLocale()
+{
+    return Qt_TextCodec::create(QTextCodec::codecForLocale());
 }
 
 // Data originally from KCharsets with a few additions.  However, KCharsets is

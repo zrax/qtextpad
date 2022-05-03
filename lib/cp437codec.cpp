@@ -14,7 +14,7 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "charsets.h"
+#include "cp437codec_p.h"
 
 static const ushort cp437_map[128] = {
     0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7,

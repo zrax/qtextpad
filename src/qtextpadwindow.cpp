@@ -35,7 +35,6 @@
 #include <QClipboard>
 #include <QUndoStack>
 #include <QTextBlock>
-#include <QTextCodec>
 #include <QTimer>
 #include <QFileInfo>
 #include <QPrinter>
@@ -796,12 +795,7 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         break;
     }
 
-    QTextCodec::ConversionFlags codecFlags = QTextCodec::DefaultConversion;
-    if (!utfBOM())
-        codecFlags |= QTextCodec::IgnoreHeader;
-
-    std::unique_ptr<QTextEncoder> encoder(codec->makeEncoder(codecFlags));
-    const auto buffer = encoder->fromUnicode(document);
+    const auto buffer = codec->fromUnicode(document, utfBOM());
     qint64 count = file.write(buffer);
     if (count < 0) {
         QMessageBox::critical(this, QString(),
@@ -861,7 +855,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     auto detect = FileTypeInfo::detect(buffer);
     setLineEndingMode(detect.lineEndings());
 
-    QTextCodec *codec = Q_NULLPTR;
+    TextCodec *codec = Q_NULLPTR;
     if (!codecName.isEmpty()) {
         codec = QTextPadCharsets::codecForName(codecName);
         if (!codec) {
@@ -871,11 +865,10 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     }
     if (!codec)
         codec = detect.textCodec();
-    setEncoding(QString::fromLatin1(codec->name()));
+    setEncoding(codec->name());
 
-    std::unique_ptr<QTextDecoder> decoder(codec->makeDecoder());
     buffer.append(file.readAll());
-    QString document = decoder->toUnicode(buffer);
+    QString document = codec->toUnicode(buffer);
     if (!document.isEmpty() && document[0] == QChar(0xFEFF))
         document = document.mid(1);
 
