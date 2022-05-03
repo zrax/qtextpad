@@ -237,6 +237,12 @@ QTextPadCharsets::QTextPadCharsets()
         QStringLiteral("windows-949"),
     });
     m_encodingCache.append(QStringList {
+        tr("Other"),
+        QStringLiteral("macintosh"),
+        QStringLiteral("cp437"),
+        QStringLiteral("windows-1258"),
+    });
+    m_encodingCache.append(QStringList {
         tr("Thai"),
         QStringLiteral("IBM874"),
         QStringLiteral("TIS-620"),
@@ -254,12 +260,6 @@ QTextPadCharsets::QTextPadCharsets()
         QStringLiteral("ISO-8859-15"),
         QStringLiteral("hp-roman8"),
         QStringLiteral("windows-1252"),
-    });
-    m_encodingCache.append(QStringList {
-        tr("Other"),
-        QStringLiteral("macintosh"),
-        QStringLiteral("cp437"),
-        QStringLiteral("windows-1258"),
     });
     m_encodingCache.append(QStringList {
         tr("Unicode"),
