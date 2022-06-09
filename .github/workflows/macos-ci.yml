@@ -4,52 +4,60 @@ on:
     branches: [master, qt6]
   pull_request:
 
-env:
-  KF5_VERSION: "5.93"
-  KF5_FULLVER: "5.93.0"
-  QT_VERSION: "5.15.2"
-
 jobs:
   build:
     runs-on: macos-latest
+    name: "macOS-x86_64-Qt${{ matrix.cfg.qt_version }}"
+    strategy:
+      matrix:
+        cfg:
+          - { kf5_version: "5.94", kf5_fullver: "5.94.0", qt_version: "5.15.2",
+              qt_modules: "", deploy_target: "10.13", kf5_cmake_args: "" }
+          - { kf5_version: "5.94", kf5_fullver: "5.94.0", qt_version: "6.2.4",
+              qt_modules: "qt5compat", deploy_target: "10.14",
+              kf5_cmake_args: "-DBUILD_WITH_QT6=ON" }
+
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Install Qt5
+      - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
           arch: clang_64
-          version: ${{ env.QT_VERSION }}
-      - name: Build Qt5 Libs
+          version: ${{ matrix.cfg.qt_version }}
+          modules: ${{ matrix.cfg.qt_modules }}
+      - name: Build Qt Libs
         env:
-          MACOSX_DEPLOYMENT_TARGET: "10.13"
+          MACOSX_DEPLOYMENT_TARGET: "${{ matrix.cfg.deploy_target }}"
         run: |
           mkdir -p $HOME/build-libs
           cd $HOME/build-libs
-          curl -LO https://download.kde.org/stable/frameworks/$KF5_VERSION/extra-cmake-modules-${KF5_FULLVER}.tar.xz
-          curl -LO https://download.kde.org/stable/frameworks/$KF5_VERSION/syntax-highlighting-${KF5_FULLVER}.tar.xz
-          tar xf extra-cmake-modules-${KF5_FULLVER}.tar.xz
-          cd extra-cmake-modules-${KF5_FULLVER}
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.tar.xz
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.tar.xz
+          tar xf extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.tar.xz
+          cd extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}
           mkdir build && cd build
-          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64 \
-                -DCMAKE_BUILD_TYPE=Release ..
+          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/QtLibs \
+                -DCMAKE_BUILD_TYPE=Release \
+                ${{ matrix.cfg.kf5_cmake_args }} ..
           make -j2 && make install
           cd $HOME/build-libs
-          tar xf syntax-highlighting-${KF5_FULLVER}.tar.xz
-          cd syntax-highlighting-${KF5_FULLVER}
+          tar xf syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.tar.xz
+          cd syntax-highlighting-${{ matrix.cfg.kf5_fullver }}
           mkdir build && cd build
-          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64 \
-                -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release ..
+          cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/QtLibs \
+                -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release \
+                ${{ matrix.cfg.kf5_cmake_args }} ..
           make -j2 && make install
       - name: Build qtextpad
         env:
-          MACOSX_DEPLOYMENT_TARGET: "10.13"
+          MACOSX_DEPLOYMENT_TARGET: "${{ matrix.cfg.deploy_target }}"
         run: |
           cd $GITHUB_WORKSPACE
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64" \
+            -DCMAKE_PREFIX_PATH=$RUNNER_WORKSPACE/QtLibs \
             -DCMAKE_INSTALL_PREFIX=$HOME/dist ..
           make -j2
           make install
@@ -57,12 +65,12 @@ jobs:
       - name: Create package
         run: |
           cd $HOME/dist
-          $RUNNER_WORKSPACE/Qt/$QT_VERSION/clang_64/bin/macdeployqt QTextPad.app \
-              -executable=QTextPad.app/Contents/MacOS/QTextPad
+          macdeployqt QTextPad.app -executable=QTextPad.app/Contents/MacOS/QTextPad
           cp $GITHUB_WORKSPACE/COPYING ./
           mkdir -p $GITHUB_WORKSPACE/macOS
           cd $GITHUB_WORKSPACE/macOS
-          buildver=$(git describe --dirty)
+          _qtver="${{ matrix.cfg.qt_version }}"
+          buildver="$(git describe --dirty)-qt${_qtver:0:1}"
           hdiutil create qtextpad-macOS-${buildver}.dmg -srcfolder $HOME/dist \
               -format UDZO -fs HFS+ -volname "QTextPad ${buildver}"
       - name: Upload artifact
