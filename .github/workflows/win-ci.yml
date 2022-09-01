@@ -13,10 +13,10 @@ jobs:
         cfg:
           - { kf5_version: "5.94", kf5_fullver: "5.94.0", qt_version: "5.15.2",
               qt_modules: "", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "", build_installer: "$false" }
+              kf5_cmake_args: "", build_installer: "$true" }
           - { kf5_version: "5.94", kf5_fullver: "5.94.0", qt_version: "6.2.4",
               qt_modules: "qt5compat", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "-DBUILD_WITH_QT6=ON", build_installer: "$true" }
+              kf5_cmake_args: "-DBUILD_WITH_QT6=ON", build_installer: "$false" }
 
     steps:
       - uses: actions/checkout@v2
