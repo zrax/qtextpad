@@ -112,6 +112,8 @@ QTextPadCharsets::QTextPadCharsets()
         QStringLiteral("iscii-bng"),
         QStringLiteral("iscii-dev"),
         QStringLiteral("iscii-gjr"),
+        QStringLiteral("iscii-gur"),
+        QStringLiteral("iscii-guj"),
         QStringLiteral("iscii-knd"),
         QStringLiteral("iscii-mlm"),
         QStringLiteral("iscii-ori"),
@@ -152,7 +154,7 @@ QTextPadCharsets::QTextPadCharsets()
     m_encodingCache.append(QStringList {
         tr("Other"),
         QStringLiteral("macintosh"),
-        QStringLiteral("OEM437"),
+        QStringLiteral("IBM437"),
         QStringLiteral("TSCII"),
         QStringLiteral("windows-1258"),
     });

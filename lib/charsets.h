@@ -42,10 +42,10 @@ private:
 class Cp437Codec : public QTextCodec
 {
 public:
-    QByteArray name() const override { return "OEM437"; }
+    QByteArray name() const override { return "IBM437"; }
     QList<QByteArray> aliases() const override
     {
-        return QList<QByteArray>{ "CP437", "IBM437", "csPC8CodePage437" };
+        return QList<QByteArray>{ "OEM437", "cp437", "csPC8CodePage437" };
     }
 
     int mibEnum() const override { return 2011; }
