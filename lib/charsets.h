@@ -20,18 +20,24 @@
 #include <QStringList>
 #include <QCoreApplication>
 
+typedef struct UConverter UConverter;
+
 class TextCodec
 {
 public:
-    virtual QByteArray name() const = 0;
+    QByteArray name() const;
 
-    virtual QByteArray fromUnicode(const QString &text, bool addHeader) = 0;
-    virtual QString toUnicode(const QByteArray &text) = 0;
-    virtual bool canDecode(const QByteArray &text) = 0;
+    QByteArray fromUnicode(const QString &text, bool addHeader);
+    QString toUnicode(const QByteArray &text);
+    bool canDecode(const QByteArray &text);
 
-protected:
-    TextCodec() { }
-    virtual ~TextCodec() { }
+    static TextCodec *create(const QByteArray &name);
+
+private:
+    UConverter *m_converter;
+
+    TextCodec(UConverter *converter);
+    ~TextCodec();
 
     friend struct TextCodecCache;
 };
