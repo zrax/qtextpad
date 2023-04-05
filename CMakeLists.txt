@@ -42,11 +42,18 @@ set_package_properties(KF5SyntaxHighlighting PROPERTIES
     DESCRIPTION "Syntax Highlighting framework for Qt"
     TYPE REQUIRED)
 
-find_package(ICU REQUIRED COMPONENTS uc)
-set_package_properties(ICU PROPERTIES
-    URL "https://icu.unicode.org"
-    DESCRIPTION "International Components for Unicode"
-    TYPE REQUIRED)
+if(WIN32)
+    # Define an import library that links the Windows ICU library
+    # NOTE: This requires Windows 10 1903 or later
+    add_library(ICU::uc INTERFACE IMPORTED)
+    set_target_properties(ICU::uc PROPERTIES INTERFACE_LINK_LIBRARIES "icu")
+else()
+    find_package(ICU REQUIRED COMPONENTS uc)
+    set_package_properties(ICU PROPERTIES
+        URL "https://icu.unicode.org"
+        DESCRIPTION "International Components for Unicode"
+        TYPE REQUIRED)
+endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")

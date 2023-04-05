@@ -20,7 +20,12 @@
 #include <QLoggingCategory>
 
 #include <map>
+
+#ifdef Q_OS_WIN
+#include <icu.h>
+#else
 #include <unicode/ucnv.h>
+#endif
 
 Q_LOGGING_CATEGORY(CsLog, "qtextpad.charsets", QtInfoMsg)
 
