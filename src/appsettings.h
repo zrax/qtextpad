@@ -18,6 +18,7 @@
 #define _APPSETTINGS_H
 
 #include <QSettings>
+#include <QSize>
 
 #define SIMPLE_SETTING(type, name, get, set, defaultValue) \
     type get() const { return m_settings.value(QStringLiteral(name), defaultValue).value<type>(); } \
