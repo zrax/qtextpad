@@ -59,6 +59,15 @@ TextCodec *TextCodec::create(const QByteArray &name)
     return newCodec;
 }
 
+QString TextCodec::icuVersion()
+{
+    UVersionInfo versionInfo;
+    char versionString[U_MAX_VERSION_STRING_LENGTH];
+    u_getVersion(versionInfo);
+    u_versionToString(versionInfo, versionString);
+    return QString::fromLatin1(versionString);
+}
+
 TextCodec::~TextCodec()
 {
     ucnv_close(m_converter);

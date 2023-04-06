@@ -17,6 +17,8 @@
 #ifndef _CHARSETS_H
 #define _CHARSETS_H
 
+#include <QSet>
+#include <QByteArray>
 #include <QStringList>
 #include <QCoreApplication>
 
@@ -32,6 +34,8 @@ public:
     bool canDecode(const QByteArray &text);
 
     static TextCodec *create(const QByteArray &name);
+
+    static QString icuVersion();
 
 private:
     UConverter *m_converter;
