@@ -151,7 +151,22 @@ bool TextCodec::canDecode(const QByteArray &text)
 {
     if (text.isEmpty())
         return true;
-    return !toUnicode(text).isEmpty();
+
+    const void *stopContext = Q_NULLPTR;
+    const void *oldContext = Q_NULLPTR;
+    UConverterToUCallback oldAction;
+    UErrorCode err = U_ZERO_ERROR;
+    ucnv_setToUCallBack(m_converter, UCNV_TO_U_CALLBACK_STOP, stopContext,
+                        &oldAction, &oldContext, &err);
+    if (U_FAILURE(err))
+        qCDebug(CsLog, "Failed to set decode callback: %s", u_errorName(err));
+
+    bool result = !toUnicode(text).isEmpty();
+    ucnv_setToUCallBack(m_converter, oldAction, oldContext, Q_NULLPTR, Q_NULLPTR, &err);
+    if (U_FAILURE(err))
+        qCDebug(CsLog, "Failed to reset decode callback: %s", u_errorName(err));
+
+    return result;
 }
 
 TextCodec *QTextPadCharsets::codecForName(const QByteArray &name)
