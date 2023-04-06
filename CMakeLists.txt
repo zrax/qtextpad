@@ -42,11 +42,19 @@ set_package_properties(KF5SyntaxHighlighting PROPERTIES
     DESCRIPTION "Syntax Highlighting framework for Qt"
     TYPE REQUIRED)
 
-if(WIN32)
+include(CMakeDependentOption)
+cmake_dependent_option(
+        QTEXTPAD_USE_WIN10_ICU
+        "Use the built-in Windows ICU library for Windows 1903+"
+        ON "MSVC" OFF)
+
+if(QTEXTPAD_USE_WIN10_ICU)
     # Define an import library that links the Windows ICU library
     # NOTE: This requires Windows 10 1903 or later
     add_library(ICU::uc INTERFACE IMPORTED)
-    set_target_properties(ICU::uc PROPERTIES INTERFACE_LINK_LIBRARIES "icu")
+    set_target_properties(ICU::uc PROPERTIES
+            INTERFACE_LINK_LIBRARIES "icu"
+            INTERFACE_COMPILE_DEFINITIONS "QTEXTPAD_USE_WIN10_ICU=1")
 else()
     find_package(ICU REQUIRED COMPONENTS uc)
     set_package_properties(ICU PROPERTIES

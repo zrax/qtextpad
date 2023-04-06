@@ -20,7 +20,7 @@
 #include <QLoggingCategory>
 #include <QMap>
 
-#ifdef Q_OS_WIN
+#ifdef QTEXTPAD_USE_WIN10_ICU
 #include <icu.h>
 #else
 #include <unicode/ucnv.h>
