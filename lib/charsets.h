@@ -25,7 +25,7 @@ typedef struct UConverter UConverter;
 class TextCodec
 {
 public:
-    QByteArray name() const;
+    QByteArray name() const { return m_name; }
 
     QByteArray fromUnicode(const QString &text, bool addHeader);
     QString toUnicode(const QByteArray &text);
@@ -35,8 +35,10 @@ public:
 
 private:
     UConverter *m_converter;
+    QByteArray m_name;
 
-    TextCodec(UConverter *converter);
+    TextCodec(UConverter *converter, QByteArray name)
+        : m_converter(converter), m_name(std::move(name)) { }
     ~TextCodec();
 
     friend struct TextCodecCache;
@@ -53,11 +55,14 @@ public:
 
     static QList<QStringList> encodingsByScript();
 
+    static QByteArray getPreferredName(const QByteArray &codecName);
+
 private:
     QTextPadCharsets();
     static QTextPadCharsets *instance();
 
     QList<QStringList> m_encodingCache;
+    QSet<QByteArray> m_encodingNames;
 };
 
 #endif // _CHARSETS_H

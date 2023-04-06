@@ -101,7 +101,7 @@ FileTypeInfo FileTypeInfo::detect(const QByteArray &buffer)
         }
     }
 
-    // If we don't have a recognizable BOM, try seeing if Qt's UTF-8 codec
+    // If we don't have a recognizable BOM, try seeing if the UTF-8 codec
     // can decode it without any errors
     if (params->textCodec == Q_NULLPTR) {
         auto codec = QTextPadCharsets::codecForName("UTF-8");

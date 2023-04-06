@@ -40,9 +40,6 @@ struct TextCodecCache
 };
 static TextCodecCache s_codecs;
 
-TextCodec::TextCodec(UConverter *converter) : m_converter(converter)
-{ }
-
 TextCodec *TextCodec::create(const QByteArray &name)
 {
     if (s_codecs.m_cache.contains(name))
@@ -54,28 +51,17 @@ TextCodec *TextCodec::create(const QByteArray &name)
         qCDebug(CsLog, "Failed to create UConverter for %s: %s",
                 name.constData(), u_errorName(err));
     }
-    if (converter) {
-        auto newCodec = new TextCodec(converter);
-        s_codecs.m_cache[name] = newCodec;
-        return newCodec;
-    }
-    return Q_NULLPTR;
+    if (!converter)
+        return Q_NULLPTR;
+
+    auto newCodec = new TextCodec(converter, name);
+    s_codecs.m_cache[name] = newCodec;
+    return newCodec;
 }
 
 TextCodec::~TextCodec()
 {
     ucnv_close(m_converter);
-}
-
-QByteArray TextCodec::name() const
-{
-    UErrorCode err = U_ZERO_ERROR;
-    const char *name = ucnv_getName(m_converter, &err);
-    if (U_FAILURE(err)) {
-        qCDebug(CsLog, "Failed to get converter name: %s", u_errorName(err));
-        return "Unknown";
-    }
-    return name;
 }
 
 QByteArray TextCodec::fromUnicode(const QString &text, bool addHeader)
@@ -176,7 +162,11 @@ TextCodec *QTextPadCharsets::codecForName(const QByteArray &name)
 
 TextCodec *QTextPadCharsets::codecForLocale()
 {
-    return TextCodec::create(ucnv_getDefaultName());
+    QByteArray defaultName = ucnv_getDefaultName();
+    QByteArray preferredName = QTextPadCharsets::getPreferredName(defaultName);
+    if (preferredName.isEmpty())
+        return TextCodec::create(defaultName);
+    return TextCodec::create(preferredName);
 }
 
 // Data originally from KCharsets with a few additions.  However, KCharsets is
@@ -309,6 +299,7 @@ QTextPadCharsets::QTextPadCharsets()
                 qCDebug(CsLog, "Removing unsupported codec %s", qPrintable(name));
                 encodingList.removeAt(enc);
             } else {
+                m_encodingNames.insert(name.toLatin1());
                 codecDupes[codec->name()].append(name);
                 ++enc;
             }
@@ -341,4 +332,27 @@ QTextPadCharsets *QTextPadCharsets::instance()
 QList<QStringList> QTextPadCharsets::encodingsByScript()
 {
     return instance()->m_encodingCache;
+}
+
+QByteArray QTextPadCharsets::getPreferredName(const QByteArray &codecName)
+{
+    UErrorCode err = U_ZERO_ERROR;
+    uint16_t count = ucnv_countAliases(codecName.constData(), &err);
+    if (U_FAILURE(err)) {
+        qCDebug(CsLog, "Failed to query aliases for %s: %s", codecName.constData(),
+                u_errorName(err));
+    }
+
+    for (uint16_t i = 0; i < count; ++i) {
+        QByteArray alias = ucnv_getAlias(codecName.constData(), i, &err);
+        if (U_FAILURE(err)) {
+            qCDebug(CsLog, "Failed to get alias %u for %s: %s", (unsigned)i,
+                    codecName.constData(), u_errorName(err));
+        }
+        if (instance()->m_encodingNames.contains(alias))
+            return alias;
+    }
+
+    // No match, just return what we were given
+    return codecName;
 }
