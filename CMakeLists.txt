@@ -45,15 +45,15 @@ set_package_properties(KF5SyntaxHighlighting PROPERTIES
 include(CMakeDependentOption)
 cmake_dependent_option(
         QTEXTPAD_USE_WIN10_ICU
-        "Use the built-in Windows ICU library for Windows 1903+"
+        "Use the built-in Windows ICU library for Windows 1709+"
         ON "MSVC" OFF)
 
 if(QTEXTPAD_USE_WIN10_ICU)
     # Define an import library that links the Windows ICU library
-    # NOTE: This requires Windows 10 1903 or later
+    # NOTE: This requires Windows 10 1703 or later
     add_library(ICU::uc INTERFACE IMPORTED)
     set_target_properties(ICU::uc PROPERTIES
-            INTERFACE_LINK_LIBRARIES "icu"
+            INTERFACE_LINK_LIBRARIES "icuuc"
             INTERFACE_COMPILE_DEFINITIONS "QTEXTPAD_USE_WIN10_ICU=1")
 else()
     find_package(ICU REQUIRED COMPONENTS uc)
