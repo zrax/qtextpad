@@ -50,6 +50,10 @@ TextCodec *TextCodec::create(const QByteArray &name)
 
     UErrorCode err = U_ZERO_ERROR;
     UConverter *converter = ucnv_open(name.constData(), &err);
+    if (U_FAILURE(err)) {
+        qCDebug(CsLog, "Failed to create UConverter for %s: %s",
+                name.constData(), u_errorName(err));
+    }
     if (converter) {
         auto newCodec = new TextCodec(converter);
         s_codecs.m_cache[name] = newCodec;
@@ -66,7 +70,12 @@ TextCodec::~TextCodec()
 QByteArray TextCodec::name() const
 {
     UErrorCode err = U_ZERO_ERROR;
-    return ucnv_getName(m_converter, &err);
+    const char *name = ucnv_getName(m_converter, &err);
+    if (U_FAILURE(err)) {
+        qCDebug(CsLog, "Failed to get converter name: %s", u_errorName(err));
+        return "Unknown";
+    }
+    return name;
 }
 
 QByteArray TextCodec::fromUnicode(const QString &text, bool addHeader)
@@ -79,6 +88,8 @@ QByteArray TextCodec::fromUnicode(const QString &text, bool addHeader)
     if (addHeader && (buffer.empty() || buffer.front() != 0xFEFF))
         buffer.insert(buffer.begin(), 0xFEFF);
 
+    ucnv_reset(m_converter);
+
     int maxLength = UCNV_GET_MAX_BYTES_FOR_STRING(text.length(), ucnv_getMaxCharSize(m_converter));
     QByteArray output(maxLength, Qt::Uninitialized);
 
@@ -90,7 +101,7 @@ QByteArray TextCodec::fromUnicode(const QString &text, bool addHeader)
         UErrorCode err = U_ZERO_ERROR;
         ucnv_fromUnicode(m_converter, &outptr, output.data() + output.size(),
                          &inptr, inend, nullptr, false, &err);
-        if (!U_SUCCESS(err)) {
+        if (U_FAILURE(err)) {
             qCDebug(CsLog, "ucnv_fromUnicode failed: %s", u_errorName(err));
             return QByteArray();
         }
@@ -112,6 +123,8 @@ QString TextCodec::toUnicode(const QByteArray &text)
     std::vector<UChar> buffer;
     buffer.resize(text.size());
 
+    ucnv_reset(m_converter);
+
     int convChars = 0;
     const char *inptr = text.constData();
     const char *inend = inptr + text.length();
@@ -120,7 +133,7 @@ QString TextCodec::toUnicode(const QByteArray &text)
         UErrorCode err = U_ZERO_ERROR;
         ucnv_toUnicode(m_converter, &outptr, buffer.data() + buffer.size(),
                        &inptr, inend, nullptr, false, &err);
-        if (!U_SUCCESS(err) && err != U_BUFFER_OVERFLOW_ERROR) {
+        if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
             qCDebug(CsLog, "ucnv_toUnicode failed: %s", u_errorName(err));
             return QString();
         }
