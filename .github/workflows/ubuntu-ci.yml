@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install qtbase5-dev libkf5syntaxhighlighting-dev
+          sudo apt install qtbase5-dev libkf5syntaxhighlighting-dev libicu-dev
       - name: Build qtextpad
         run: |
           mkdir build && cd build

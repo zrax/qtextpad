@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
 
-project(qtextpad)
 cmake_minimum_required(VERSION 3.7)
+project(qtextpad)
 
 set(CMAKE_AUTOMOC TRUE)
 set(CMAKE_AUTORCC TRUE)
