@@ -33,6 +33,7 @@ target_link_libraries(syntaxtextedit
         Qt::PrintSupport
         KF5::SyntaxHighlighting
         ICU::uc
+        ICU::data
 )
 
 if(TARGET Qt::Core5Compat)

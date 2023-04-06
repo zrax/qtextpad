@@ -55,8 +55,9 @@ if(QTEXTPAD_USE_WIN10_ICU)
     set_target_properties(ICU::uc PROPERTIES
             INTERFACE_LINK_LIBRARIES "icuuc"
             INTERFACE_COMPILE_DEFINITIONS "QTEXTPAD_USE_WIN10_ICU=1")
+    add_library(ICU::data INTERFACE IMPORTED)
 else()
-    find_package(ICU REQUIRED COMPONENTS uc)
+    find_package(ICU REQUIRED COMPONENTS uc data)
     set_package_properties(ICU PROPERTIES
         URL "https://icu.unicode.org"
         DESCRIPTION "International Components for Unicode"
