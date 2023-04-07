@@ -17,11 +17,11 @@ jobs:
               qt_modules: "qt5compat", kf5_cmake_args: "-DBUILD_WITH_QT6=ON" }
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           arch: clang_64
           version: ${{ matrix.cfg.qt_version }}
@@ -75,7 +75,7 @@ jobs:
           hdiutil create qtextpad-macOS-${buildver}.dmg -srcfolder $HOME/dist \
               -format UDZO -fs HFS+ -volname "QTextPad ${buildver}"
       - name: Upload artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: QTextPad-macOS
           path: macOS
