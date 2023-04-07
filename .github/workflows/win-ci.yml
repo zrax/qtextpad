@@ -19,11 +19,11 @@ jobs:
               kf5_cmake_args: "-DBUILD_WITH_QT6=ON", build_installer: "$true" }
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           arch: win64_msvc2019_64
           version: ${{ matrix.cfg.qt_version }}
@@ -91,7 +91,7 @@ jobs:
               cmake -E rename qtextpad-win64.exe "..\qtextpad-win64-${buildver}.exe"
           }
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: QTextPad-win64
           path: qtextpad-win64-*.*

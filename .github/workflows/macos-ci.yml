@@ -6,30 +6,29 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-11
     name: "macOS-x86_64-Qt${{ matrix.cfg.qt_version }}"
     strategy:
       matrix:
         cfg:
           - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "5.15.2",
-              qt_modules: "", deploy_target: "10.13", kf5_cmake_args: "" }
+              qt_modules: "", kf5_cmake_args: "" }
           - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "6.5.0",
-              qt_modules: "qt5compat", deploy_target: "11.0",
-              kf5_cmake_args: "-DBUILD_WITH_QT6=ON" }
+              qt_modules: "qt5compat", kf5_cmake_args: "-DBUILD_WITH_QT6=ON" }
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           arch: clang_64
           version: ${{ matrix.cfg.qt_version }}
           modules: ${{ matrix.cfg.qt_modules }}
       - name: Build Qt Libs
         env:
-          MACOSX_DEPLOYMENT_TARGET: "${{ matrix.cfg.deploy_target }}"
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
         run: |
           mkdir -p $HOME/build-libs
           cd $HOME/build-libs
@@ -50,6 +49,8 @@ jobs:
                 -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release \
                 ${{ matrix.cfg.kf5_cmake_args }} ..
           make -j2 && make install
+      - name: Install ICU
+        run: brew install icu4c
       - name: Build qtextpad
         env:
           MACOSX_DEPLOYMENT_TARGET: "${{ matrix.cfg.deploy_target }}"
@@ -57,7 +58,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH=$RUNNER_WORKSPACE/QtLibs \
+            -DCMAKE_PREFIX_PATH="$RUNNER_WORKSPACE/QtLibs;$(brew --prefix)/opt/icu4c" \
             -DCMAKE_INSTALL_PREFIX=$HOME/dist ..
           make -j2
           make install
@@ -74,7 +75,7 @@ jobs:
           hdiutil create qtextpad-macOS-${buildver}.dmg -srcfolder $HOME/dist \
               -format UDZO -fs HFS+ -volname "QTextPad ${buildver}"
       - name: Upload artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: QTextPad-macOS
           path: macOS

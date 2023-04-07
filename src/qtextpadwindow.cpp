@@ -35,7 +35,6 @@
 #include <QClipboard>
 #include <QUndoStack>
 #include <QTextBlock>
-#include <QTextCodec>
 #include <QTimer>
 #include <QFileInfo>
 #include <QPrinter>
@@ -672,7 +671,7 @@ void QTextPadWindow::setEncoding(const QString &codecName)
     if (m_setEncodingActions->checkedAction())
         m_setEncodingActions->checkedAction()->setChecked(false);
 
-    if (!QTextPadCharsets::codecForName(codecName)) {
+    if (!QTextPadCharsets::codecForName(codecName.toLatin1())) {
         qWarning("Invalid codec selected");
         m_encodingButton->setText(tr("Invalid (%1)").arg(codecName));
     } else {
@@ -762,7 +761,7 @@ static QString convertRawText(const QString &text)
 
 bool QTextPadWindow::saveDocumentTo(const QString &filename)
 {
-    auto codec = QTextPadCharsets::codecForName(m_textEncoding);
+    auto codec = QTextPadCharsets::codecForName(m_textEncoding.toLatin1());
     if (!codec) {
         QMessageBox::critical(this, QString(),
             tr("The selected encoding (%1) is invalid.  Please select a valid "
@@ -796,12 +795,7 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         break;
     }
 
-    QTextCodec::ConversionFlags codecFlags = QTextCodec::DefaultConversion;
-    if (!utfBOM())
-        codecFlags |= QTextCodec::IgnoreHeader;
-
-    std::unique_ptr<QTextEncoder> encoder(codec->makeEncoder(codecFlags));
-    const auto buffer = encoder->fromUnicode(document);
+    const auto buffer = codec->fromUnicode(document, utfBOM());
     qint64 count = file.write(buffer);
     if (count < 0) {
         QMessageBox::critical(this, QString(),
@@ -861,9 +855,9 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     auto detect = FileTypeInfo::detect(buffer);
     setLineEndingMode(detect.lineEndings());
 
-    QTextCodec *codec = Q_NULLPTR;
+    TextCodec *codec = Q_NULLPTR;
     if (!codecName.isEmpty()) {
-        codec = QTextPadCharsets::codecForName(codecName);
+        codec = QTextPadCharsets::codecForName(codecName.toLatin1());
         if (!codec) {
             qDebug("Invalid manually-specified encoding: %s",
                    codecName.toLocal8Bit().constData());
@@ -873,9 +867,8 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         codec = detect.textCodec();
     setEncoding(QString::fromLatin1(codec->name()));
 
-    std::unique_ptr<QTextDecoder> decoder(codec->makeDecoder());
     buffer.append(file.readAll());
-    QString document = decoder->toUnicode(buffer);
+    QString document = codec->toUnicode(buffer);
     if (!document.isEmpty() && document[0] == QChar(0xFEFF))
         document = document.mid(1);
 

@@ -16,35 +16,166 @@
 
 #include "charsets.h"
 
-#include <QTextCodec>
 #include <QCoreApplication>
 #include <QLoggingCategory>
-#include <map>
+#include <QMap>
+
+#ifdef QTEXTPAD_USE_WIN10_ICU
+#include <icu.h>
+#else
+#include <unicode/ucnv.h>
+#endif
 
 Q_LOGGING_CATEGORY(CsLog, "qtextpad.charsets", QtInfoMsg)
 
-// Greatly simplified version from KCharsets with no Latin-1 fallback
-QTextCodec *QTextPadCharsets::codecForName(const QString &name)
+struct TextCodecCache
 {
-    // KCharsets handles this one specially...  Not sure why
-    if (name == QLatin1String("gb2312") || name == QLatin1String("gbk"))
-        return QTextCodec::codecForName("gb18030");
+    ~TextCodecCache()
+    {
+        for (TextCodec *codec : m_cache)
+            delete codec;
+    }
 
-    QByteArray nameLatin1 = name.toLatin1();
-    auto codec = QTextCodec::codecForName(nameLatin1);
-    if (codec)
-        return codec;
+    QMap<QByteArray, TextCodec *> m_cache;
+};
+static TextCodecCache s_codecs;
 
-    nameLatin1 = nameLatin1.toLower();
-    if (nameLatin1.endsWith("_charset"))
-        nameLatin1.chop(8);
-    if (nameLatin1.startsWith("x-"))
-        nameLatin1.remove(0, 2);
+TextCodec *TextCodec::create(const QByteArray &name)
+{
+    if (s_codecs.m_cache.contains(name))
+        return s_codecs.m_cache[name];
 
-    if (nameLatin1.isEmpty())
+    UErrorCode err = U_ZERO_ERROR;
+    UConverter *converter = ucnv_open(name.constData(), &err);
+    if (U_FAILURE(err)) {
+        qCDebug(CsLog, "Failed to create UConverter for %s: %s",
+                name.constData(), u_errorName(err));
+    }
+    if (!converter)
         return Q_NULLPTR;
 
-    return QTextCodec::codecForName(nameLatin1);
+    auto newCodec = new TextCodec(converter, name);
+    s_codecs.m_cache[name] = newCodec;
+    return newCodec;
+}
+
+QString TextCodec::icuVersion()
+{
+    UVersionInfo versionInfo;
+    char versionString[U_MAX_VERSION_STRING_LENGTH];
+    u_getVersion(versionInfo);
+    u_versionToString(versionInfo, versionString);
+    return QString::fromLatin1(versionString);
+}
+
+TextCodec::~TextCodec()
+{
+    ucnv_close(m_converter);
+}
+
+QByteArray TextCodec::fromUnicode(const QString &text, bool addHeader)
+{
+    static_assert(sizeof(UChar) == sizeof(QChar),
+                  "This code assumes UChar and QChar are both UTF-16 types.");
+    std::vector<UChar> buffer;
+    buffer.reserve(text.size() + (addHeader ? 1 : 0));
+    buffer.assign((const UChar *)text.constData(), (const UChar *)text.constData() + text.size());
+    if (addHeader && (buffer.empty() || buffer.front() != 0xFEFF))
+        buffer.insert(buffer.begin(), 0xFEFF);
+
+    ucnv_reset(m_converter);
+
+    int maxLength = UCNV_GET_MAX_BYTES_FOR_STRING(text.length(), ucnv_getMaxCharSize(m_converter));
+    QByteArray output(maxLength, Qt::Uninitialized);
+
+    int convBytes = 0;
+    const UChar *inptr = buffer.data();
+    const UChar *inend = inptr + buffer.size();
+    for ( ;; ) {
+        char *outptr = output.data() + convBytes;
+        UErrorCode err = U_ZERO_ERROR;
+        ucnv_fromUnicode(m_converter, &outptr, output.data() + output.size(),
+                         &inptr, inend, nullptr, false, &err);
+        if (U_FAILURE(err)) {
+            qCDebug(CsLog, "ucnv_fromUnicode failed: %s", u_errorName(err));
+            return QByteArray();
+        }
+
+        convBytes = outptr - output.data();
+        if (inptr >= inend)
+            break;
+        output.resize(output.length() * 2);
+    }
+
+    output.resize(convBytes);
+    return output;
+}
+
+QString TextCodec::toUnicode(const QByteArray &text)
+{
+    static_assert(sizeof(UChar) == sizeof(QChar),
+                  "This code assumes UChar and QChar are both UTF-16 types.");
+    std::vector<UChar> buffer;
+    buffer.resize(text.size());
+
+    ucnv_reset(m_converter);
+
+    int convChars = 0;
+    const char *inptr = text.constData();
+    const char *inend = inptr + text.length();
+    UChar *outptr = buffer.data();
+    for ( ;; ) {
+        UErrorCode err = U_ZERO_ERROR;
+        ucnv_toUnicode(m_converter, &outptr, buffer.data() + buffer.size(),
+                       &inptr, inend, nullptr, false, &err);
+        if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
+            qCDebug(CsLog, "ucnv_toUnicode failed: %s", u_errorName(err));
+            return QString();
+        }
+
+        convChars = outptr - buffer.data();
+        if (inptr >= inend)
+            break;
+        buffer.resize(buffer.size() * 2);
+    }
+
+    return QString((const QChar *)buffer.data(), convChars);
+}
+
+bool TextCodec::canDecode(const QByteArray &text)
+{
+    if (text.isEmpty())
+        return true;
+
+    const void *stopContext = Q_NULLPTR;
+    const void *oldContext = Q_NULLPTR;
+    UConverterToUCallback oldAction;
+    UErrorCode err = U_ZERO_ERROR;
+    ucnv_setToUCallBack(m_converter, UCNV_TO_U_CALLBACK_STOP, stopContext,
+                        &oldAction, &oldContext, &err);
+    if (U_FAILURE(err))
+        qCDebug(CsLog, "Failed to set decode callback: %s", u_errorName(err));
+
+    bool result = !toUnicode(text).isEmpty();
+    ucnv_setToUCallBack(m_converter, oldAction, oldContext, Q_NULLPTR, Q_NULLPTR, &err);
+    if (U_FAILURE(err))
+        qCDebug(CsLog, "Failed to reset decode callback: %s", u_errorName(err));
+
+    return result;
+}
+
+TextCodec *QTextPadCharsets::codecForName(const QByteArray &name)
+{
+    return TextCodec::create(name);
+}
+
+TextCodec *QTextPadCharsets::codecForLocale()
+{
+    QByteArray defaultName = ucnv_getDefaultName();
+    QByteArray preferredName = QTextPadCharsets::getPreferredName(defaultName);
+    if (preferredName.isEmpty())
+        return TextCodec::create(defaultName);
+    return TextCodec::create(preferredName);
 }
 
 // Data originally from KCharsets with a few additions.  However, KCharsets is
@@ -54,8 +185,6 @@ QTextCodec *QTextPadCharsets::codecForName(const QString &name)
 // for example, all of which are the same ambiguous UTF-16 codec)
 QTextPadCharsets::QTextPadCharsets()
 {
-    (void)new Cp437Codec;
-
     m_encodingCache.reserve(17);
     m_encodingCache.append(QStringList {
         tr("Arabic"),
@@ -133,6 +262,12 @@ QTextPadCharsets::QTextPadCharsets()
         QStringLiteral("windows-949"),
     });
     m_encodingCache.append(QStringList {
+        tr("Other"),
+        QStringLiteral("macintosh"),
+        QStringLiteral("cp437"),
+        QStringLiteral("windows-1258"),
+    });
+    m_encodingCache.append(QStringList {
         tr("Thai"),
         QStringLiteral("IBM874"),
         QStringLiteral("TIS-620"),
@@ -152,13 +287,6 @@ QTextPadCharsets::QTextPadCharsets()
         QStringLiteral("windows-1252"),
     });
     m_encodingCache.append(QStringList {
-        tr("Other"),
-        QStringLiteral("macintosh"),
-        QStringLiteral("IBM437"),
-        QStringLiteral("TSCII"),
-        QStringLiteral("windows-1258"),
-    });
-    m_encodingCache.append(QStringList {
         tr("Unicode"),
         QStringLiteral("UTF-7"),
         QStringLiteral("UTF-8"),
@@ -168,19 +296,20 @@ QTextPadCharsets::QTextPadCharsets()
         QStringLiteral("UTF-32BE"),
     });
 
-    std::map<QTextCodec *, QStringList> codecDupes;
+    QMap<QByteArray, QStringList> codecDupes;
 
     // Prune encodings that aren't supported by Qt or the platform
     for (auto &encodingList : m_encodingCache) {
         int enc = 1;
         while (enc < encodingList.size()) {
             const QString &name = encodingList.at(enc);
-            QTextCodec *codec = QTextCodec::codecForName(name.toLatin1());
+            TextCodec *codec = codecForName(name.toLatin1());
             if (!codec) {
                 qCDebug(CsLog, "Removing unsupported codec %s", qPrintable(name));
                 encodingList.removeAt(enc);
             } else {
-                codecDupes[codec].append(name);
+                m_encodingNames.insert(name.toLatin1());
+                codecDupes[codec->name()].append(name);
                 ++enc;
             }
         }
@@ -194,10 +323,10 @@ QTextPadCharsets::QTextPadCharsets()
             ++script;
     }
 
-    for (const auto &dupe : codecDupes) {
-        if (dupe.second.size() > 1) {
-            qCDebug(CsLog, "Duplicate codecs for %s:", dupe.first->name().constData());
-            for (const auto &name : dupe.second)
+    for (auto dupe = codecDupes.constBegin(); dupe != codecDupes.constEnd(); ++dupe) {
+        if (dupe.value().size() > 1) {
+            qCDebug(CsLog, "Duplicate codecs for %s:", dupe.key().constData());
+            for (const auto &name : dupe.value())
                 qCDebug(CsLog, "  * %s", qPrintable(name));
         }
     }
@@ -212,4 +341,27 @@ QTextPadCharsets *QTextPadCharsets::instance()
 QList<QStringList> QTextPadCharsets::encodingsByScript()
 {
     return instance()->m_encodingCache;
+}
+
+QByteArray QTextPadCharsets::getPreferredName(const QByteArray &codecName)
+{
+    UErrorCode err = U_ZERO_ERROR;
+    uint16_t count = ucnv_countAliases(codecName.constData(), &err);
+    if (U_FAILURE(err)) {
+        qCDebug(CsLog, "Failed to query aliases for %s: %s", codecName.constData(),
+                u_errorName(err));
+    }
+
+    for (uint16_t i = 0; i < count; ++i) {
+        QByteArray alias = ucnv_getAlias(codecName.constData(), i, &err);
+        if (U_FAILURE(err)) {
+            qCDebug(CsLog, "Failed to get alias %u for %s: %s", (unsigned)i,
+                    codecName.constData(), u_errorName(err));
+        }
+        if (instance()->m_encodingNames.contains(alias))
+            return alias;
+    }
+
+    // No match, just return what we were given
+    return codecName;
 }

@@ -26,6 +26,7 @@
 #include <ksyntaxhighlighting_version.h>
 
 #include "appversion.h"
+#include "charsets.h"
 
 AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent)
@@ -74,10 +75,12 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<b>Built with:</b><ul>"
         "<li>Qt %1</li>"
         "<li>KSyntaxHighlighting %2</li>"
+        "<li>ICU %3</li>"
         "<li>Oxygen Icons</li>"
         "</ul>")
         .arg(QString::fromLatin1(qVersion()))
         .arg(QStringLiteral(SyntaxHighlighting_VERSION_STRING))
+        .arg(TextCodec::icuVersion())
         );
     libVersions->setMargin(10);
     libVersions->setAlignment(Qt::AlignLeft | Qt::AlignTop);

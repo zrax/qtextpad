@@ -24,7 +24,6 @@
 #include <QHeaderView>
 #include <QScrollBar>
 #include <QVBoxLayout>
-#include <QTextCodec>
 
 #include <KSyntaxHighlighting/Repository>
 

@@ -18,7 +18,6 @@ target_sources(syntaxtextedit
     PRIVATE
         charsets.h
         charsets.cpp
-        cp437codec.cpp
         filetypeinfo.h
         filetypeinfo.cpp
         syntaxhighlighter.h
@@ -33,6 +32,8 @@ target_link_libraries(syntaxtextedit
         Qt::Widgets
         Qt::PrintSupport
         KF5::SyntaxHighlighting
+        ICU::uc
+        ICU::data
 )
 
 if(TARGET Qt::Core5Compat)

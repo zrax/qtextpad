@@ -17,9 +17,36 @@
 #ifndef _CHARSETS_H
 #define _CHARSETS_H
 
+#include <QSet>
+#include <QByteArray>
 #include <QStringList>
 #include <QCoreApplication>
-#include <QTextCodec>
+
+typedef struct UConverter UConverter;
+
+class TextCodec
+{
+public:
+    QByteArray name() const { return m_name; }
+
+    QByteArray fromUnicode(const QString &text, bool addHeader);
+    QString toUnicode(const QByteArray &text);
+    bool canDecode(const QByteArray &text);
+
+    static TextCodec *create(const QByteArray &name);
+
+    static QString icuVersion();
+
+private:
+    UConverter *m_converter;
+    QByteArray m_name;
+
+    TextCodec(UConverter *converter, QByteArray name)
+        : m_converter(converter), m_name(std::move(name)) { }
+    ~TextCodec();
+
+    friend struct TextCodecCache;
+};
 
 // Simplified version of KCharsets with more standard names and fewer duplicates
 class QTextPadCharsets
@@ -27,32 +54,19 @@ class QTextPadCharsets
     Q_DECLARE_TR_FUNCTIONS(QTextPadCharsets)
 
 public:
-    static QTextCodec *codecForName(const QString &name);
+    static TextCodec *codecForName(const QByteArray &name);
+    static TextCodec *codecForLocale();
 
     static QList<QStringList> encodingsByScript();
+
+    static QByteArray getPreferredName(const QByteArray &codecName);
 
 private:
     QTextPadCharsets();
     static QTextPadCharsets *instance();
 
     QList<QStringList> m_encodingCache;
-};
-
-// CP 437 (OEM/DOS) codec
-class Cp437Codec : public QTextCodec
-{
-public:
-    QByteArray name() const override { return "IBM437"; }
-    QList<QByteArray> aliases() const override
-    {
-        return QList<QByteArray>{ "OEM437", "cp437", "csPC8CodePage437" };
-    }
-
-    int mibEnum() const override { return 2011; }
-
-protected:
-    QString convertToUnicode(const char *in, int length, ConverterState *state) const override;
-    QByteArray convertFromUnicode(const QChar *in, int length, ConverterState *state) const override;
+    QSet<QByteArray> m_encodingNames;
 };
 
 #endif // _CHARSETS_H
