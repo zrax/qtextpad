@@ -19,6 +19,10 @@
 #include <QLibraryInfo>
 #include <QCommandLineParser>
 #include <QIcon>
+#if defined(Q_OS_WIN) && (QT_VERSION >= QT_VERSION_CHECK(6, 5, 0))
+#include <QStyleHints>
+#include <QStyle>
+#endif
 
 #include <ksyntaxhighlighting_version.h>
 #include <KSyntaxHighlighting/Repository>
@@ -57,8 +61,22 @@ static void setDefaultIconTheme()
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    app.setApplicationName(QStringLiteral("qtextpad"));
-    app.setApplicationVersion(QTextPadVersion::versionString());
+    QCoreApplication::setApplicationName(QStringLiteral("qtextpad"));
+    QCoreApplication::setApplicationVersion(QTextPadVersion::versionString());
+
+#if defined(Q_OS_WIN) && (QT_VERSION >= QT_VERSION_CHECK(6, 5, 0))
+    QString defaultStyle = QApplication::style()->name();
+    if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
+        QApplication::setStyle(QStringLiteral("fusion"));
+
+    QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+                     [defaultStyle](Qt::ColorScheme colorScheme) {
+        if (colorScheme == Qt::ColorScheme::Dark)
+            QApplication::setStyle(QStringLiteral("fusion"));
+        else
+            QApplication::setStyle(defaultStyle);
+    });
+#endif
 
     QTranslator qtTranslator;
     if (qtTranslator.load(QLocale(), QStringLiteral("qt"), QStringLiteral("_"),
