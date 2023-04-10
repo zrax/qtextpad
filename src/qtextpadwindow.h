@@ -50,7 +50,8 @@ public:
     SyntaxTextEdit *editor() { return m_editor; }
 
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
-    void setTheme(const KSyntaxHighlighting::Theme &theme);
+    void setEditorTheme(const KSyntaxHighlighting::Theme &theme);
+    void setDefaultEditorTheme();
     void setEncoding(const QString &codecName);
 
     QString textEncoding() const { return m_textEncoding; }
@@ -150,6 +151,7 @@ private:
     QAction *m_autoIndentAction;
     QAction *m_fullScreenAction;
     QActionGroup *m_themeActions;
+    QAction *m_defaultThemeAction;
     QActionGroup *m_syntaxActions;
     QActionGroup *m_setEncodingActions;
     QActionGroup *m_lineEndingActions;

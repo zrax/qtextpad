@@ -42,6 +42,11 @@
 #include <QProcess>
 #include <QFileSystemWatcher>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <QGuiApplication>
+#include <QStyleHints>
+#endif
+
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Theme>
@@ -537,10 +542,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     QString themeName = settings.editorTheme();
     if (!themeName.isEmpty())
         theme = SyntaxTextEdit::syntaxRepo()->theme(themeName);
-    if (!theme.isValid())
-        theme = SyntaxTextEdit::syntaxRepo()->theme(m_editor->themeName());
     if (theme.isValid())
-        setTheme(theme);
+        setEditorTheme(theme);
+    else
+        setDefaultEditorTheme();
 
     m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).boundingRect(tr("OVR")).width() + 4);
     m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).boundingRect(tr("CRLF")).width() + 4);
@@ -580,6 +585,14 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         if (state == Qt::ApplicationActive)
             checkForModifications();
     });
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+            [this](Qt::ColorScheme colorScheme) {
+        if (m_defaultThemeAction->isChecked())
+            setDefaultEditorTheme();
+    });
+#endif
 
     installEventFilter(this);
 }
@@ -646,12 +659,15 @@ void QTextPadWindow::setSyntax(const KSyntaxHighlighting::Definition &syntax)
     }
 }
 
-void QTextPadWindow::setTheme(const KSyntaxHighlighting::Theme &theme)
+void QTextPadWindow::setEditorTheme(const KSyntaxHighlighting::Theme &theme)
 {
     m_editor->setTheme(theme);
 
     // Update the menus when this is triggered via other callers
     for (const auto &action : m_themeActions->actions()) {
+        if (!action->data().canConvert<KSyntaxHighlighting::Theme>())
+            continue;
+
         const auto actionTheme = action->data().value<KSyntaxHighlighting::Theme>();
         if (actionTheme.filePath() == theme.filePath()) {
             action->setChecked(true);
@@ -660,6 +676,13 @@ void QTextPadWindow::setTheme(const KSyntaxHighlighting::Theme &theme)
     }
 
     QTextPadSettings().setEditorTheme(theme.name());
+}
+
+void QTextPadWindow::setDefaultEditorTheme()
+{
+    m_editor->setDefaultTheme();
+    m_defaultThemeAction->setChecked(true);
+    QTextPadSettings().clearEditorTheme();
 }
 
 void QTextPadWindow::setEncoding(const QString &codecName)
@@ -1642,6 +1665,12 @@ void QTextPadWindow::populateThemeMenu()
 {
     m_themeActions = new QActionGroup(this);
 
+    m_defaultThemeAction = m_themeMenu->addAction(tr("Automatic"));
+    m_defaultThemeAction->setCheckable(true);
+    m_defaultThemeAction->setActionGroup(m_themeActions);
+    connect(m_defaultThemeAction, &QAction::triggered, this, [this] { setDefaultEditorTheme(); });
+    m_themeMenu->addSeparator();
+
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
     const auto themeDefs = syntaxRepo->themes();
     for (const auto &theme : themeDefs) {
@@ -1649,7 +1678,7 @@ void QTextPadWindow::populateThemeMenu()
         item->setCheckable(true);
         item->setActionGroup(m_themeActions);
         item->setData(QVariant::fromValue(theme));
-        connect(item, &QAction::triggered, this, [this, theme] { setTheme(theme); });
+        connect(item, &QAction::triggered, this, [this, theme] { setEditorTheme(theme); });
     }
 }
 

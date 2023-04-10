@@ -25,6 +25,11 @@
 #include <QStringRef>
 #include <QtMath>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <QGuiApplication>
+#include <QStyleHints>
+#endif
+
 #include <KSyntaxHighlighting/Theme>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
@@ -81,10 +86,7 @@ SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     setDefaultFont(fixedFont);
     setWordWrap(false);
     setIndentationMode(-1);
-
-    setTheme((palette().color(QPalette::Base).lightness() < 128)
-             ? syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
-             : syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme));
+    setDefaultTheme();
 
     QTextOption opt = document()->defaultTextOption();
     opt.setFlags(opt.flags() | QTextOption::AddSpaceForLineAndParagraphSeparators);
@@ -666,6 +668,18 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
 QString SyntaxTextEdit::themeName() const
 {
     return m_highlighter->theme().name();
+}
+
+void SyntaxTextEdit::setDefaultTheme()
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    const bool useDarkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+#else
+    const bool useDarkTheme = (palette().color(QPalette::Base).lightness() < 128);
+#endif
+
+    setTheme(useDarkTheme ? syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
+                          : syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::LightTheme));
 }
 
 void SyntaxTextEdit::setSyntax(const KSyntaxHighlighting::Definition &syntax)

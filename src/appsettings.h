@@ -83,6 +83,10 @@ public:
     {
         m_settings.setValue(QStringLiteral("Editor/Theme"), theme);
     }
+    void clearEditorTheme()
+    {
+        m_settings.remove(QStringLiteral("Editor/Theme"));
+    }
 
     QSize windowSize() const;
     void setWindowSize(const QSize &size)
