@@ -762,7 +762,6 @@ void QTextPadWindow::setLineEndingMode(FileTypeInfo::LineEndingType mode)
     }
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
 static QString convertRawText(const QString &text)
 {
     QString result = text;
@@ -780,7 +779,6 @@ static QString convertRawText(const QString &text)
     }
     return result;
 }
-#endif
 
 bool QTextPadWindow::saveDocumentTo(const QString &filename)
 {
@@ -799,13 +797,7 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         return false;
     }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     auto document = convertRawText(m_editor->document()->toRawText());
-#else
-    // NOTE: toPlainText() does not preserve NBSP characters
-    auto document = m_editor->toPlainText();
-#endif
-
     switch (m_lineEndingMode) {
     case FileTypeInfo::CROnly:
         document.replace(QLatin1Char('\n'), QLatin1Char('\r'));

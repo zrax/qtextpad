@@ -52,10 +52,8 @@ bool ChangeLineEndingCommand::mergeWith(const QUndoCommand *cmd)
         return false;
 
     m_newMode = static_cast<const ChangeLineEndingCommand*>(cmd)->m_newMode;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     if (m_oldMode == m_newMode)
         setObsolete(true);
-#endif
 
     return true;
 }
@@ -84,10 +82,8 @@ bool ChangeEncodingCommand::mergeWith(const QUndoCommand *cmd)
         return false;
 
     m_newEncoding = static_cast<const ChangeEncodingCommand*>(cmd)->m_newEncoding;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     if (m_oldEncoding == m_newEncoding)
         setObsolete(true);
-#endif
 
     return true;
 }
@@ -110,13 +106,9 @@ void ChangeUtfBOMCommand::redo()
 
 bool ChangeUtfBOMCommand::mergeWith(const QUndoCommand *cmd)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     if (cmd->id() != id())
         return false;
 
     setObsolete(true);
     return true;
-#else
-    return false;
-#endif
 }
