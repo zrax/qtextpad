@@ -23,11 +23,9 @@ set(CMAKE_CXX_STANDARD 11)
 include(FeatureSummary)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} 5.6 REQUIRED COMPONENTS
+find_package(Qt${QT_VERSION_MAJOR} 5.10 REQUIRED COMPONENTS
     Core Widgets PrintSupport Network)
-if(QT_VERSION_MAJOR GREATER 5)
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core5Compat)
-elseif(Qt5_FOUND AND NOT TARGET Qt::Core)
+if(Qt5_FOUND AND NOT TARGET Qt::Core)
     # The version-generic targets were only added in Qt 5.15
     foreach(_qt_lib Core Widgets PrintSupport)
         add_library(Qt::${_qt_lib} INTERFACE IMPORTED)

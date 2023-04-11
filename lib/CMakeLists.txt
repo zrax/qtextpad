@@ -35,7 +35,3 @@ target_link_libraries(syntaxtextedit
         ICU::uc
         ICU::data
 )
-
-if(TARGET Qt::Core5Compat)
-    target_link_libraries(syntaxtextedit PUBLIC Qt::Core5Compat)
-endif()

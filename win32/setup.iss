@@ -24,7 +24,6 @@ Source: qtextpad-win64\KF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignorev
 Source: qtextpad-win64\libcrypto-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\libssl-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Core.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\Qt6Core5Compat.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Gui.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Network.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6PrintSupport.dll; DestDir: {app}; Flags: ignoreversion

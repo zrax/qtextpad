@@ -29,12 +29,22 @@
 #include <QCompleter>
 #include <QMessageBox>
 #include <QPainter>
-#include <QStringRef>
+#include <QStringView>
 
 #include "qtextpadwindow.h"
 #include "appsettings.h"
 
 static SearchDialog *s_instance = Q_NULLPTR;
+
+// UGH.  Qt added QStringView in 5.10, but didn't update QString::append until 5.15.2
+static inline QString &string_appendView(QString &str, QStringView view)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 2)
+    return str.append(view);
+#else
+    return str.append(view.data(), view.size());
+#endif
+}
 
 SearchWidget::SearchWidget(QTextPadWindow *parent)
     : QWidget(parent), m_editor(parent->editor())
@@ -332,7 +342,7 @@ SearchDialog *SearchDialog::create(QTextPadWindow *parent)
     return s_instance;
 }
 
-static QString translateCharEscape(const QStringRef &digits, int *advance)
+static QString translateCharEscape(QStringView digits, int *advance)
 {
     Q_ASSERT(digits.size() > 0);
     Q_ASSERT(advance);
@@ -395,7 +405,7 @@ QString SearchDialog::translateEscapes(const QString &text)
         if (pos < 0 || pos + 1 >= text.size())
             break;
 
-        result.append(QStringRef(&text).mid(start, pos - start));
+        string_appendView(result, QStringView(text).mid(start, pos - start));
         QChar next = text.at(pos + 1);
         start = pos + 2;
         switch (next.unicode()) {
@@ -434,7 +444,7 @@ QString SearchDialog::translateEscapes(const QString &text)
         case 'U':   // Unicode character (32-bit)
             {
                 int advance;
-                const QString chars = translateCharEscape(QStringRef(&text).mid(pos + 1), &advance);
+                const QString chars = translateCharEscape(QStringView(text).mid(pos + 1), &advance);
                 if (chars.isEmpty()) {
                     // Translation failed
                     result.append(QLatin1Char('\\'));
@@ -453,7 +463,7 @@ QString SearchDialog::translateEscapes(const QString &text)
         }
     }
 
-    result.append(QStringRef(&text).mid(start));
+    string_appendView(result, QStringView(text).mid(start));
     return result;
 }
 
@@ -468,11 +478,11 @@ QString SearchDialog::regexReplace(const QString &text,
         if (pos < 0 || pos + 1 >= text.size())
             break;
 
-        result.append(QStringRef(&text).mid(start, pos - start));
+        string_appendView(result, QStringView(text).mid(start, pos - start));
         QChar next = text.at(pos + 1);
         if (next.unicode() >= '0' && next.unicode() <= '9') {
             // We support up to 99 replacements...
-            QByteArray number = QStringRef(&text).mid(pos + 1, 2).toLatin1();
+            QByteArray number = QStringView(text).mid(pos + 1, 2).toLatin1();
             char *end;
             ulong ref = strtoul(number.constData(), &end, 10);
             result.append(regexMatch.captured(ref));
@@ -484,7 +494,7 @@ QString SearchDialog::regexReplace(const QString &text,
         }
     }
 
-    result.append(QStringRef(&text).mid(start));
+    string_appendView(result, QStringView(text).mid(start));
     return result;
 }
 
