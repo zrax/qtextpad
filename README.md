@@ -17,9 +17,7 @@ growing) repository of file formats that Kate supports.
 * Syntax highlighting support for hundreds of file types and dialects.
   * (Optional) online update of file type support, directly from
     Kate's repository.
-* Support for reading and writing many common text encodings including
-  Unicode, CP 437 (OEM/DOS), and Qt's
-  [built-in encodings](https://doc.qt.io/qt-5/qtextcodec.html#details).
+* Support for reading and writing many common text encodings.
 * Fast, lightweight design -- no plugins, session management, etc.
   to deal with when you just want to open a file.
 * Attractive design with Light or Dark Theme.
@@ -49,8 +47,10 @@ KDE Plasma, dark theme:
 * **Build from source**:
   * Requirements:
     * [CMake](https://cmake.org/download)
-    * [Qt 5.6+ or 6.0+](https://www.qt.io/download) and
+    * [Qt 5.10+ or 6.0+](https://www.qt.io/download) and
     * [KF5 Syntax Highlighting](https://download.kde.org/stable/frameworks)
       * NOTE: KF5 5.91 or later is required for Qt6 compatibility
+    * [ICU4C](https://icu.unicode.org/home)
+      * NOTE: Optional on Windows when using the Windows 10 1709 or later SDK.
   * On recent Linux platforms, you can usually find all of the above
     requirements in your distribution's repositories.
