@@ -264,7 +264,7 @@ QTextPadCharsets::QTextPadCharsets()
     m_encodingCache.append(QStringList {
         tr("Other"),
         QStringLiteral("macintosh"),
-        QStringLiteral("cp437"),
+        QStringLiteral("IBM437"),
         QStringLiteral("windows-1258"),
     });
     m_encodingCache.append(QStringList {
