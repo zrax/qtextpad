@@ -196,7 +196,7 @@ TextCodec *QTextPadCharsets::codecForLocale()
 // for example, all of which are the same ambiguous UTF-16 codec)
 QTextPadCharsets::QTextPadCharsets()
 {
-    m_encodingCache.reserve(17);
+    m_encodingCache.reserve(16);
     m_encodingCache.append(QStringList {
         tr("Arabic"),
         QStringLiteral("ISO-8859-6"),
@@ -234,10 +234,6 @@ QTextPadCharsets::QTextPadCharsets()
         QStringLiteral("windows-1251"),
     });
     m_encodingCache.append(QStringList {
-        tr("Eastern European"),
-        QStringLiteral("ISO-8859-16"),
-    });
-    m_encodingCache.append(QStringList {
         tr("Greek"),
         QStringLiteral("ISO-8859-7"),
         QStringLiteral("windows-1253"),
@@ -251,13 +247,11 @@ QTextPadCharsets::QTextPadCharsets()
         tr("Indic"),
         QStringLiteral("iscii-bng"),
         QStringLiteral("iscii-dev"),
-        QStringLiteral("iscii-gjr"),
         QStringLiteral("iscii-gur"),
         QStringLiteral("iscii-guj"),
         QStringLiteral("iscii-knd"),
         QStringLiteral("iscii-mlm"),
         QStringLiteral("iscii-ori"),
-        QStringLiteral("iscii-pnj"),
         QStringLiteral("iscii-tlg"),
         QStringLiteral("iscii-tml"),
     });
