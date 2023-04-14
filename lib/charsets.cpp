@@ -319,7 +319,6 @@ QTextPadCharsets::QTextPadCharsets()
                 qCDebug(CsLog, "Removing unsupported codec %s", qPrintable(name));
                 encodingList.removeAt(enc);
             } else {
-                m_encodingNames.insert(name.toLatin1());
                 codecDupes[codec->icuName()].append(name);
                 ++enc;
             }
@@ -369,7 +368,7 @@ QByteArray QTextPadCharsets::getPreferredName(const QByteArray &codecName)
             qCDebug(CsLog, "Failed to get alias %u for %s: %s", (unsigned)i,
                     codecName.constData(), u_errorName(err));
         }
-        if (instance()->m_encodingNames.contains(alias))
+        if (s_codecs.m_cache.contains(alias))
             return alias;
     }
 

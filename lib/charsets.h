@@ -67,7 +67,6 @@ private:
     static QTextPadCharsets *instance();
 
     QList<QStringList> m_encodingCache;
-    QSet<QByteArray> m_encodingNames;
 };
 
 #endif // QTEXTPAD_CHARSETS_H
