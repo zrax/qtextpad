@@ -28,6 +28,7 @@ class TextCodec
 {
 public:
     QByteArray name() const { return m_name; }
+    QByteArray icuName() const;
 
     QByteArray fromUnicode(const QString &text, bool addHeader);
     QString toUnicode(const QByteArray &text);

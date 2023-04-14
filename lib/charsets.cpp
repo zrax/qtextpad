@@ -73,6 +73,17 @@ TextCodec::~TextCodec()
     ucnv_close(m_converter);
 }
 
+QByteArray TextCodec::icuName() const
+{
+    UErrorCode err = U_ZERO_ERROR;
+    const char *name = ucnv_getName(m_converter, &err);
+    if (U_FAILURE(err)) {
+        qCDebug(CsLog, "Failed to get converter name: %s", u_errorName(err));
+        return "Unknown";
+    }
+    return name;
+}
+
 QByteArray TextCodec::fromUnicode(const QString &text, bool addHeader)
 {
     static_assert(sizeof(UChar) == sizeof(QChar),
@@ -309,7 +320,7 @@ QTextPadCharsets::QTextPadCharsets()
                 encodingList.removeAt(enc);
             } else {
                 m_encodingNames.insert(name.toLatin1());
-                codecDupes[codec->name()].append(name);
+                codecDupes[codec->icuName()].append(name);
                 ++enc;
             }
         }
