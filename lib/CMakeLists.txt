@@ -16,10 +16,6 @@
 add_library(syntaxtextedit "")
 target_sources(syntaxtextedit
     PRIVATE
-        charsets.h
-        charsets.cpp
-        filetypeinfo.h
-        filetypeinfo.cpp
         syntaxhighlighter.h
         syntaxhighlighter.cpp
         syntaxtextedit.h
@@ -32,6 +28,4 @@ target_link_libraries(syntaxtextedit
         Qt::Widgets
         Qt::PrintSupport
         KF5::SyntaxHighlighting
-        ICU::uc
-        ICU::data
 )

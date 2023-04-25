@@ -13,6 +13,28 @@
 # You should have received a copy of the GNU General Public License
 # along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
 
+include(CMakeDependentOption)
+cmake_dependent_option(
+        QTEXTPAD_USE_WIN10_ICU
+        "Use the built-in Windows ICU library for Windows 1709+"
+        ON "MSVC" OFF)
+
+if(QTEXTPAD_USE_WIN10_ICU)
+    # Define an import library that links the Windows ICU library
+    # NOTE: This requires Windows 10 1703 or later
+    add_library(ICU::uc INTERFACE IMPORTED)
+    set_target_properties(ICU::uc PROPERTIES
+            INTERFACE_LINK_LIBRARIES "icuuc"
+            INTERFACE_COMPILE_DEFINITIONS "QTEXTPAD_USE_WIN10_ICU=1")
+    add_library(ICU::data INTERFACE IMPORTED)
+else()
+    find_package(ICU REQUIRED COMPONENTS uc data)
+    set_package_properties(ICU PROPERTIES
+            URL "https://icu.unicode.org"
+            DESCRIPTION "International Components for Unicode"
+            TYPE REQUIRED)
+endif()
+
 add_executable(qtextpad WIN32 MACOSX_BUNDLE main.cpp)
 target_include_directories(qtextpad PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -32,8 +54,12 @@ target_sources(qtextpad
         activationlabel.h
         appsettings.h
         appsettings.cpp
+        charsets.h
+        charsets.cpp
         definitiondownload.h
         definitiondownload.cpp
+        filetypeinfo.h
+        filetypeinfo.cpp
         indentsettings.h
         indentsettings.cpp
         qtextpadwindow.h
@@ -54,4 +80,4 @@ if(WIN32)
     target_sources(qtextpad PRIVATE qtextpad.rc)
 endif()
 
-target_link_libraries(qtextpad PRIVATE syntaxtextedit)
+target_link_libraries(qtextpad PRIVATE syntaxtextedit ICU::uc ICU::data)
