@@ -21,8 +21,6 @@ Source: qtextpad-win64\vc_redist.x64.exe; DestDir: {tmp}; Flags: deleteafterinst
 Source: qtextpad-win64\COPYING; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\qtextpad.exe; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\KF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libcrypto-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libssl-1_1-x64.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Core.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Gui.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Network.dll; DestDir: {app}; Flags: ignoreversion
@@ -38,7 +36,6 @@ Source: qtextpad-win64\networkinformation\qnetworklistmanager.dll; DestDir: {app
 Source: qtextpad-win64\platforms\qwindows.dll; DestDir: {app}\platforms; Flags: ignoreversion
 Source: qtextpad-win64\styles\qwindowsvistastyle.dll; DestDir: {app}\styles; Flags: ignoreversion
 Source: qtextpad-win64\tls\qcertonlybackend.dll; DestDir: {app}\tls; Flags: ignoreversion
-Source: qtextpad-win64\tls\qopensslbackend.dll; DestDir: {app}\tls; Flags: ignoreversion
 Source: qtextpad-win64\tls\qschannelbackend.dll; DestDir: {app}\tls; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ar.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_bg.qm; DestDir: {app}\translations; Flags: ignoreversion
@@ -162,11 +159,13 @@ Filename: {tmp}\vc_redist.x64.exe; Parameters: /q /norestart
 
 [InstallDelete]
 Name: {app}\magic.mgc; Type: files
+Name: {app}\libcrypto-1_1-x64.dll; Type: files
 Name: {app}\libgcc_s_seh-1.dll; Type: files
 Name: {app}\libiconv-2.dll; Type: files
 Name: {app}\libintl-8.dll; Type: files
 Name: {app}\libKF5SyntaxHighlighting.dll; Type: files
 Name: {app}\libmagic-1.dll; Type: files
+Name: {app}\libssl-1_1-x64.dll; Type: files
 Name: {app}\libstdc++-6.dll; Type: files
 Name: {app}\libsystre-0.dll; Type: files
 Name: {app}\libtre-5.dll; Type: files
@@ -186,6 +185,7 @@ Name: {app}\imageformats\qwbmp.dll; Type: files
 Name: {app}\imageformats\qwebp.dll; Type: files
 Name: {app}\printsupport\windowsprintersupport.dll; Type: files
 Name: {app}\printsupport; Type: dirifempty
+Name: {app}\tls\qopensslbackend.dll; Type: files
 Name: {app}\data\qlogging-categories5\ksyntaxhighlighting.categories; Type: files
 Name: {app}\data\qlogging-categories5\org_kde_ksyntaxhighlighting.categories; Type: files
 Name: {app}\data\qlogging-categories5; Type: dirifempty

@@ -11,12 +11,22 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "5.15.2",
-              qt_modules: "", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "", build_installer: "$false" }
-          - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "6.4.3",
-              qt_modules: "qt5compat", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "-DBUILD_WITH_QT6=ON", build_installer: "$true" }
+          - kf5_version: "5.106"
+            kf5_fullver: "5.106.0"
+            qt_version: "5.15.2"
+            qt_tools: "tools_openssl_x64"
+            cmake_generator: "Visual Studio 16 2019"
+            kf5_cmake_args: ""
+            build_installer: "$false"
+            deploy_openssl: "$true"
+          - kf5_version: "5.106"
+            kf5_fullver: "5.106.0"
+            qt_version: "6.4.3"
+            qt_tools: ""
+            cmake_generator: "Visual Studio 16 2019"
+            kf5_cmake_args: "-DBUILD_WITH_QT6=ON"
+            build_installer: "$true"
+            deploy_openssl: "$false"
 
     steps:
       - uses: actions/checkout@v3
@@ -27,7 +37,7 @@ jobs:
         with:
           arch: win64_msvc2019_64
           version: ${{ matrix.cfg.qt_version }}
-          modules: ${{ matrix.cfg.qt_modules }}
+          tools: ${{ matrix.cfg.qt_tools }}
       - name: Build Qt Libs
         run: |
           mkdir build_deps
@@ -77,11 +87,16 @@ jobs:
               qtextpad-win64\data
           windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-opengl-sw
 
-          # TODO: Use the Qt versions of the OpenSSL libs.  Depends on
-          # https://github.com/jurplel/install-qt-action/issues/16
-          cmake -E copy "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll" `
-              "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
-              qtextpad-win64
+          # OpenSSL libs are required for the online repository update in Qt5,
+          # but Qt6 can use the Windows SChannel backend instead
+          if (${{ matrix.cfg.deploy_openssl }}) {
+              cmake -E copy `
+                  "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL\Win_x64\bin\libcrypto-1_1-x64.dll" `
+                  "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL\Win_x64\bin\libssl-1_1-x64.dll" `
+                  qtextpad-win64
+          } else {
+              cmake -E rm qtextpad-win64\tls\qopensslbackend.dll
+          }
 
           cmake -E tar cf "..\qtextpad-win64-${buildver}.zip" --format=zip qtextpad-win64
           cd ..\win32
