@@ -21,8 +21,6 @@ Source: qtextpad-win64\vc_redist.x64.exe; DestDir: {tmp}; Flags: deleteafterinst
 Source: qtextpad-win64\COPYING; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\qtextpad.exe; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\KF5SyntaxHighlighting.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libcrypto-3-x64.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\libssl-3-x64.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Core.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Gui.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Network.dll; DestDir: {app}; Flags: ignoreversion
@@ -38,7 +36,6 @@ Source: qtextpad-win64\networkinformation\qnetworklistmanager.dll; DestDir: {app
 Source: qtextpad-win64\platforms\qwindows.dll; DestDir: {app}\platforms; Flags: ignoreversion
 Source: qtextpad-win64\styles\qwindowsvistastyle.dll; DestDir: {app}\styles; Flags: ignoreversion
 Source: qtextpad-win64\tls\qcertonlybackend.dll; DestDir: {app}\tls; Flags: ignoreversion
-Source: qtextpad-win64\tls\qopensslbackend.dll; DestDir: {app}\tls; Flags: ignoreversion
 Source: qtextpad-win64\tls\qschannelbackend.dll; DestDir: {app}\tls; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ar.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_bg.qm; DestDir: {app}\translations; Flags: ignoreversion
@@ -188,6 +185,7 @@ Name: {app}\imageformats\qwbmp.dll; Type: files
 Name: {app}\imageformats\qwebp.dll; Type: files
 Name: {app}\printsupport\windowsprintersupport.dll; Type: files
 Name: {app}\printsupport; Type: dirifempty
+Name: {app}\tls\qopensslbackend.dll; Type: files
 Name: {app}\data\qlogging-categories5\ksyntaxhighlighting.categories; Type: files
 Name: {app}\data\qlogging-categories5\org_kde_ksyntaxhighlighting.categories; Type: files
 Name: {app}\data\qlogging-categories5; Type: dirifempty
