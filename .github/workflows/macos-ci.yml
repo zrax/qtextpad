@@ -11,10 +11,14 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "5.15.2",
-              qt_modules: "", kf5_cmake_args: "" }
-          - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "6.5.0",
-              qt_modules: "qt5compat", kf5_cmake_args: "-DBUILD_WITH_QT6=ON" }
+          - kf5_version: "5.106"
+            kf5_fullver: "5.106.0"
+            qt_version: "5.15.2"
+            kf5_cmake_args: ""
+          - kf5_version: "5.106"
+            kf5_fullver: "5.106.0"
+            qt_version: "6.5.0"
+            kf5_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
       - uses: actions/checkout@v3
@@ -25,7 +29,6 @@ jobs:
         with:
           arch: clang_64
           version: ${{ matrix.cfg.qt_version }}
-          modules: ${{ matrix.cfg.qt_modules }}
       - name: Build Qt Libs
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.0"

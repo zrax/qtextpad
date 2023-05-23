@@ -11,12 +11,22 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "5.15.2",
-              qt_modules: "", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "", build_installer: "$false" }
-          - { kf5_version: "5.104", kf5_fullver: "5.104.0", qt_version: "6.4.3",
-              qt_modules: "qt5compat", cmake_generator: "Visual Studio 16 2019",
-              kf5_cmake_args: "-DBUILD_WITH_QT6=ON", build_installer: "$true" }
+          - kf5_version: "5.106"
+            kf5_fullver: "5.106.0"
+            qt_version: "5.15.2"
+            qt_ssl_suffix: ""
+            ssl_lib_suffix: "1_1"
+            cmake_generator: "Visual Studio 16 2019"
+            kf5_cmake_args: ""
+            build_installer: "$false"
+          - kf5_version: "5.106"
+            kf5_fullver: "5.106.0"
+            qt_version: "6.4.3"
+            qt_ssl_suffix: "v3"
+            ssl_lib_suffix: "3"
+            cmake_generator: "Visual Studio 16 2019"
+            kf5_cmake_args: "-DBUILD_WITH_QT6=ON"
+            build_installer: "$true"
 
     steps:
       - uses: actions/checkout@v3
@@ -27,7 +37,7 @@ jobs:
         with:
           arch: win64_msvc2019_64
           version: ${{ matrix.cfg.qt_version }}
-          modules: ${{ matrix.cfg.qt_modules }}
+          tools: tools_openssl${{ matrix.cfg.qt_ssl_suffix }}_x64
       - name: Build Qt Libs
         run: |
           mkdir build_deps
@@ -77,10 +87,10 @@ jobs:
               qtextpad-win64\data
           windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-opengl-sw
 
-          # TODO: Use the Qt versions of the OpenSSL libs.  Depends on
-          # https://github.com/jurplel/install-qt-action/issues/16
-          cmake -E copy "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll" `
-              "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
+          # Deploy OpenSSL libs for the online repository update
+          cmake -E copy `
+              "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL${{ matrix.cfg.qt_ssl_suffix }}\Win_x64\bin\libcrypto-${{ matrix.cfg.ssl_lib_suffix }}-x64.dll" `
+              "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL${{ matrix.cfg.qt_ssl_suffix }}\Win_x64\bin\libssl-${{ matrix.cfg.ssl_lib_suffix }}-x64.dll" `
               qtextpad-win64
 
           cmake -E tar cf "..\qtextpad-win64-${buildver}.zip" --format=zip qtextpad-win64
