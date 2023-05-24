@@ -21,7 +21,7 @@ jobs:
             deploy_openssl: "$true"
           - kf5_version: "5.106"
             kf5_fullver: "5.106.0"
-            qt_version: "6.4.3"
+            qt_version: "6.5.1"
             qt_tools: ""
             cmake_generator: "Visual Studio 16 2019"
             kf5_cmake_args: "-DBUILD_WITH_QT6=ON"

@@ -17,7 +17,7 @@ jobs:
             kf5_cmake_args: ""
           - kf5_version: "5.106"
             kf5_fullver: "5.106.0"
-            qt_version: "6.5.0"
+            qt_version: "6.5.1"
             kf5_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
