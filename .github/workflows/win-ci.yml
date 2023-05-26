@@ -79,13 +79,13 @@ jobs:
           $buildver += "-qt" + "${{ matrix.cfg.qt_version }}"[0]
           $Env:VCINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC"
           cd "${Env:GITHUB_WORKSPACE}\dist"
-          windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw
+          windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw --no-system-d3d-compiler
           cmake -E copy "${Env:GITHUB_WORKSPACE}\COPYING" `
               "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\KF5SyntaxHighlighting.dll" `
               qtextpad-win64
           cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\data" `
               qtextpad-win64\data
-          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-opengl-sw
+          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-opengl-sw --no-system-d3d-compiler
 
           # OpenSSL libs are required for the online repository update in Qt5,
           # but Qt6 can use the Windows SChannel backend instead

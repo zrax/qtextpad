@@ -27,6 +27,7 @@ Source: qtextpad-win64\Qt6Network.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6PrintSupport.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Svg.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Widgets.dll; DestDir: {app}; Flags: ignoreversion
+Source: qtextpad-win64\generic\qtuiotouchplugin.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\iconengines\qsvgicon.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qgif.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qico.dll; DestDir: {app}\imageformats; Flags: ignoreversion
