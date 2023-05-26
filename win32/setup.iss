@@ -2,7 +2,7 @@
 OutputDir=.
 OutputBaseFilename=qtextpad-win64
 AppName=QTextPad
-AppVersion=1.10-pre
+AppVersion=1.10
 AppCopyright=2020 Michael Hansen
 AppId={{7DDD3218-1920-4278-9C33-E3AF37F3E7A4}
 AppPublisher=Michael Hansen
@@ -27,7 +27,7 @@ Source: qtextpad-win64\Qt6Network.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6PrintSupport.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Svg.dll; DestDir: {app}; Flags: ignoreversion
 Source: qtextpad-win64\Qt6Widgets.dll; DestDir: {app}; Flags: ignoreversion
-Source: qtextpad-win64\generic\qtuiotouchplugin.dll; DestDir: {app}\iconengines; Flags: ignoreversion
+Source: qtextpad-win64\generic\qtuiotouchplugin.dll; DestDir: {app}\generic; Flags: ignoreversion
 Source: qtextpad-win64\iconengines\qsvgicon.dll; DestDir: {app}\iconengines; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qgif.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\imageformats\qico.dll; DestDir: {app}\imageformats; Flags: ignoreversion
