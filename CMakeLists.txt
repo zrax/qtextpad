@@ -22,7 +22,9 @@ set(CMAKE_CXX_STANDARD 11)
 
 include(FeatureSummary)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+if(NOT DEFINED QT_VERSION_MAJOR)
+    find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+endif()
 find_package(Qt${QT_VERSION_MAJOR} 5.10 REQUIRED COMPONENTS
     Core Widgets PrintSupport Network)
 if(Qt5_FOUND AND NOT TARGET Qt::Core)
