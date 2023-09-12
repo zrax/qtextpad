@@ -11,17 +11,17 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - kf5_version: "5.106"
-            kf5_fullver: "5.106.0"
+          - kf5_version: "5.110"
+            kf5_fullver: "5.110.0"
             qt_version: "5.15.2"
             qt_tools: "tools_openssl_x64"
             cmake_generator: "Visual Studio 16 2019"
             kf5_cmake_args: ""
             build_installer: "$false"
             deploy_openssl: "$true"
-          - kf5_version: "5.106"
-            kf5_fullver: "5.106.0"
-            qt_version: "6.5.1"
+          - kf5_version: "5.110"
+            kf5_fullver: "5.110.0"
+            qt_version: "6.5.5"
             qt_tools: ""
             cmake_generator: "Visual Studio 16 2019"
             kf5_cmake_args: "-DBUILD_WITH_QT6=ON"
