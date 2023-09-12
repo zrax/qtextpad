@@ -1,7 +1,7 @@
 name: Ubuntu-CI
 on:
   push:
-    branches: [master, qt6]
+    branches: [master]
   pull_request:
 
 jobs:
