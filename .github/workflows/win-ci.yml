@@ -14,7 +14,6 @@ jobs:
           - kf_version: "5.115"
             kf_fullver: "5.115.0"
             qt_version: "5.15.2"
-            qt_tools: "tools_openssl_x64"
             cmake_generator: "Visual Studio 16 2019"
             kf_cmake_args: ""
             build_installer: "$false"
@@ -22,7 +21,6 @@ jobs:
           - kf_version: "6.0"
             kf_fullver: "6.0.0"
             qt_version: "6.5.3"
-            qt_tools: ""
             cmake_generator: "Visual Studio 16 2019"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
             build_installer: "$true"
@@ -37,7 +35,6 @@ jobs:
         with:
           arch: win64_msvc2019_64
           version: ${{ matrix.cfg.qt_version }}
-          tools: ${{ matrix.cfg.qt_tools }}
       - name: Build Qt Libs
         run: |
           mkdir build_deps
@@ -91,8 +88,8 @@ jobs:
           # but Qt6 can use the Windows SChannel backend instead
           if (${{ matrix.cfg.deploy_openssl }}) {
               copy -Path `
-                  "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL\Win_x64\bin\libcrypto-1_1-x64.dll", `
-                  "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL\Win_x64\bin\libssl-1_1-x64.dll" `
+                  "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll", `
+                  "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
                   -Destination qtextpad-win64
           } else {
               del qtextpad-win64\tls\qopensslbackend.dll
