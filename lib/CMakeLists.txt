@@ -27,5 +27,5 @@ target_link_libraries(syntaxtextedit
         Qt::Core
         Qt::Widgets
         Qt::PrintSupport
-        KF5::SyntaxHighlighting
+        KF${QT_VERSION_MAJOR}::SyntaxHighlighting
 )

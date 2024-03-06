@@ -36,10 +36,10 @@ if(Qt5_FOUND AND NOT TARGET Qt::Core)
     endforeach()
 endif()
 
-find_package(KF5SyntaxHighlighting REQUIRED)
-set_package_properties(KF5SyntaxHighlighting PROPERTIES
+find_package(KF${QT_VERSION_MAJOR}SyntaxHighlighting REQUIRED)
+set_package_properties(KF${QT_VERSION_MAJOR}SyntaxHighlighting PROPERTIES
     URL "https://community.kde.org/Frameworks"
-    DESCRIPTION "Syntax Highlighting framework for Qt"
+    DESCRIPTION "Syntax Highlighting framework for Qt${QT_VERSION_MAJOR}"
     TYPE REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")

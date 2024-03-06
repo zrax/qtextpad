@@ -79,7 +79,11 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<li>Oxygen Icons</li>"
         "</ul>")
         .arg(QString::fromLatin1(qVersion()))
+#if defined(KSYNTAXHIGHLIGHTING_VERSION_STRING)
+        .arg(QStringLiteral(KSYNTAXHIGHLIGHTING_VERSION_STRING))
+#else
         .arg(QStringLiteral(SyntaxHighlighting_VERSION_STRING))
+#endif
         .arg(TextCodec::icuVersion())
         );
     libVersions->setMargin(10);
