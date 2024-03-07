@@ -44,6 +44,8 @@ protected:
 private:
     QIcon m_searchIcon;
     QPoint m_iconPosition;
+
+    void recomputeIconPos();
 };
 
 class FilteredTreePopup : public QWidget

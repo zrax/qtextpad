@@ -16,7 +16,6 @@
 
 #include "settingspopup.h"
 
-#include <QIcon>
 #include <QApplication>
 #include <QPainter>
 #include <QLineEdit>
@@ -36,7 +35,7 @@ TreeFilterEdit::TreeFilterEdit(QWidget *parent)
 {
     m_searchIcon = QTextPadSettings::staticIcon(QStringLiteral("search-filter"), palette());
     setClearButtonEnabled(true);
-    resizeEvent(Q_NULLPTR);
+    recomputeIconPos();
 }
 
 QSize TreeFilterEdit::sizeHint() const
@@ -58,15 +57,8 @@ void TreeFilterEdit::paintEvent(QPaintEvent *event)
 
 void TreeFilterEdit::resizeEvent(QResizeEvent *event)
 {
-    if (event)
-        QLineEdit::resizeEvent(event);
-
-    const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-    setStyleSheet(QStringLiteral("QLineEdit { padding-left: %1px; }")
-                  .arg(frameWidth + 18));
-
-    m_iconPosition = QPoint(rect().left() + frameWidth + 1,
-                            (rect().bottom() - 16) / 2);
+    QLineEdit::resizeEvent(event);
+    recomputeIconPos();
 }
 
 void TreeFilterEdit::keyPressEvent(QKeyEvent *event)
@@ -76,6 +68,16 @@ void TreeFilterEdit::keyPressEvent(QKeyEvent *event)
         return;
     }
     QLineEdit::keyPressEvent(event);
+}
+
+void TreeFilterEdit::recomputeIconPos()
+{
+    const int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
+    setStyleSheet(QStringLiteral("QLineEdit { padding-left: %1px; }")
+                  .arg(frameWidth + 18));
+
+    m_iconPosition = QPoint(rect().left() + frameWidth + 1,
+                            (rect().bottom() - 16) / 2);
 }
 
 
