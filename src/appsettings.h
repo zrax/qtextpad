@@ -114,6 +114,7 @@ private:
 };
 
 /* Helper for loading theme icons */
-#define ICON(name)  QIcon::fromTheme(QStringLiteral(name))
+#define ICON(name)      QIcon::fromTheme(QStringLiteral(name))
+#define ICON_S16(name)  QIcon(QStringLiteral(":/icons/qtextpad/16x16/actions/" name ".png"))
 
 #endif // QTEXTPAD_APPSETTINGS_H

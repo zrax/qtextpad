@@ -52,8 +52,9 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     auto tbMenu = new QToolButton(this);
     tbMenu->setAutoRaise(true);
     tbMenu->setIconSize(QSize(16, 16));
-    tbMenu->setIcon(ICON("edit-find"));
+    tbMenu->setIcon(ICON_S16("application-menu"));
     tbMenu->setToolTip(tr("Search Settings"));
+    tbMenu->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; }"));
 
     auto settingsMenu = new QMenu(this);
     m_caseSensitive = settingsMenu->addAction(tr("Match ca&se"));
@@ -82,13 +83,13 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     auto tbNext = new QToolButton(this);
     tbNext->setAutoRaise(true);
     tbNext->setIconSize(QSize(16, 16));
-    tbNext->setIcon(ICON("go-down"));
+    tbNext->setIcon(ICON_S16("go-down"));
     tbNext->setToolTip(tr("Find Next"));
 
     auto tbPrev = new QToolButton(this);
     tbPrev->setAutoRaise(true);
     tbPrev->setIconSize(QSize(16, 16));
-    tbPrev->setIcon(ICON("go-up"));
+    tbPrev->setIcon(ICON_S16("go-up"));
     tbPrev->setToolTip(tr("Find Previous"));
 
     auto layout = new QHBoxLayout(this);
