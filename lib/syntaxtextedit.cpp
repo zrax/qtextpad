@@ -1564,12 +1564,13 @@ void SyntaxTextEdit::LineMargin::paintEvent(QPaintEvent *paintEvent)
 
 void SyntaxTextEdit::LineMargin::mouseMoveEvent(QMouseEvent *e)
 {
-    QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
+    const QPoint eventPos = e->pos();
+    QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, eventPos.y()));
     const int foldPixmapWidth = m_editor->m_foldOpen.width() + 4;
 
     m_foldHoverLine = -1;
     if (m_editor->showFolding()) {
-        if (!m_editor->showLineNumbers() || e->x() >= width() - foldPixmapWidth) {
+        if (!m_editor->showLineNumbers() || eventPos.x() >= width() - foldPixmapWidth) {
             QTextBlock block = lineCursor.block();
             if (block.isValid() && m_editor->m_highlighter->isFoldable(block))
                 m_foldHoverLine = block.blockNumber();
@@ -1600,10 +1601,11 @@ void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
 {
     m_marginSelectStart = -1;
     if (e->button() == Qt::LeftButton) {
+        const QPoint eventPos = e->pos();
         const int foldPixmapWidth = m_editor->m_foldOpen.width() + 4;
-        QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, e->y()));
+        QTextCursor lineCursor = m_editor->cursorForPosition(QPoint(0, eventPos.y()));
         if (m_editor->showLineNumbers()
-                && (!m_editor->showFolding() || e->x() < width() - foldPixmapWidth)) {
+                && (!m_editor->showFolding() || eventPos.x() < width() - foldPixmapWidth)) {
             // Clicked in the number margin
             lineCursor.setVisualNavigation(true);
             lineCursor.movePosition(QTextCursor::StartOfBlock);
@@ -1611,7 +1613,7 @@ void SyntaxTextEdit::LineMargin::mousePressEvent(QMouseEvent *e)
             lineCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
             m_editor->setTextCursor(lineCursor);
         } else if (m_editor->showFolding()
-                && (!m_editor->showLineNumbers() || e->x() >= width() - foldPixmapWidth)) {
+                && (!m_editor->showLineNumbers() || eventPos.x() >= width() - foldPixmapWidth)) {
             // Clicked in the folding margin
             QTextBlock block = lineCursor.block();
             if (block.isValid() && m_editor->m_highlighter->isFoldable(block)) {

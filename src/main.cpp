@@ -80,8 +80,15 @@ int main(int argc, char *argv[])
 
     QTranslator qtTranslator;
     if (qtTranslator.load(QLocale(), QStringLiteral("qt"), QStringLiteral("_"),
-                          QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                          QLibraryInfo::path(QLibraryInfo::TranslationsPath)
+#else
+                          QLibraryInfo::location(QLibraryInfo::TranslationsPath)
+#endif
+                          ))
+    {
         QCoreApplication::installTranslator(&qtTranslator);
+    }
 
     QTranslator appTranslator;
     if (appTranslator.load(QLocale(), QStringLiteral("qtextpad"), QStringLiteral("_")))

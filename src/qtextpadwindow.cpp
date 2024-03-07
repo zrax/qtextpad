@@ -588,7 +588,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
-            [this](Qt::ColorScheme colorScheme) {
+            [this](Qt::ColorScheme) {
         if (m_defaultThemeAction->isChecked())
             setDefaultEditorTheme();
     });
