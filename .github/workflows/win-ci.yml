@@ -11,20 +11,18 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - kf5_version: "5.110"
-            kf5_fullver: "5.110.0"
+          - kf_version: "5.115"
+            kf_fullver: "5.115.0"
             qt_version: "5.15.2"
-            qt_tools: "tools_openssl_x64"
             cmake_generator: "Visual Studio 16 2019"
-            kf5_cmake_args: ""
+            kf_cmake_args: ""
             build_installer: "$false"
             deploy_openssl: "$true"
-          - kf5_version: "5.110"
-            kf5_fullver: "5.110.0"
-            qt_version: "6.5.2"
-            qt_tools: ""
+          - kf_version: "6.0"
+            kf_fullver: "6.0.0"
+            qt_version: "6.5.3"
             cmake_generator: "Visual Studio 16 2019"
-            kf5_cmake_args: "-DBUILD_WITH_QT6=ON"
+            kf_cmake_args: "-DBUILD_WITH_QT6=ON"
             build_installer: "$true"
             deploy_openssl: "$false"
 
@@ -37,30 +35,29 @@ jobs:
         with:
           arch: win64_msvc2019_64
           version: ${{ matrix.cfg.qt_version }}
-          tools: ${{ matrix.cfg.qt_tools }}
       - name: Build Qt Libs
         run: |
           mkdir build_deps
           cd build_deps
-          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.zip
-          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.zip
-          cmake -E tar xf extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.zip
-          cd extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf_version }}/extra-cmake-modules-${{ matrix.cfg.kf_fullver }}.tar.xz
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf_version }}/syntax-highlighting-${{ matrix.cfg.kf_fullver }}.tar.xz
+          cmake -E tar xf extra-cmake-modules-${{ matrix.cfg.kf_fullver }}.tar.xz
+          cd extra-cmake-modules-${{ matrix.cfg.kf_fullver }}
           mkdir build
           cd build
           cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
               "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
               "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
-              -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf5_cmake_args }} ..
+              -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf_cmake_args }} ..
           cmake --build . --config Release --target install
           cd ..\..
-          cmake -E tar xf syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.zip
-          cd syntax-highlighting-${{ matrix.cfg.kf5_fullver }}
+          cmake -E tar xf syntax-highlighting-${{ matrix.cfg.kf_fullver }}.tar.xz
+          cd syntax-highlighting-${{ matrix.cfg.kf_fullver }}
           mkdir build && cd build
           cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
               "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
               "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
-              -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf5_cmake_args }} ..
+              -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf_cmake_args }} ..
           cmake --build . --config Release
           cmake --build . --config Release --target install
       - name: Build qtextpad
@@ -80,22 +77,22 @@ jobs:
           $Env:VCINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC"
           cd "${Env:GITHUB_WORKSPACE}\dist"
           windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw --no-system-d3d-compiler
-          cmake -E copy "${Env:GITHUB_WORKSPACE}\COPYING" `
-              "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\KF5SyntaxHighlighting.dll" `
-              qtextpad-win64
+          copy -Path "${Env:GITHUB_WORKSPACE}\COPYING", `
+              "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\KF*SyntaxHighlighting.dll" `
+              -Destination qtextpad-win64
           cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\data" `
               qtextpad-win64\data
-          windeployqt qtextpad-win64\KF5SyntaxHighlighting.dll --release --no-opengl-sw --no-system-d3d-compiler
+          windeployqt qtextpad-win64\KF*SyntaxHighlighting.dll --release --no-opengl-sw --no-system-d3d-compiler
 
           # OpenSSL libs are required for the online repository update in Qt5,
           # but Qt6 can use the Windows SChannel backend instead
           if (${{ matrix.cfg.deploy_openssl }}) {
-              cmake -E copy `
-                  "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL\Win_x64\bin\libcrypto-1_1-x64.dll" `
-                  "${Env:RUNNER_WORKSPACE}\Qt\Tools\OpenSSL\Win_x64\bin\libssl-1_1-x64.dll" `
-                  qtextpad-win64
+              copy -Path `
+                  "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll", `
+                  "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
+                  -Destination qtextpad-win64
           } else {
-              cmake -E rm qtextpad-win64\tls\qopensslbackend.dll
+              del qtextpad-win64\tls\qopensslbackend.dll
           }
 
           cmake -E tar cf "..\qtextpad-win64-${buildver}.zip" --format=zip qtextpad-win64

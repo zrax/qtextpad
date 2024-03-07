@@ -16,6 +16,7 @@
 add_library(syntaxtextedit "")
 target_sources(syntaxtextedit
     PRIVATE
+        kf_version.h
         syntaxhighlighter.h
         syntaxhighlighter.cpp
         syntaxtextedit.h
@@ -27,5 +28,5 @@ target_link_libraries(syntaxtextedit
         Qt::Core
         Qt::Widgets
         Qt::PrintSupport
-        KF5::SyntaxHighlighting
+        KF${QT_VERSION_MAJOR}::SyntaxHighlighting
 )

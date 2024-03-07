@@ -11,14 +11,14 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - kf5_version: "5.110"
-            kf5_fullver: "5.110.0"
+          - kf_version: "5.115"
+            kf_fullver: "5.115.0"
             qt_version: "5.15.2"
-            kf5_cmake_args: ""
-          - kf5_version: "5.110"
-            kf5_fullver: "5.110.0"
-            qt_version: "6.5.2"
-            kf5_cmake_args: "-DBUILD_WITH_QT6=ON"
+            kf_cmake_args: ""
+          - kf_version: "6.0"
+            kf_fullver: "6.0.0"
+            qt_version: "6.5.3"
+            kf_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
       - uses: actions/checkout@v3
@@ -35,22 +35,22 @@ jobs:
         run: |
           mkdir -p $HOME/build-libs
           cd $HOME/build-libs
-          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.tar.xz
-          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf5_version }}/syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.tar.xz
-          tar xf extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}.tar.xz
-          cd extra-cmake-modules-${{ matrix.cfg.kf5_fullver }}
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf_version }}/extra-cmake-modules-${{ matrix.cfg.kf_fullver }}.tar.xz
+          curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf_version }}/syntax-highlighting-${{ matrix.cfg.kf_fullver }}.tar.xz
+          tar xf extra-cmake-modules-${{ matrix.cfg.kf_fullver }}.tar.xz
+          cd extra-cmake-modules-${{ matrix.cfg.kf_fullver }}
           mkdir build && cd build
           cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/QtLibs \
                 -DCMAKE_BUILD_TYPE=Release \
-                ${{ matrix.cfg.kf5_cmake_args }} ..
+                ${{ matrix.cfg.kf_cmake_args }} ..
           make -j2 && make install
           cd $HOME/build-libs
-          tar xf syntax-highlighting-${{ matrix.cfg.kf5_fullver }}.tar.xz
-          cd syntax-highlighting-${{ matrix.cfg.kf5_fullver }}
+          tar xf syntax-highlighting-${{ matrix.cfg.kf_fullver }}.tar.xz
+          cd syntax-highlighting-${{ matrix.cfg.kf_fullver }}
           mkdir build && cd build
           cmake -DCMAKE_INSTALL_PREFIX=$RUNNER_WORKSPACE/QtLibs \
                 -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release \
-                ${{ matrix.cfg.kf5_cmake_args }} ..
+                ${{ matrix.cfg.kf_cmake_args }} ..
           make -j2 && make install
       - name: Install ICU
         run: brew install icu4c

@@ -23,10 +23,9 @@
 #include <QGridLayout>
 #include <QMessageBox>
 
-#include <ksyntaxhighlighting_version.h>
-
 #include "appversion.h"
 #include "charsets.h"
+#include "kf_version.h"
 
 AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent)
@@ -79,7 +78,7 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<li>Oxygen Icons</li>"
         "</ul>")
         .arg(QString::fromLatin1(qVersion()))
-        .arg(QStringLiteral(SyntaxHighlighting_VERSION_STRING))
+        .arg(QStringLiteral(KSYNTAXHIGHLIGHTING_VERSION_STRING))
         .arg(TextCodec::icuVersion())
         );
     libVersions->setMargin(10);
