@@ -27,13 +27,14 @@
 
 #include <KSyntaxHighlighting/Repository>
 
+#include "appsettings.h"
 #include "syntaxtextedit.h"
 #include "charsets.h"
 
 TreeFilterEdit::TreeFilterEdit(QWidget *parent)
     : QLineEdit(parent)
 {
-    m_searchIcon = QIcon(QStringLiteral(":/icons/search-filter.png"));
+    m_searchIcon = QTextPadSettings::staticIcon(QStringLiteral("search-filter"), palette());
     setClearButtonEnabled(true);
     resizeEvent(Q_NULLPTR);
 }

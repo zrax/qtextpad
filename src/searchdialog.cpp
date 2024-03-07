@@ -50,9 +50,9 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     : QWidget(parent), m_editor(parent->editor())
 {
     auto tbMenu = new QToolButton(this);
+    const QPalette &pal = palette();
     tbMenu->setAutoRaise(true);
-    tbMenu->setIconSize(QSize(16, 16));
-    tbMenu->setIcon(ICON_S16("application-menu"));
+    tbMenu->setIcon(QTextPadSettings::staticIcon(QStringLiteral("application-menu"), pal));
     tbMenu->setToolTip(tr("Search Settings"));
     tbMenu->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; }"));
 
@@ -82,14 +82,12 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
 
     auto tbNext = new QToolButton(this);
     tbNext->setAutoRaise(true);
-    tbNext->setIconSize(QSize(16, 16));
-    tbNext->setIcon(ICON_S16("go-down"));
+    tbNext->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-down"), pal));
     tbNext->setToolTip(tr("Find Next"));
 
     auto tbPrev = new QToolButton(this);
     tbPrev->setAutoRaise(true);
-    tbPrev->setIconSize(QSize(16, 16));
-    tbPrev->setIcon(ICON_S16("go-up"));
+    tbPrev->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-up"), pal));
     tbPrev->setToolTip(tr("Find Previous"));
 
     auto layout = new QHBoxLayout(this);

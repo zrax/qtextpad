@@ -8,10 +8,8 @@
         <file>icons/qtextpad-64.png</file>
         <file>icons/qtextpad-128.png</file>
 
-        <!-- Used by the filter widgets -->
-        <file>icons/search-filter.png</file>
-
-        <!-- Oxygen icons for Win/Mac and Unixes that don't have a usable theme -->
+        <!-- Fallback icon themes for Win/Mac and Unixes that don't have a usable
+             theme, plus icons for widgets that don't use themes -->
         <file>icons/qtextpad/index.theme</file>
         <file>icons/qtextpad/16x16/actions/application-menu.png</file>
         <file>icons/qtextpad/16x16/actions/document-new.png</file>
@@ -33,6 +31,7 @@
         <file>icons/qtextpad/16x16/actions/go-jump.png</file>
         <file>icons/qtextpad/16x16/actions/go-up.png</file>
         <file>icons/qtextpad/16x16/actions/help-about.png</file>
+        <file>icons/qtextpad/16x16/actions/search-filter.png</file>
         <file>icons/qtextpad/16x16/actions/view-fullscreen.png</file>
         <file>icons/qtextpad/16x16/actions/view-refresh.png</file>
         <file>icons/qtextpad/16x16/actions/view-restore.png</file>
@@ -64,5 +63,11 @@
         <file>icons/qtextpad/22x22/actions/zoom-in.png</file>
         <file>icons/qtextpad/22x22/actions/zoom-original.png</file>
         <file>icons/qtextpad/22x22/actions/zoom-out.png</file>
+
+        <file>icons/qtextpad-dark/index.theme</file>
+        <file>icons/qtextpad-dark/16x16/actions/application-menu.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/go-down.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/go-up.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/search-filter.png</file>
     </qresource>
 </RCC>

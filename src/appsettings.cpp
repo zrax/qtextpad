@@ -22,6 +22,8 @@
 #include <QSize>
 #include <QDir>
 #include <QLockFile>
+#include <QPalette>
+#include <QIcon>
 
 #define RECENT_FILES        10
 #define RECENT_SEARCHES     20
@@ -265,4 +267,13 @@ void QTextPadSettings::addRecentSearchReplacement(const QString &text)
     while (replacements.size() > RECENT_SEARCHES)
         replacements.removeLast();
     m_settings.setValue(QStringLiteral("Search/RecentReplace"), replacements);
+}
+
+QIcon QTextPadSettings::staticIcon(const QString &iconName, const QPalette &palette)
+{
+    const bool darkTheme = palette.color(QPalette::Window).lightness() < 128;
+    const QString iconPattern = darkTheme
+            ? QStringLiteral(":/icons/qtextpad-dark/16x16/actions/%1.png")
+            : QStringLiteral(":/icons/qtextpad/16x16/actions/%1.png");
+    return QIcon(iconPattern.arg(iconName));
 }
