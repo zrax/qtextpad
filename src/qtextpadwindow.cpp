@@ -1640,7 +1640,7 @@ void QTextPadWindow::populateSyntaxMenu()
         connect(item, &QAction::triggered, this, [this, def] { setSyntax(def); });
     }
 
-#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
+#ifdef SUPPORT_DEFINITION_DOWNLOADER
     (void) m_syntaxMenu->addSeparator();
     auto updateAction = m_syntaxMenu->addAction(tr("Update Definitions"));
     connect(updateAction, &QAction::triggered, this, [this] {

@@ -16,6 +16,7 @@
 add_library(syntaxtextedit "")
 target_sources(syntaxtextedit
     PRIVATE
+        kf_version.h
         syntaxhighlighter.h
         syntaxhighlighter.cpp
         syntaxtextedit.h

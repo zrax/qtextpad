@@ -17,9 +17,9 @@
 #ifndef QTEXTPAD_DEFINITIONDOWNLOAD_H
 #define QTEXTPAD_DEFINITIONDOWNLOAD_H
 
-#include <ksyntaxhighlighting_version.h>
+#include "kf_version.h"
 
-#if (SyntaxHighlighting_VERSION >= ((5<<16)|(56<<8)|(0)))
+#ifdef SUPPORT_DEFINITION_DOWNLOADER
 
 #include <QDialog>
 #include <QElapsedTimer>
@@ -53,6 +53,6 @@ private:
     QElapsedTimer m_timer;
 };
 
-#endif // SyntaxHighlighting_VERSION check
+#endif // SUPPORT_DEFINITION_DOWNLOADER
 
 #endif // QTEXTPAD_DEFINITIONDOWNLOAD_H
