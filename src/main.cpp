@@ -54,8 +54,14 @@ static void setDefaultIconTheme()
             break;
         }
     }
-    if (!defaultThemeOk)
-        QIcon::setThemeName(QStringLiteral("qtextpad"));
+    if (!defaultThemeOk) {
+        QString fallbackTheme = QStringLiteral("qtextpad");
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
+            fallbackTheme = QStringLiteral("qtextpad-dark");
+#endif
+        QIcon::setThemeName(fallbackTheme);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -149,7 +155,7 @@ int main(int argc, char *argv[])
     appIcon.addFile(QStringLiteral(":/icons/qtextpad-32.png"), QSize(32, 32));
     appIcon.addFile(QStringLiteral(":/icons/qtextpad-16.png"), QSize(16, 16));
     appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
-    app.setWindowIcon(appIcon);
+    QApplication::setWindowIcon(appIcon);
 
     QTextPadWindow win;
     win.show();
@@ -199,5 +205,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    return app.exec();
+    return QApplication::exec();
 }

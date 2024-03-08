@@ -25,6 +25,11 @@
 #include <QPalette>
 #include <QIcon>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <QGuiApplication>
+#include <QStyleHints>
+#endif
+
 #define RECENT_FILES        10
 #define RECENT_SEARCHES     20
 #define FM_CACHE_SIZE       50
@@ -271,7 +276,12 @@ void QTextPadSettings::addRecentSearchReplacement(const QString &text)
 
 QIcon QTextPadSettings::staticIcon(const QString &iconName, const QPalette &palette)
 {
-    const bool darkTheme = palette.color(QPalette::Window).lightness() < 128;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    Q_UNUSED(palette)
+    const bool darkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+#else
+    const bool darkTheme = (palette.color(QPalette::Window).lightness() < 128);
+#endif
     const QString iconPattern = darkTheme
             ? QStringLiteral(":/icons/qtextpad-dark/16x16/actions/%1.png")
             : QStringLiteral(":/icons/qtextpad/16x16/actions/%1.png");
