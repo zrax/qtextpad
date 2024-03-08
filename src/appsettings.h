@@ -109,7 +109,7 @@ public:
     SIMPLE_SETTING(bool, "Search/Escapes", searchEscapes, setSearchEscapes, false)
     SIMPLE_SETTING(bool, "Search/Wrap", searchWrap, setSearchWrap, true)
 
-    static QIcon staticIcon(const QString &iconName, const QPalette &palette);
+    static QIcon staticIcon(const QString &iconName, bool darkTheme);
 
 private:
     QSettings m_settings;

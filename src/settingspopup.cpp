@@ -24,6 +24,10 @@
 #include <QScrollBar>
 #include <QVBoxLayout>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <QStyleHints>
+#endif
+
 #include <KSyntaxHighlighting/Repository>
 
 #include "appsettings.h"
@@ -33,7 +37,13 @@
 TreeFilterEdit::TreeFilterEdit(QWidget *parent)
     : QLineEdit(parent)
 {
-    m_searchIcon = QTextPadSettings::staticIcon(QStringLiteral("search-filter"), palette());
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    const bool darkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+#else
+    const bool darkTheme = (palette().color(QPalette::Window).lightness() < 128);
+#endif
+
+    m_searchIcon = QTextPadSettings::staticIcon(QStringLiteral("search-filter"), darkTheme);
     setClearButtonEnabled(true);
     recomputeIconPos();
 }

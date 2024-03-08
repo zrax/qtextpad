@@ -31,6 +31,11 @@
 #include <QPainter>
 #include <QStringView>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <QGuiApplication>
+#include <QStyleHints>
+#endif
+
 #include "qtextpadwindow.h"
 #include "appsettings.h"
 
@@ -49,10 +54,15 @@ static inline QString &string_appendView(QString &str, QStringView view)
 SearchWidget::SearchWidget(QTextPadWindow *parent)
     : QWidget(parent), m_editor(parent->editor())
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    const bool darkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+#else
+    const bool darkTheme = (palette().color(QPalette::Window).lightness() < 128);
+#endif
+
     auto tbMenu = new QToolButton(this);
-    const QPalette &pal = palette();
     tbMenu->setAutoRaise(true);
-    tbMenu->setIcon(QTextPadSettings::staticIcon(QStringLiteral("application-menu"), pal));
+    tbMenu->setIcon(QTextPadSettings::staticIcon(QStringLiteral("application-menu"), darkTheme));
     tbMenu->setToolTip(tr("Search Settings"));
     tbMenu->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; }"));
 
@@ -82,12 +92,12 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
 
     auto tbNext = new QToolButton(this);
     tbNext->setAutoRaise(true);
-    tbNext->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-down"), pal));
+    tbNext->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-down"), darkTheme));
     tbNext->setToolTip(tr("Find Next"));
 
     auto tbPrev = new QToolButton(this);
     tbPrev->setAutoRaise(true);
-    tbPrev->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-up"), pal));
+    tbPrev->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-up"), darkTheme));
     tbPrev->setToolTip(tr("Find Previous"));
 
     auto layout = new QHBoxLayout(this);
@@ -108,6 +118,16 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
     connect(m_searchText, &QLineEdit::returnPressed, this, [this] { searchNext(false); });
     connect(tbNext, &QToolButton::clicked, this, [this] { searchNext(false); });
     connect(tbPrev, &QToolButton::clicked, this, [this] { searchNext(true); });
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+            this, [=](Qt::ColorScheme colorScheme) {
+                const bool darkTheme = colorScheme == Qt::ColorScheme::Dark;
+                tbMenu->setIcon(QTextPadSettings::staticIcon(QStringLiteral("application-menu"), darkTheme));
+                tbNext->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-down"), darkTheme));
+                tbPrev->setIcon(QTextPadSettings::staticIcon(QStringLiteral("go-up"), darkTheme));
+            });
+#endif
 }
 
 void SearchWidget::setSearchText(const QString &text)
