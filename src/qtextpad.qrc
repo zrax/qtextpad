@@ -18,7 +18,6 @@
         <file>icons/qtextpad/16x16/actions/document-print.png</file>
         <file>icons/qtextpad/16x16/actions/document-save.png</file>
         <file>icons/qtextpad/16x16/actions/document-save-as.png</file>
-        <file>icons/qtextpad/16x16/actions/edit-clear.png</file>
         <file>icons/qtextpad/16x16/actions/edit-copy.png</file>
         <file>icons/qtextpad/16x16/actions/edit-cut.png</file>
         <file>icons/qtextpad/16x16/actions/edit-delete.png</file>
@@ -45,7 +44,6 @@
         <file>icons/qtextpad/22x22/actions/document-print.png</file>
         <file>icons/qtextpad/22x22/actions/document-save.png</file>
         <file>icons/qtextpad/22x22/actions/document-save-as.png</file>
-        <file>icons/qtextpad/22x22/actions/edit-clear.png</file>
         <file>icons/qtextpad/22x22/actions/edit-copy.png</file>
         <file>icons/qtextpad/22x22/actions/edit-cut.png</file>
         <file>icons/qtextpad/22x22/actions/edit-delete.png</file>
