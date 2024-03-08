@@ -19,7 +19,7 @@
 #include <QLibraryInfo>
 #include <QCommandLineParser>
 #include <QIcon>
-#if defined(Q_OS_WIN) && (QT_VERSION >= QT_VERSION_CHECK(6, 5, 0))
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QStyleHints>
 #include <QStyle>
 #endif
