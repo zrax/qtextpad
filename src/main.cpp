@@ -47,20 +47,23 @@ static void setDefaultIconTheme()
         QStringLiteral("edit-paste"),
         QStringLiteral("edit-find"), QStringLiteral("edit-find-replace"),
     };
-    bool defaultThemeOk = true;
-    for (const auto &name : iconNames) {
-        if (!QIcon::hasThemeIcon(name)) {
-            defaultThemeOk = false;
-            break;
+    static bool defaultThemeOk = true;
+    if (defaultThemeOk) {
+        for (const auto &name : iconNames) {
+            if (!QIcon::hasThemeIcon(name)) {
+                defaultThemeOk = false;
+                break;
+            }
         }
     }
     if (!defaultThemeOk) {
-        QString fallbackTheme = QStringLiteral("qtextpad");
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-        if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
-            fallbackTheme = QStringLiteral("qtextpad-dark");
+        const bool darkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+#else
+        const bool darkTheme = (QGuiApplication::palette().color(QPalette::Window).lightness() < 128);
 #endif
-        QIcon::setThemeName(fallbackTheme);
+        QIcon::setThemeName(darkTheme ? QStringLiteral("qtextpad-dark")
+                                      : QStringLiteral("qtextpad"));
     }
 }
 
@@ -81,6 +84,7 @@ int main(int argc, char *argv[])
             QApplication::setStyle(QStringLiteral("fusion"));
         else
             QApplication::setStyle(defaultStyle);
+        setDefaultIconTheme();
     });
 #endif
 
