@@ -37,7 +37,7 @@
 
 // Determine if the default icon theme includes the necessary icons for
 // our toolbar.  If not, we need to use our own theme.
-static void setDefaultIconTheme()
+static bool checkDefaultIconTheme()
 {
     const QString iconNames[] = {
         QStringLiteral("document-new"), QStringLiteral("document-open"),
@@ -47,15 +47,12 @@ static void setDefaultIconTheme()
         QStringLiteral("edit-paste"),
         QStringLiteral("edit-find"), QStringLiteral("edit-find-replace"),
     };
-    static bool defaultThemeOk = true;
-    if (defaultThemeOk) {
-        for (const auto &name : iconNames) {
-            if (!QIcon::hasThemeIcon(name)) {
-                defaultThemeOk = false;
-                break;
-            }
-        }
-    }
+    return std::all_of(std::begin(iconNames), std::end(iconNames), &QIcon::hasThemeIcon);
+}
+
+static void setDefaultIconTheme()
+{
+    static const bool defaultThemeOk = checkDefaultIconTheme();
     if (!defaultThemeOk) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         const bool darkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
