@@ -64,8 +64,54 @@
 
         <file>icons/qtextpad-dark/index.theme</file>
         <file>icons/qtextpad-dark/16x16/actions/application-menu.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/document-new.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/document-open.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/document-preview.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/document-print.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/document-save.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/document-save-as.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-copy.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-cut.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-delete.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-find.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-find-replace.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-paste.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-redo.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/edit-undo.png</file>
         <file>icons/qtextpad-dark/16x16/actions/go-down.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/go-jump.png</file>
         <file>icons/qtextpad-dark/16x16/actions/go-up.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/help-about.png</file>
         <file>icons/qtextpad-dark/16x16/actions/search-filter.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/view-fullscreen.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/view-refresh.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/view-restore.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/window-new.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/zoom-in.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/zoom-original.png</file>
+        <file>icons/qtextpad-dark/16x16/actions/zoom-out.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/document-new.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/document-open.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/document-preview.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/document-print.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/document-save.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/document-save-as.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-copy.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-cut.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-delete.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-find.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-find-replace.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-paste.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-redo.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/edit-undo.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/go-jump.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/help-about.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/view-fullscreen.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/view-refresh.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/view-restore.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/window-new.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/zoom-in.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/zoom-original.png</file>
+        <file>icons/qtextpad-dark/22x22/actions/zoom-out.png</file>
     </qresource>
 </RCC>
