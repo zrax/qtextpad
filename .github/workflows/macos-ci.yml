@@ -21,7 +21,7 @@ jobs:
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install Qt
@@ -78,7 +78,7 @@ jobs:
           hdiutil create qtextpad-macOS-${buildver}.dmg -srcfolder $HOME/dist \
               -format UDZO -fs HFS+ -volname "QTextPad ${buildver}"
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: QTextPad-macOS
           path: macOS
