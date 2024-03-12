@@ -70,7 +70,8 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(QStringLiteral("qtextpad"));
     QCoreApplication::setApplicationVersion(QTextPadVersion::versionString());
 
-#if defined(Q_OS_WIN) && (QT_VERSION >= QT_VERSION_CHECK(6, 5, 0))
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+# ifdef Q_OS_WIN
     QString defaultStyle = QApplication::style()->name();
     if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
         QApplication::setStyle(QStringLiteral("fusion"));
@@ -83,6 +84,10 @@ int main(int argc, char *argv[])
             QApplication::setStyle(defaultStyle);
         setDefaultIconTheme();
     });
+# else
+    QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+                     [](Qt::ColorScheme) { setDefaultIconTheme(); });
+# endif
 #endif
 
     QTranslator qtTranslator;
