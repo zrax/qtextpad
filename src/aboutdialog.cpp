@@ -40,7 +40,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     aboutText->setText(tr(
         "<b>QTextPad %1</b><br />"
         "<br />"
-        "Copyright \xC2\xA9 2020 Michael Hansen<br />"
+        "Copyright \xC2\xA9 2020 - 2024 Michael Hansen<br />"
         "<br />"
         "<a href=\"https://github.com/zrax/qtextpad\">https://github.com/zrax/qtextpad</a><br />"
     ).arg(QTextPadVersion::versionString()));
@@ -77,9 +77,9 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<li>ICU %3</li>"
         "<li>Oxygen Icons</li>"
         "</ul>")
-        .arg(QString::fromLatin1(qVersion()))
-        .arg(QStringLiteral(KSYNTAXHIGHLIGHTING_VERSION_STRING))
-        .arg(TextCodec::icuVersion())
+        .arg(QString::fromLatin1(qVersion()),
+             QStringLiteral(KSYNTAXHIGHLIGHTING_VERSION_STRING),
+             TextCodec::icuVersion())
         );
     libVersions->setMargin(10);
     libVersions->setAlignment(Qt::AlignLeft | Qt::AlignTop);
