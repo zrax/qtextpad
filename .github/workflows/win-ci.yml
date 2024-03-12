@@ -105,5 +105,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: QTextPad-win64
+          name: QTextPad-win64-qt${{ matrix.cfg.qt_version }}
           path: qtextpad-win64-*.*
