@@ -27,13 +27,13 @@ public:
     ActivationLabel(QWidget *parent = Q_NULLPTR)
         : QLabel(parent) { }
 
-signals:
+Q_SIGNALS:
     void activated();
 
 protected:
     void mouseDoubleClickEvent(QMouseEvent *) Q_DECL_OVERRIDE
     {
-        emit activated();
+        Q_EMIT activated();
     }
 };
 

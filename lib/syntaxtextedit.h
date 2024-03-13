@@ -130,11 +130,11 @@ protected:
     void wheelEvent(QWheelEvent *e) Q_DECL_OVERRIDE;
     void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
 
-signals:
+Q_SIGNALS:
     void undoRequested();
     void redoRequested();
 
-public slots:
+public Q_SLOTS:
     void cutLines();
     void copyLines();
     void indentSelection();
@@ -151,7 +151,7 @@ public slots:
 
     void printDocument(QPrinter *printer);
 
-private slots:
+private Q_SLOTS:
     void updateMargins();
     void updateLineNumbers(const QRect &rect, int dy);
     void updateCursor();

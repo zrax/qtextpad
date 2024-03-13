@@ -40,7 +40,7 @@ class DefinitionDownloadDialog : public QDialog
 public:
     DefinitionDownloadDialog(KSyntaxHighlighting::Repository *repository, QWidget *parent);
 
-public slots:
+public Q_SLOTS:
     void downloadFinished();
 
 protected:

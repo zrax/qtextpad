@@ -33,7 +33,7 @@ public:
 
     QSize sizeHint() const Q_DECL_OVERRIDE;
 
-signals:
+Q_SIGNALS:
     void navigateDown();
 
 protected:
@@ -59,7 +59,7 @@ public:
     TreeFilterEdit *filter() { return m_filter; }
     QTreeWidget *tree() { return m_tree; }
 
-public slots:
+public Q_SLOTS:
     void filterItems(const QString &text);
 
 protected:
@@ -78,10 +78,10 @@ class SyntaxPopup : public FilteredTreePopup
 public:
     SyntaxPopup(QWidget *parent = Q_NULLPTR);
 
-signals:
+Q_SIGNALS:
     void syntaxSelected(const KSyntaxHighlighting::Definition &syntax);
 
-private slots:
+private Q_SLOTS:
     void syntaxItemChosen(QTreeWidgetItem *current, int column);
 
 private:
@@ -95,10 +95,10 @@ class EncodingPopup : public FilteredTreePopup
 public:
     EncodingPopup(QWidget *parent = Q_NULLPTR);
 
-signals:
+Q_SIGNALS:
     void encodingSelected(const QString &codecName);
 
-private slots:
+private Q_SLOTS:
     void encodingItemChosen(QTreeWidgetItem *current, int column);
 };
 

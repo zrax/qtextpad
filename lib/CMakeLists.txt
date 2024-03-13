@@ -30,3 +30,5 @@ target_link_libraries(syntaxtextedit
         Qt::PrintSupport
         KF${QT_VERSION_MAJOR}::SyntaxHighlighting
 )
+
+target_compile_definitions(syntaxtextedit PRIVATE QT_NO_KEYWORDS)

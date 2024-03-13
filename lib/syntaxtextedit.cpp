@@ -1123,11 +1123,11 @@ void SyntaxTextEdit::keyPressEvent(QKeyEvent *e)
         // Ensure these are handled by the application, NOT by QPlainTextEdit's
         // built-in implementation that bypasses us altogether
         if (e->matches(QKeySequence::Undo)) {
-            emit undoRequested();
+            Q_EMIT undoRequested();
             return;
         }
         if (e->matches(QKeySequence::Redo)) {
-            emit redoRequested();
+            Q_EMIT redoRequested();
             return;
         }
     }

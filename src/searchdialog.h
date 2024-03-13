@@ -49,13 +49,13 @@ public:
     void setSearchText(const QString &text);
     void activate();
 
-public slots:
+public Q_SLOTS:
     void searchNext(bool reverse);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
 
-private slots:
+private Q_SLOTS:
     void updateSettings();
 
 private:
@@ -83,10 +83,10 @@ public:
     static QString regexReplace(const QString &text,
                                 const QRegularExpressionMatch &regexMatch);
 
-public slots:
+public Q_SLOTS:
     QTextCursor searchNext(bool reverse);
 
-private slots:
+private Q_SLOTS:
     void searchForward();
     void searchBackward();
     void replaceCurrent();

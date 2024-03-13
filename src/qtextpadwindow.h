@@ -73,7 +73,7 @@ public:
 
     void gotoLine(int line, int column = 0);
 
-public slots:
+public Q_SLOTS:
     void checkForModifications();
     bool promptForSave();
     bool promptForDiscard();

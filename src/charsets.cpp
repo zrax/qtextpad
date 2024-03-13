@@ -16,7 +16,6 @@
 
 #include "charsets.h"
 
-#include <QCoreApplication>
 #include <QLoggingCategory>
 #include <QMap>
 

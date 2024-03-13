@@ -81,3 +81,4 @@ if(WIN32)
 endif()
 
 target_link_libraries(qtextpad PRIVATE syntaxtextedit ICU::uc ICU::data)
+target_compile_definitions(qtextpad PRIVATE QT_NO_KEYWORDS)
