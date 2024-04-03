@@ -19,6 +19,7 @@
 #include <QLibraryInfo>
 #include <QCommandLineParser>
 #include <QIcon>
+#include <QtGlobal>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QStyleHints>
 #include <QStyle>
@@ -47,7 +48,8 @@ static bool checkDefaultIconTheme()
         QStringLiteral("edit-paste"),
         QStringLiteral("edit-find"), QStringLiteral("edit-find-replace"),
     };
-    return std::all_of(std::begin(iconNames), std::end(iconNames), &QIcon::hasThemeIcon);
+    return std::all_of(std::begin(iconNames), std::end(iconNames),
+                       qOverload<const QString&>(&QIcon::hasThemeIcon));
 }
 
 static void setDefaultIconTheme()
