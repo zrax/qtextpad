@@ -500,7 +500,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_crlfLabel = new ActivationLabel(this);
     statusBar()->addPermanentWidget(m_crlfLabel);
     m_indentButton = new QToolButton(this);
-    m_indentButton->setAutoRaise(true);;
+    m_indentButton->setAutoRaise(true);
     m_indentButton->setPopupMode(QToolButton::InstantPopup);
     populateIndentButtonMenu();
     statusBar()->addPermanentWidget(m_indentButton);
@@ -1321,7 +1321,7 @@ void QTextPadWindow::changeEncoding(const QString &encoding)
                tr("The current document encoding is '%1'.  Would you like to:<ul>"
                   "<li><b>Reload</b> the existing file in the '%2' encoding, or</li>"
                   "<li><b>Convert</b> the current document's encoding to '%2'?</li></ul>")
-                  .arg(m_textEncoding).arg(encoding),
+                  .arg(m_textEncoding, encoding),
                QMessageBox::Cancel, this);
         auto reloadButton = mbQuestion.addButton(tr("&Reload"), QMessageBox::AcceptRole);
         auto convertButton = mbQuestion.addButton(tr("&Convert"), QMessageBox::AcceptRole);

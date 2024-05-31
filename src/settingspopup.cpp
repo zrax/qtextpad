@@ -206,12 +206,12 @@ SyntaxPopup::SyntaxPopup(QWidget *parent)
         if (def.isHidden() || def == SyntaxTextEdit::nullSyntax())
             continue;
 
-        QTreeWidgetItem *parent = groupItems.value(def.translatedSection(), Q_NULLPTR);
-        if (!parent) {
-            parent = new QTreeWidgetItem(tree(), QStringList{def.translatedSection()});
-            groupItems[def.translatedSection()] = parent;
+        QTreeWidgetItem *parentItem = groupItems.value(def.translatedSection(), Q_NULLPTR);
+        if (!parentItem) {
+            parentItem = new QTreeWidgetItem(tree(), QStringList{def.translatedSection()});
+            groupItems[def.translatedSection()] = parentItem;
         }
-        auto item = new QTreeWidgetItem(parent, QStringList{def.translatedName()});
+        auto item = new QTreeWidgetItem(parentItem, QStringList{def.translatedName()});
         item->setData(0, Qt::UserRole, QVariant::fromValue(def));
     }
     tree()->expandAll();
@@ -255,7 +255,7 @@ EncodingPopup::EncodingPopup(QWidget *parent)
         for (int i = 1; i < encodingList.size(); ++i) {
             const QString &encoding = encodingList.at(i);
             auto item = new QTreeWidgetItem(tree(), QStringList {
-                                tr("%1 (%2)").arg(scriptName).arg(encoding)
+                                tr("%1 (%2)").arg(scriptName, encoding)
                         });
             item->setData(0, Qt::UserRole, encoding);
         }

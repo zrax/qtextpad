@@ -221,7 +221,7 @@ void SearchWidget::updateSettings()
 
 /* Just sets some more sane defaults for QComboBox:
  * - Don't auto-insert items (we handle that manually)
- * - Disable the completer, since it insists on changing the a typed
+ * - Disable the completer, since it insists on changing the typed
  *   item to match another item in the list that differs only in case.
  */
 class SearchComboBox : public QComboBox

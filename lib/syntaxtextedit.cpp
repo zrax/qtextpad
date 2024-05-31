@@ -1411,7 +1411,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     if (showIndentGuides()) {
         QPainter p(viewport());
         p.setPen(m_indentGuideFg);
-        QTextBlock block = firstVisibleBlock();
+        block = firstVisibleBlock();
         const QFontMetricsF fm(font());
         const int guideWidth = (m_indentationMode == IndentTabs
                                 ? m_tabCharSize : m_indentWidth);

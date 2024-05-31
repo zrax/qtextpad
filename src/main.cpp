@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
         QObject::connect(&downloader, &KSyntaxHighlighting::DefinitionDownloader::done,
                          [] { QCoreApplication::exit(0); });
         downloader.start();
-        return app.exec();
+        return QApplication::exec();
     }
 #endif
 

@@ -22,7 +22,6 @@
 #include <QSize>
 #include <QDir>
 #include <QLockFile>
-#include <QPalette>
 #include <QIcon>
 
 #define RECENT_FILES        10
