@@ -74,21 +74,25 @@ int main(int argc, char *argv[])
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 # ifdef Q_OS_WIN
-    QString defaultStyle = QApplication::style()->name();
-    if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
-        QApplication::setStyle(QStringLiteral("fusion"));
-
-    QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
-                     [defaultStyle](Qt::ColorScheme colorScheme) {
-        if (colorScheme == Qt::ColorScheme::Dark)
+    const QString defaultStyle = QApplication::style()->name();
+    if (defaultStyle != QStringLiteral("windows11")) {
+        if (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark)
             QApplication::setStyle(QStringLiteral("fusion"));
-        else
-            QApplication::setStyle(defaultStyle);
-        setDefaultIconTheme();
-    });
-# else
-    QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
-                     [](Qt::ColorScheme) { setDefaultIconTheme(); });
+
+        QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+                         [defaultStyle](Qt::ColorScheme colorScheme) {
+            if (colorScheme == Qt::ColorScheme::Dark)
+                QApplication::setStyle(QStringLiteral("fusion"));
+            else
+                QApplication::setStyle(defaultStyle);
+            setDefaultIconTheme();
+        });
+    } else {
+# endif
+        QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+                         [](Qt::ColorScheme) { setDefaultIconTheme(); });
+# ifdef Q_OS_WIN
+    }
 # endif
 #endif
 
