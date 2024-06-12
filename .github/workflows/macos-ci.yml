@@ -25,7 +25,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           arch: clang_64
           version: ${{ matrix.cfg.qt_version }}
