@@ -11,13 +11,13 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - kf_version: "5.115"
-            kf_fullver: "5.115.0"
+          - kf_version: "5.116"
+            kf_fullver: "5.116.0"
             qt_version: "5.15.2"
             kf_cmake_args: ""
-          - kf_version: "6.0"
-            kf_fullver: "6.0.0"
-            qt_version: "6.5.3"
+          - kf_version: "6.3"
+            kf_fullver: "6.3.0"
+            qt_version: "6.6.3"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
