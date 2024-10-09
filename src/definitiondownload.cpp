@@ -16,8 +16,6 @@
 
 #include "definitiondownload.h"
 
-#ifdef SUPPORT_DEFINITION_DOWNLOADER
-
 #include <QPlainTextEdit>
 #include <QDialogButtonBox>
 #include <QPushButton>
@@ -105,5 +103,3 @@ void DefinitionDownloadDialog::closeEvent(QCloseEvent *e)
     if (!m_buttonBox->button(QDialogButtonBox::Close)->isEnabled())
         e->ignore();
 }
-
-#endif // SUPPORT_DEFINITION_DOWNLOADER

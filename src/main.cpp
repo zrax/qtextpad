@@ -25,12 +25,9 @@
 #include <QStyle>
 #endif
 
-#include "kf_version.h"
 #include <KSyntaxHighlighting/Repository>
 #include <KSyntaxHighlighting/Definition>
-#ifdef SUPPORT_DEFINITION_DOWNLOADER
 #include <KSyntaxHighlighting/DefinitionDownloader>
-#endif
 
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"
@@ -133,15 +130,12 @@ int main(int argc, char *argv[])
     parser.addOption(encodingOption);
     parser.addOption(syntaxOption);
 
-#ifdef SUPPORT_DEFINITION_DOWNLOADER
     const QCommandLineOption updateOption(QStringList{QStringLiteral("update-definitions")},
             QCoreApplication::translate("main", "Download updated syntax definitions from the internet and exit."));
     parser.addOption(updateOption);
-#endif
 
     parser.process(app);
 
-#ifdef SUPPORT_DEFINITION_DOWNLOADER
     if (parser.isSet(updateOption)) {
         // Handle this before any GUI objects are created
         KSyntaxHighlighting::Repository syntaxRepo;
@@ -155,7 +149,6 @@ int main(int argc, char *argv[])
         downloader.start();
         return QApplication::exec();
     }
-#endif
 
     setDefaultIconTheme();
 

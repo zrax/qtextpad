@@ -1640,7 +1640,6 @@ void QTextPadWindow::populateSyntaxMenu()
         connect(item, &QAction::triggered, this, [this, def] { setSyntax(def); });
     }
 
-#ifdef SUPPORT_DEFINITION_DOWNLOADER
     (void) m_syntaxMenu->addSeparator();
     auto updateAction = m_syntaxMenu->addAction(tr("Update Definitions"));
     connect(updateAction, &QAction::triggered, this, [this] {
@@ -1650,7 +1649,6 @@ void QTextPadWindow::populateSyntaxMenu()
         downloadDialog->raise();
         downloadDialog->activateWindow();
     });
-#endif
 }
 
 void QTextPadWindow::populateThemeMenu()

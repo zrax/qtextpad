@@ -22,10 +22,10 @@
 #include <QDialogButtonBox>
 #include <QGridLayout>
 #include <QMessageBox>
+#include <ksyntaxhighlighting_version.h>
 
 #include "appversion.h"
 #include "charsets.h"
-#include "kf_version.h"
 
 AboutDialog::AboutDialog(QWidget *parent)
     : QDialog(parent)
@@ -78,7 +78,13 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<li>Oxygen Icons</li>"
         "</ul>")
         .arg(QString::fromLatin1(qVersion()),
+#if defined(KSYNTAXHIGHLIGHTING_VERSION)
              QStringLiteral(KSYNTAXHIGHLIGHTING_VERSION_STRING),
+#elif defined(SyntaxHighlighting_VERSION)
+             QStringLiteral(SyntaxHighlighting_VERSION),
+#else
+#   error Unsupported <ksyntaxhighlighting_version.h> header format
+#endif
              TextCodec::icuVersion())
         );
     libVersions->setMargin(10);

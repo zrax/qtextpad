@@ -36,7 +36,7 @@ if(Qt5_FOUND AND NOT TARGET Qt::Core)
     endforeach()
 endif()
 
-find_package(KF${QT_VERSION_MAJOR}SyntaxHighlighting REQUIRED)
+find_package(KF${QT_VERSION_MAJOR}SyntaxHighlighting 5.56 REQUIRED)
 set_package_properties(KF${QT_VERSION_MAJOR}SyntaxHighlighting PROPERTIES
     URL "https://community.kde.org/Frameworks"
     DESCRIPTION "Syntax Highlighting framework for Qt${QT_VERSION_MAJOR}"

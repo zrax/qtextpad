@@ -17,10 +17,6 @@
 #ifndef QTEXTPAD_DEFINITIONDOWNLOAD_H
 #define QTEXTPAD_DEFINITIONDOWNLOAD_H
 
-#include "kf_version.h"
-
-#ifdef SUPPORT_DEFINITION_DOWNLOADER
-
 #include <QDialog>
 #include <QElapsedTimer>
 
@@ -52,7 +48,5 @@ private:
     QDialogButtonBox *m_buttonBox;
     QElapsedTimer m_timer;
 };
-
-#endif // SUPPORT_DEFINITION_DOWNLOADER
 
 #endif // QTEXTPAD_DEFINITIONDOWNLOAD_H
