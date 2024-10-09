@@ -81,7 +81,7 @@ AboutDialog::AboutDialog(QWidget *parent)
 #if defined(KSYNTAXHIGHLIGHTING_VERSION)
              QStringLiteral(KSYNTAXHIGHLIGHTING_VERSION_STRING),
 #elif defined(SyntaxHighlighting_VERSION)
-             QStringLiteral(SyntaxHighlighting_VERSION),
+             QStringLiteral(SyntaxHighlighting_VERSION_STRING),
 #else
 #   error Unsupported <ksyntaxhighlighting_version.h> header format
 #endif
