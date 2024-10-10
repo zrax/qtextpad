@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-11
+    runs-on: macos-13
     name: "macOS-x86_64-Qt${{ matrix.cfg.qt_version }}"
     strategy:
       matrix:
