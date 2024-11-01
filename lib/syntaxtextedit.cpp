@@ -946,8 +946,7 @@ void SyntaxTextEdit::indentSelection()
     do {
         int startOfLine = 0;
         const QString blockText = cursor.block().text();
-        const int leadingIndent = m_highlighter->leadingIndentation(cursor.block().text(),
-                                                                    &startOfLine);
+        const int leadingIndent = m_highlighter->leadingIndentation(blockText, &startOfLine);
 
         if (!blockText.isEmpty()) {
             cursor.movePosition(QTextCursor::StartOfLine);
@@ -985,19 +984,9 @@ void SyntaxTextEdit::outdentSelection()
                          ? cursor.blockNumber() - 1 : cursor.blockNumber();
     cursor.setPosition(startPos);
     do {
-        int leadingIndent = 0;
         int startOfLine = 0;
-        for (const auto ch : cursor.block().text()) {
-            if (ch == QLatin1Char('\t')) {
-                leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
-                startOfLine += 1;
-            } else if (ch == QLatin1Char(' ')) {
-                leadingIndent += 1;
-                startOfLine += 1;
-            } else {
-                break;
-            }
-        }
+        const QString blockText = cursor.block().text();
+        const int leadingIndent = m_highlighter->leadingIndentation(blockText, &startOfLine);
 
         cursor.movePosition(QTextCursor::StartOfLine);
         cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor,
