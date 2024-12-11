@@ -95,7 +95,7 @@ jobs:
                   "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll", `
                   "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
                   -Destination qtextpad-win64
-          } else {
+          } elseif (Test-Path qtextpad-win64\tls\qopensslbackend.dll) {
               del qtextpad-win64\tls\qopensslbackend.dll
           }
 
