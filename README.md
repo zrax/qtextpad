@@ -4,13 +4,13 @@
 QTextPad is designed to be a simple, lightweight text editor that works
 seamlessly and simply across several desktop platforms.
 
-It was created out of a desire to have a fast and light editor like
-the excellent [Notepad2](http://www.flos-freeware.ch/notepad2.html),
-but with support for other platforms like Linux and macOS,
-and for a much larger range of file formats.  To that end, QTextPad
-uses the same Syntax Highlighting library that powers
-[Kate](https://kate-editor.org/), giving it access to the same (ever
-growing) repository of file formats that Kate supports.
+It was created out of a desire to have a fast and light editor like the
+excellent [Notepad2](http://www.flos-freeware.ch/notepad2.html), but with
+support for other platforms like Linux and macOS, and for a much larger
+range of file formats.  To that end, QTextPad uses the same Syntax
+Highlighting library that powers [Kate](https://kate-editor.org/), giving
+it access to the same (ever-growing) repository of file formats that Kate
+supports.
 
 ## Features
 * Supported on Windows, Linux, macOS
@@ -40,7 +40,7 @@ KDE Plasma, dark theme:
 * **Windows**:  You can download an installer or a portable zip file compatible
   with Windows 10 1709 or later from the GitHub
   [releases](https://github.com/zrax/qtextpad/releases) page.
-* **macOS**:  You can download a dmg compatible with macOS 11 (Big Sur)
+* **macOS**:  You can download a dmg compatible with macOS 12 (Monterey)
   or later from the GitHub [releases](https://github.com/zrax/qtextpad/releases)
   page.  Note that these packages are currently not signed.
 * **Arch Linux**:  Install [qtextpad](https://aur.archlinux.org/packages/qtextpad)
