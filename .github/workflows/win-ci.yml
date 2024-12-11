@@ -15,15 +15,13 @@ jobs:
             kf_fullver: "5.116.0"
             qt_version: "5.15.2"
             qt_arch: "msvc2019_64"
-            cmake_generator: "Visual Studio 17 2022"
             kf_cmake_args: ""
             build_installer: "$false"
             deploy_openssl: "$true"
-          - kf_version: "6.6"
-            kf_fullver: "6.6.0"
+          - kf_version: "6.8"
+            kf_fullver: "6.8.0"
             qt_version: "6.8.1"
             qt_arch: "msvc2022_64"
-            cmake_generator: "Visual Studio 17 2022"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
             build_installer: "$true"
             deploy_openssl: "$false"
@@ -37,6 +35,10 @@ jobs:
         with:
           arch: "win64_${{ matrix.cfg.qt_arch }}"
           version: ${{ matrix.cfg.qt_version }}
+      - name: Add MSVC to PATH
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
       - name: Build Qt Libs
         run: |
           mkdir build_deps
@@ -47,31 +49,31 @@ jobs:
           cd extra-cmake-modules-${{ matrix.cfg.kf_fullver }}
           mkdir build
           cd build
-          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
+          cmake -G "NMake Makefiles" `
               "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
               "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
               -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf_cmake_args }} ..
-          cmake --build . --config Release --target install
+          cmake --build . --target install
           cd ..\..
           cmake -E tar xf syntax-highlighting-${{ matrix.cfg.kf_fullver }}.tar.xz
           cd syntax-highlighting-${{ matrix.cfg.kf_fullver }}
           mkdir build && cd build
-          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
+          cmake -G "NMake Makefiles" `
               "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
               "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
               -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf_cmake_args }} ..
-          cmake --build . --config Release
-          cmake --build . --config Release --target install
+          cmake --build .
+          cmake --build . --target install
       - name: Build qtextpad
         run: |
           mkdir build
           cd build
-          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
+          cmake -G "NMake Makefiles" `
             "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
             "-DCMAKE_INSTALL_PREFIX=${Env:GITHUB_WORKSPACE}/dist/qtextpad-win64" `
             -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . --config Release
-          cmake --build . --config Release --target install
+          cmake --build .
+          cmake --build . --target install
       - name: Package qtextpad
         run: |
           $buildver = ((git describe --dirty) | Out-String).Trim()
