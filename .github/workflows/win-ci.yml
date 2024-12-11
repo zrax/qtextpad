@@ -78,7 +78,6 @@ jobs:
         run: |
           $buildver = ((git describe --dirty) | Out-String).Trim()
           $buildver += "-qt" + "${{ matrix.cfg.qt_version }}"[0]
-          $Env:VCINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC"
           cd "${Env:GITHUB_WORKSPACE}\dist"
           windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw --no-system-d3d-compiler
           copy -Path "${Env:GITHUB_WORKSPACE}\COPYING", `
