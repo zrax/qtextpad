@@ -40,7 +40,7 @@ public:
     void deleteSelection();
     void deleteLines();
 
-    int lineMarginWidth();
+    int lineMarginWidth() const;
     void setShowLineNumbers(bool show);
     bool showLineNumbers() const;
     void setShowFolding(bool show);
@@ -176,6 +176,11 @@ private:
     unsigned int m_config;
     IndentationMode m_indentationMode;
     int m_originalFontSize;
+
+#ifdef Q_OS_WIN
+    QColor m_editorBg;
+    bool m_styleNeedsBgRepaint;
+#endif
 
     QPixmap m_foldOpen, m_foldClosed;
 

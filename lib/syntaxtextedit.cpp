@@ -30,6 +30,11 @@
 #include <QStyleHints>
 #endif
 
+#ifdef Q_OS_WIN
+#include <QApplication>
+#include <QStyle>
+#endif
+
 #include <KSyntaxHighlighting/Theme>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
@@ -121,7 +126,7 @@ void SyntaxTextEdit::deleteLines()
     setTextCursor(cursor);
 }
 
-int SyntaxTextEdit::lineMarginWidth()
+int SyntaxTextEdit::lineMarginWidth() const
 {
     qreal margin = 0;
     const QFontMetricsF metrics(font());
@@ -257,12 +262,12 @@ void SyntaxTextEdit::updateTextMetrics()
     QFontMetricsF metrics(font());
     const qreal box = qMin(metrics.boundingRect(QLatin1Char('x')).width() * 1.5,
                            metrics.height());
-    QVector<QPointF> arrowOpen {
+    const QVector<QPointF> arrowOpen {
         QPointF(0, box / 4.0),
         QPointF(box - 1, box / 4.0),
         QPointF(box / 2.0, 0.75 * box),
     };
-    QVector<QPointF> arrowClosed {
+    const QVector<QPointF> arrowClosed {
         QPointF(box / 4.0, 0),
         QPointF(box / 4.0, box - 1),
         QPointF(0.75 * box, box / 2.0),
@@ -650,6 +655,11 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     m_searchBg = theme.editorColor(KSyntaxHighlighting::Theme::SearchHighlight);
     m_braceMatchBg = theme.editorColor(KSyntaxHighlighting::Theme::BracketMatching);
     m_errorBg = theme.editorColor(KSyntaxHighlighting::Theme::MarkError);
+
+#ifdef Q_OS_WIN
+    m_styleNeedsBgRepaint = QApplication::style()->name() == QStringLiteral("windows11");
+    m_editorBg = theme.editorColor(KSyntaxHighlighting::Theme::BackgroundColor);
+#endif
 
     m_highlighter->setTheme(theme);
     m_highlighter->rehighlight();
@@ -1336,6 +1346,16 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     const QRect eventRect = e->rect();
     const QRect viewRect = viewport()->rect();
     QRectF cursorBlockRect;
+
+#ifdef Q_OS_WIN
+    if (m_styleNeedsBgRepaint) {
+        // Draw the background.  This should be handled by QPlainTextEdit::paintEvent(),
+        // but some styles (notably, Qt's Windows11 style) ignore the provided
+        // background color and use their own.
+        QPainter p(viewport());
+        p.fillRect(eventRect, m_editorBg);
+    }
+#endif
 
     const QTextCursor cursor = textCursor();
     if (highlightCurrentLine()) {
