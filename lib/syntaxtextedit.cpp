@@ -30,7 +30,7 @@
 #include <QStyleHints>
 #endif
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 #include <QApplication>
 #include <QStyle>
 #endif
@@ -656,7 +656,7 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     m_braceMatchBg = theme.editorColor(KSyntaxHighlighting::Theme::BracketMatching);
     m_errorBg = theme.editorColor(KSyntaxHighlighting::Theme::MarkError);
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
     m_styleNeedsBgRepaint = QApplication::style()->name() == QStringLiteral("windows11");
     m_editorBg = theme.editorColor(KSyntaxHighlighting::Theme::BackgroundColor);
 #endif
@@ -1347,7 +1347,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     const QRect viewRect = viewport()->rect();
     QRectF cursorBlockRect;
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
     if (m_styleNeedsBgRepaint) {
         // Draw the background.  This should be handled by QPlainTextEdit::paintEvent(),
         // but some styles (notably, Qt's Windows11 style) ignore the provided
