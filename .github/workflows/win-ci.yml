@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-2022
     name: "Windows-x64-Qt${{ matrix.cfg.qt_version }}"
     strategy:
       matrix:
@@ -14,14 +14,14 @@ jobs:
           - kf_version: "5.116"
             kf_fullver: "5.116.0"
             qt_version: "5.15.2"
-            cmake_generator: "Visual Studio 16 2019"
+            qt_arch: "msvc2019_64"
             kf_cmake_args: ""
             build_installer: "$false"
             deploy_openssl: "$true"
-          - kf_version: "6.6"
-            kf_fullver: "6.6.0"
-            qt_version: "6.6.3"
-            cmake_generator: "Visual Studio 16 2019"
+          - kf_version: "6.8"
+            kf_fullver: "6.8.0"
+            qt_version: "6.8.1"
+            qt_arch: "msvc2022_64"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
             build_installer: "$true"
             deploy_openssl: "$false"
@@ -33,8 +33,12 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          arch: win64_msvc2019_64
+          arch: "win64_${{ matrix.cfg.qt_arch }}"
           version: ${{ matrix.cfg.qt_version }}
+      - name: Add MSVC to PATH
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
       - name: Build Qt Libs
         run: |
           mkdir build_deps
@@ -45,42 +49,41 @@ jobs:
           cd extra-cmake-modules-${{ matrix.cfg.kf_fullver }}
           mkdir build
           cd build
-          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
-              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
-              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
+          cmake -G "NMake Makefiles" `
+              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
+              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
               -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf_cmake_args }} ..
-          cmake --build . --config Release --target install
+          cmake --build . --target install
           cd ..\..
           cmake -E tar xf syntax-highlighting-${{ matrix.cfg.kf_fullver }}.tar.xz
           cd syntax-highlighting-${{ matrix.cfg.kf_fullver }}
           mkdir build && cd build
-          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
-              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
-              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
+          cmake -G "NMake Makefiles" `
+              "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
+              "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
               -DCMAKE_BUILD_TYPE=Release ${{ matrix.cfg.kf_cmake_args }} ..
-          cmake --build . --config Release
-          cmake --build . --config Release --target install
+          cmake --build .
+          cmake --build . --target install
       - name: Build qtextpad
         run: |
           mkdir build
           cd build
-          cmake -G "${{ matrix.cfg.cmake_generator }}" -A x64 `
-            "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/msvc2019_64" `
+          cmake -G "NMake Makefiles" `
+            "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
             "-DCMAKE_INSTALL_PREFIX=${Env:GITHUB_WORKSPACE}/dist/qtextpad-win64" `
             -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . --config Release
-          cmake --build . --config Release --target install
+          cmake --build .
+          cmake --build . --target install
       - name: Package qtextpad
         run: |
           $buildver = ((git describe --dirty) | Out-String).Trim()
           $buildver += "-qt" + "${{ matrix.cfg.qt_version }}"[0]
-          $Env:VCINSTALLDIR = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC"
           cd "${Env:GITHUB_WORKSPACE}\dist"
           windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw --no-system-d3d-compiler
           copy -Path "${Env:GITHUB_WORKSPACE}\COPYING", `
-              "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\KF*SyntaxHighlighting.dll" `
+              "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\${{ matrix.cfg.qt_arch }}\bin\KF*SyntaxHighlighting.dll" `
               -Destination qtextpad-win64
-          cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\msvc2019_64\bin\data" `
+          cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\${{ matrix.cfg.qt_arch }}\bin\data" `
               qtextpad-win64\data
           windeployqt qtextpad-win64\KF*SyntaxHighlighting.dll --release --no-opengl-sw --no-system-d3d-compiler
 
@@ -91,7 +94,7 @@ jobs:
                   "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll", `
                   "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
                   -Destination qtextpad-win64
-          } else {
+          } elseif (Test-Path qtextpad-win64\tls\qopensslbackend.dll) {
               del qtextpad-win64\tls\qopensslbackend.dll
           }
 

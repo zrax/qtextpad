@@ -15,9 +15,9 @@ jobs:
             kf_fullver: "5.116.0"
             qt_version: "5.15.2"
             kf_cmake_args: ""
-          - kf_version: "6.6"
-            kf_fullver: "6.6.0"
-            qt_version: "6.6.3"
+          - kf_version: "6.8"
+            kf_fullver: "6.8.0"
+            qt_version: "6.8.1"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
@@ -31,7 +31,7 @@ jobs:
           version: ${{ matrix.cfg.qt_version }}
       - name: Build Qt Libs
         env:
-          MACOSX_DEPLOYMENT_TARGET: "11.0"
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
         run: |
           mkdir -p $HOME/build-libs
           cd $HOME/build-libs
@@ -56,7 +56,7 @@ jobs:
         run: brew install icu4c
       - name: Build qtextpad
         env:
-          MACOSX_DEPLOYMENT_TARGET: "${{ matrix.cfg.deploy_target }}"
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
         run: |
           cd $GITHUB_WORKSPACE
           mkdir build && cd build

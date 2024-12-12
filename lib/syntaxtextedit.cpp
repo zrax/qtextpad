@@ -30,6 +30,11 @@
 #include <QStyleHints>
 #endif
 
+#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+#include <QApplication>
+#include <QStyle>
+#endif
+
 #include <KSyntaxHighlighting/Theme>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
@@ -121,7 +126,7 @@ void SyntaxTextEdit::deleteLines()
     setTextCursor(cursor);
 }
 
-int SyntaxTextEdit::lineMarginWidth()
+int SyntaxTextEdit::lineMarginWidth() const
 {
     qreal margin = 0;
     const QFontMetricsF metrics(font());
@@ -257,12 +262,12 @@ void SyntaxTextEdit::updateTextMetrics()
     QFontMetricsF metrics(font());
     const qreal box = qMin(metrics.boundingRect(QLatin1Char('x')).width() * 1.5,
                            metrics.height());
-    QVector<QPointF> arrowOpen {
+    const QVector<QPointF> arrowOpen {
         QPointF(0, box / 4.0),
         QPointF(box - 1, box / 4.0),
         QPointF(box / 2.0, 0.75 * box),
     };
-    QVector<QPointF> arrowClosed {
+    const QVector<QPointF> arrowClosed {
         QPointF(box / 4.0, 0),
         QPointF(box / 4.0, box - 1),
         QPointF(0.75 * box, box / 2.0),
@@ -651,6 +656,11 @@ void SyntaxTextEdit::setTheme(const KSyntaxHighlighting::Theme &theme)
     m_braceMatchBg = theme.editorColor(KSyntaxHighlighting::Theme::BracketMatching);
     m_errorBg = theme.editorColor(KSyntaxHighlighting::Theme::MarkError);
 
+#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    m_styleNeedsBgRepaint = QApplication::style()->name() == QStringLiteral("windows11");
+    m_editorBg = theme.editorColor(KSyntaxHighlighting::Theme::BackgroundColor);
+#endif
+
     m_highlighter->setTheme(theme);
     m_highlighter->rehighlight();
 
@@ -946,8 +956,7 @@ void SyntaxTextEdit::indentSelection()
     do {
         int startOfLine = 0;
         const QString blockText = cursor.block().text();
-        const int leadingIndent = m_highlighter->leadingIndentation(cursor.block().text(),
-                                                                    &startOfLine);
+        const int leadingIndent = m_highlighter->leadingIndentation(blockText, &startOfLine);
 
         if (!blockText.isEmpty()) {
             cursor.movePosition(QTextCursor::StartOfLine);
@@ -985,19 +994,9 @@ void SyntaxTextEdit::outdentSelection()
                          ? cursor.blockNumber() - 1 : cursor.blockNumber();
     cursor.setPosition(startPos);
     do {
-        int leadingIndent = 0;
         int startOfLine = 0;
-        for (const auto ch : cursor.block().text()) {
-            if (ch == QLatin1Char('\t')) {
-                leadingIndent += (m_tabCharSize - (leadingIndent % m_tabCharSize));
-                startOfLine += 1;
-            } else if (ch == QLatin1Char(' ')) {
-                leadingIndent += 1;
-                startOfLine += 1;
-            } else {
-                break;
-            }
-        }
+        const QString blockText = cursor.block().text();
+        const int leadingIndent = m_highlighter->leadingIndentation(blockText, &startOfLine);
 
         cursor.movePosition(QTextCursor::StartOfLine);
         cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor,
@@ -1347,6 +1346,16 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     const QRect eventRect = e->rect();
     const QRect viewRect = viewport()->rect();
     QRectF cursorBlockRect;
+
+#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    if (m_styleNeedsBgRepaint) {
+        // Draw the background.  This should be handled by QPlainTextEdit::paintEvent(),
+        // but some styles (notably, Qt's Windows11 style) ignore the provided
+        // background color and use their own.
+        QPainter p(viewport());
+        p.fillRect(eventRect, m_editorBg);
+    }
+#endif
 
     const QTextCursor cursor = textCursor();
     if (highlightCurrentLine()) {
