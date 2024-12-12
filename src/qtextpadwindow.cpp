@@ -1662,7 +1662,12 @@ void QTextPadWindow::populateThemeMenu()
     m_themeMenu->addSeparator();
 
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
-    const auto themeDefs = syntaxRepo->themes();
+    auto themeDefs = syntaxRepo->themes();
+    std::sort(themeDefs.begin(), themeDefs.end(),
+              [](const KSyntaxHighlighting::Theme &left, const KSyntaxHighlighting::Theme &right)
+    {
+        return left.translatedName().compare(right.translatedName(), Qt::CaseInsensitive) < 0;
+    });
     for (const auto &theme : themeDefs) {
         auto item = m_themeMenu->addAction(theme.translatedName());
         item->setCheckable(true);
@@ -1686,7 +1691,7 @@ void QTextPadWindow::populateEncodingMenu()
     std::sort(encodingScripts.begin(), encodingScripts.end(),
               [](const QStringList &left, const QStringList &right)
     {
-        return left.first() < right.first();
+        return left.first().compare(right.first(), Qt::CaseInsensitive) < 0;
     });
 
     for (const auto &encodingList : encodingScripts) {
