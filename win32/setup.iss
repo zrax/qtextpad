@@ -35,7 +35,7 @@ Source: qtextpad-win64\imageformats\qjpeg.dll; DestDir: {app}\imageformats; Flag
 Source: qtextpad-win64\imageformats\qsvg.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 Source: qtextpad-win64\networkinformation\qnetworklistmanager.dll; DestDir: {app}\networkinformation; Flags: ignoreversion
 Source: qtextpad-win64\platforms\qwindows.dll; DestDir: {app}\platforms; Flags: ignoreversion
-Source: qtextpad-win64\styles\qwindowsvistastyle.dll; DestDir: {app}\styles; Flags: ignoreversion
+Source: qtextpad-win64\styles\qmodernwindowsstyle.dll; DestDir: {app}\styles; Flags: ignoreversion
 Source: qtextpad-win64\tls\qcertonlybackend.dll; DestDir: {app}\tls; Flags: ignoreversion
 Source: qtextpad-win64\tls\qschannelbackend.dll; DestDir: {app}\tls; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ar.qm; DestDir: {app}\translations; Flags: ignoreversion
@@ -55,6 +55,7 @@ Source: qtextpad-win64\translations\qt_hr.qm; DestDir: {app}\translations; Flags
 Source: qtextpad-win64\translations\qt_hu.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_it.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ja.qm; DestDir: {app}\translations; Flags: ignoreversion
+Source: qtextpad-win64\translations\qt_ka.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_ko.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_lv.qm; DestDir: {app}\translations; Flags: ignoreversion
 Source: qtextpad-win64\translations\qt_nl.qm; DestDir: {app}\translations; Flags: ignoreversion
