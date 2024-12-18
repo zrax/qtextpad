@@ -2,7 +2,7 @@
 OutputDir=.
 OutputBaseFilename=qtextpad-win64
 AppName=QTextPad
-AppVersion=1.12
+AppVersion=1.13-pre
 AppCopyright=Copyright © 2020-2024 Michael Hansen
 AppId={{7DDD3218-1920-4278-9C33-E3AF37F3E7A4}
 AppPublisher=Michael Hansen
