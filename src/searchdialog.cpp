@@ -41,16 +41,6 @@
 
 static SearchDialog *s_instance = Q_NULLPTR;
 
-// UGH.  Qt added QStringView in 5.10, but didn't update QString::append until 5.15.2
-static inline QString &string_appendView(QString &str, QStringView view)
-{
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 2)
-    return str.append(view);
-#else
-    return str.append(view.data(), view.size());
-#endif
-}
-
 SearchWidget::SearchWidget(QTextPadWindow *parent)
     : QWidget(parent), m_editor(parent->editor())
 {
@@ -424,7 +414,7 @@ QString SearchDialog::translateEscapes(const QString &text)
         if (pos < 0 || pos + 1 >= text.size())
             break;
 
-        string_appendView(result, QStringView(text).mid(start, pos - start));
+        result.append(QStringView(text).mid(start, pos - start));
         QChar next = text.at(pos + 1);
         start = pos + 2;
         switch (next.unicode()) {
@@ -482,7 +472,7 @@ QString SearchDialog::translateEscapes(const QString &text)
         }
     }
 
-    string_appendView(result, QStringView(text).mid(start));
+    result.append(QStringView(text).mid(start));
     return result;
 }
 
@@ -497,7 +487,7 @@ QString SearchDialog::regexReplace(const QString &text,
         if (pos < 0 || pos + 1 >= text.size())
             break;
 
-        string_appendView(result, QStringView(text).mid(start, pos - start));
+        result.append(QStringView(text).mid(start, pos - start));
         QChar next = text.at(pos + 1);
         if (next.unicode() >= '0' && next.unicode() <= '9') {
             // We support up to 99 replacements...
@@ -513,7 +503,7 @@ QString SearchDialog::regexReplace(const QString &text,
         }
     }
 
-    string_appendView(result, QStringView(text).mid(start));
+    result.append(QStringView(text).mid(start));
     return result;
 }
 

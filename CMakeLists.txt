@@ -25,16 +25,8 @@ include(FeatureSummary)
 if(NOT DEFINED QT_VERSION_MAJOR)
     find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 endif()
-find_package(Qt${QT_VERSION_MAJOR} 5.10 REQUIRED COMPONENTS
+find_package(Qt${QT_VERSION_MAJOR} 5.15.2 REQUIRED COMPONENTS
     Core Widgets PrintSupport Network)
-if(Qt5_FOUND AND NOT TARGET Qt::Core)
-    # The version-generic targets were only added in Qt 5.15
-    foreach(_qt_lib Core Widgets PrintSupport)
-        add_library(Qt::${_qt_lib} INTERFACE IMPORTED)
-        set_target_properties(Qt::${_qt_lib} PROPERTIES
-            INTERFACE_LINK_LIBRARIES "Qt5::${_qt_lib}")
-    endforeach()
-endif()
 
 find_package(KF${QT_VERSION_MAJOR}SyntaxHighlighting 5.56 REQUIRED)
 set_package_properties(KF${QT_VERSION_MAJOR}SyntaxHighlighting PROPERTIES

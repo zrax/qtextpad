@@ -240,11 +240,7 @@ void SyntaxTextEdit::setIndentWidth(int width)
 
 static qreal indentAdvance(const QFontMetricsF &fm, int indentChars)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
     return fm.horizontalAdvance(QString(indentChars, QLatin1Char(' ')));
-#else
-    return fm.width(QString(indentChars, QLatin1Char(' ')));
-#endif
 }
 
 void SyntaxTextEdit::updateTabMetrics()
@@ -1375,11 +1371,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
     if (showLongLineEdge() && m_longLineMarker > 0) {
         QFontMetricsF fm(font());
         const qreal longLinePos =
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
                 fm.horizontalAdvance(QString(m_longLineMarker, QLatin1Char('x')))
-#else
-                fm.width(QString(m_longLineMarker, QLatin1Char('x')))
-#endif
                 + contentOffset().x() + document()->documentMargin();
         if (longLinePos < viewRect.width()) {
             QPainter p(viewport());
