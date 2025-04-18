@@ -40,7 +40,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     aboutText->setText(tr(
         "<b>QTextPad %1</b><br />"
         "<br />"
-        "Copyright \xC2\xA9 2020 - 2024 Michael Hansen<br />"
+        "Copyright \xC2\xA9 2020 - 2025 Michael Hansen<br />"
         "<br />"
         "<a href=\"https://github.com/zrax/qtextpad\">https://github.com/zrax/qtextpad</a><br />"
     ).arg(QTextPadVersion::versionString()));
