@@ -6,22 +6,35 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2022
-    name: "Windows-x64-Qt${{ matrix.cfg.qt_version }}"
+    runs-on: "${{ matrix.cfg.runs_on }}"
+    name: "Windows-${{ matrix.cfg.msvc_arch }}-Qt${{ matrix.cfg.qt_version }}"
     strategy:
       matrix:
         cfg:
-          - kf_version: "5.116"
+          - runs_on: windows-2022
+            kf_version: "5.116"
             kf_fullver: "5.116.0"
             qt_version: "5.15.2"
             qt_arch: "msvc2019_64"
+            msvc_arch: "x64"
             kf_cmake_args: ""
             build_installer: "$false"
             deploy_openssl: "$true"
-          - kf_version: "6.8"
-            kf_fullver: "6.8.0"
-            qt_version: "6.8.1"
+          - runs_on: windows-2022
+            kf_version: "6.13"
+            kf_fullver: "6.13.0"
+            qt_version: "6.8.3"
             qt_arch: "msvc2022_64"
+            msvc_arch: "x64"
+            kf_cmake_args: "-DBUILD_WITH_QT6=ON"
+            build_installer: "$true"
+            deploy_openssl: "$false"
+          - runs_on: windows-11-arm
+            kf_version: "6.13"
+            kf_fullver: "6.13.0"
+            qt_version: "6.8.3"
+            qt_arch: "msvc2022_arm64"
+            msvc_arch: "arm64"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
             build_installer: "$true"
             deploy_openssl: "$false"
@@ -38,17 +51,17 @@ jobs:
       - name: Add MSVC to PATH
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: x64
+          arch: "${{ matrix.cfg.msvc_arch }}"
       - name: Build Qt Libs
         run: |
+          cd "${Env:RUNNER_WORKSPACE}"
           mkdir build_deps
           cd build_deps
           curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf_version }}/extra-cmake-modules-${{ matrix.cfg.kf_fullver }}.tar.xz
           curl -LO https://download.kde.org/stable/frameworks/${{ matrix.cfg.kf_version }}/syntax-highlighting-${{ matrix.cfg.kf_fullver }}.tar.xz
           cmake -E tar xf extra-cmake-modules-${{ matrix.cfg.kf_fullver }}.tar.xz
           cd extra-cmake-modules-${{ matrix.cfg.kf_fullver }}
-          mkdir build
-          cd build
+          mkdir build && cd build
           cmake -G "NMake Makefiles" `
               "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
               "-DCMAKE_INSTALL_PREFIX=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
@@ -66,11 +79,10 @@ jobs:
           cmake --build . --target install
       - name: Build qtextpad
         run: |
-          mkdir build
-          cd build
+          mkdir build && cd build
           cmake -G "NMake Makefiles" `
             "-DCMAKE_PREFIX_PATH=${Env:RUNNER_WORKSPACE}/Qt/${{ matrix.cfg.qt_version }}/${{ matrix.cfg.qt_arch }}" `
-            "-DCMAKE_INSTALL_PREFIX=${Env:GITHUB_WORKSPACE}/dist/qtextpad-win64" `
+            "-DCMAKE_INSTALL_PREFIX=${Env:GITHUB_WORKSPACE}/dist/qtextpad-${{ matrix.cfg.msvc_arch }}" `
             -DCMAKE_BUILD_TYPE=Release ..
           cmake --build .
           cmake --build . --target install
@@ -79,34 +91,34 @@ jobs:
           $buildver = ((git describe --dirty) | Out-String).Trim()
           $buildver += "-qt" + "${{ matrix.cfg.qt_version }}"[0]
           cd "${Env:GITHUB_WORKSPACE}\dist"
-          windeployqt qtextpad-win64\qtextpad.exe --release --no-opengl-sw --no-system-d3d-compiler
+          windeployqt qtextpad-${{ matrix.cfg.msvc_arch }}\qtextpad.exe --release --no-opengl-sw --no-system-d3d-compiler
           copy -Path "${Env:GITHUB_WORKSPACE}\COPYING", `
               "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\${{ matrix.cfg.qt_arch }}\bin\KF*SyntaxHighlighting.dll" `
-              -Destination qtextpad-win64
+              -Destination qtextpad-${{ matrix.cfg.msvc_arch }}
           cmake -E copy_directory "${Env:RUNNER_WORKSPACE}\Qt\${{ matrix.cfg.qt_version }}\${{ matrix.cfg.qt_arch }}\bin\data" `
-              qtextpad-win64\data
-          windeployqt qtextpad-win64\KF*SyntaxHighlighting.dll --release --no-opengl-sw --no-system-d3d-compiler
+              qtextpad-${{ matrix.cfg.msvc_arch }}\data
+          windeployqt qtextpad-${{ matrix.cfg.msvc_arch }}\KF*SyntaxHighlighting.dll --release --no-opengl-sw --no-system-d3d-compiler
 
           # OpenSSL libs are required for the online repository update in Qt5,
           # but Qt6 can use the Windows SChannel backend instead
           if (${{ matrix.cfg.deploy_openssl }}) {
               copy -Path `
-                  "C:\Program Files\OpenSSL\bin\libcrypto-1_1-x64.dll", `
-                  "C:\Program Files\OpenSSL\bin\libssl-1_1-x64.dll" `
-                  -Destination qtextpad-win64
-          } elseif (Test-Path qtextpad-win64\tls\qopensslbackend.dll) {
-              del qtextpad-win64\tls\qopensslbackend.dll
+                  "C:\Program Files\OpenSSL\bin\libcrypto-1_1-${{ matrix.cfg.msvc_arch }}.dll", `
+                  "C:\Program Files\OpenSSL\bin\libssl-1_1-${{ matrix.cfg.msvc_arch }}.dll" `
+                  -Destination qtextpad-${{ matrix.cfg.msvc_arch }}
+          } elseif (Test-Path qtextpad-${{ matrix.cfg.msvc_arch }}\tls\qopensslbackend.dll) {
+              del qtextpad-${{ matrix.cfg.msvc_arch }}\tls\qopensslbackend.dll
           }
 
-          cmake -E tar cf "..\qtextpad-win64-${buildver}.zip" --format=zip qtextpad-win64
+          cmake -E tar cf "..\qtextpad-${{ matrix.cfg.msvc_arch }}-${buildver}.zip" --format=zip qtextpad-${{ matrix.cfg.msvc_arch }}
           cd ..\win32
-          cmake -E tar xf "..\qtextpad-win64-${buildver}.zip"
+          cmake -E tar xf "..\qtextpad-${{ matrix.cfg.msvc_arch }}-${buildver}.zip"
           if (${{ matrix.cfg.build_installer }}) {
-              iscc setup.iss
-              cmake -E rename qtextpad-win64.exe "..\qtextpad-win64-${buildver}.exe"
+              iscc setup-${{ matrix.cfg.msvc_arch }}.iss
+              cmake -E rename qtextpad-${{ matrix.cfg.msvc_arch }}.exe "..\qtextpad-${{ matrix.cfg.msvc_arch }}-${buildver}.exe"
           }
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: QTextPad-win64-qt${{ matrix.cfg.qt_version }}
-          path: qtextpad-win64-*.*
+          name: QTextPad-${{ matrix.cfg.msvc_arch }}-qt${{ matrix.cfg.qt_version }}
+          path: qtextpad-${{ matrix.cfg.msvc_arch }}-*.*

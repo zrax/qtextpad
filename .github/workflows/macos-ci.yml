@@ -15,9 +15,9 @@ jobs:
             kf_fullver: "5.116.0"
             qt_version: "5.15.2"
             kf_cmake_args: ""
-          - kf_version: "6.8"
-            kf_fullver: "6.8.0"
-            qt_version: "6.8.1"
+          - kf_version: "6.13"
+            kf_fullver: "6.13.0"
+            qt_version: "6.8.3"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
