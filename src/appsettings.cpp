@@ -182,7 +182,7 @@ void QTextPadSettings::setFileModes(const QString &filename, const QString &enco
         qWarning("Could not open %s for writing.", qPrintable(fmCacheFileName()));
         return;
     }
-    for (const auto &line : lines)
+    for (const auto &line : std::as_const(lines))
         cacheFile.write(line);
     cacheFile.close();
 }

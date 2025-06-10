@@ -31,7 +31,7 @@ struct TextCodecCache
 {
     ~TextCodecCache()
     {
-        for (TextCodec *codec : m_cache)
+        for (TextCodec *codec : std::as_const(m_cache))
             delete codec;
     }
 

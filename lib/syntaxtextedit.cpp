@@ -1422,7 +1422,7 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
             QString blockText = block.text();
             int wsColumn = 0;
             bool onlySpaces = true;
-            for (const QChar &ch : blockText) {
+            for (const QChar &ch : std::as_const(blockText)) {
                 if (ch == QLatin1Char('\t')) {
                     wsColumn = wsColumn - (wsColumn % m_tabCharSize) + m_tabCharSize;
                 } else if (ch.isSpace()) {

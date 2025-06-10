@@ -168,10 +168,11 @@ int main(int argc, char *argv[])
     QString startupFile;
     int startupLine = -1;
     int startupCol = -1;
-    for (const auto &arg : parser.positionalArguments()) {
+    const QStringList positionalArguments = parser.positionalArguments();
+    for (const auto &arg : positionalArguments) {
         if (arg.startsWith(QLatin1Char('+'))) {
             bool ok;
-            QStringList parts = arg.split(QLatin1Char(','));
+            QList<QStringView> parts = QStringView(arg).split(QLatin1Char(','));
             startupLine = parts.at(0).mid(1).toInt(&ok, 0);
             if (!ok) {
                 qWarning("%s", qPrintable(

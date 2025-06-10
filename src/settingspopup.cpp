@@ -250,7 +250,7 @@ EncodingPopup::EncodingPopup(QWidget *parent)
         return left.first() < right.first();
     });
 
-    for (const auto &encodingList : encodingScripts) {
+    for (const auto &encodingList : std::as_const(encodingScripts)) {
         const QString &scriptName = encodingList.first();
         for (int i = 1; i < encodingList.size(); ++i) {
             const QString &encoding = encodingList.at(i);
