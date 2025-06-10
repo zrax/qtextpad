@@ -160,12 +160,12 @@ KSyntaxHighlighting::Definition FileTypeInfo::definitionForFileMagic(const QStri
 
     Definition matchDef;
     int matchPriority = std::numeric_limits<int>::min();
-    const QList<Definition> definitions = SyntaxTextEdit::syntaxRepo()->definitions();
+    const auto definitions = SyntaxTextEdit::syntaxRepo()->definitions();
     for (const auto &def : definitions) {
         if (def.priority() < matchPriority)
             continue;
 
-        const QStringList mimeTypes = def.mimeTypes();
+        const auto mimeTypes = def.mimeTypes();
         for (const auto &matchType : mimeTypes) {
             if (mime.name() == matchType || mime.aliases().indexOf(matchType) >= 0) {
                 matchDef = def;
