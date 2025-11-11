@@ -44,18 +44,6 @@
 
 #include "syntaxhighlighter.h"
 
-enum SyntaxTextEdit_Config
-{
-    Config_ShowLineNumbers = (1U<<0),
-    Config_AutoIndent = (1U<<1),
-    Config_MatchBraces = (1U<<2),
-    Config_HighlightCurLine = (1U<<3),
-    Config_IndentGuides = (1U<<4),
-    Config_LongLineEdge = (1U<<5),
-    Config_ExternalUndoRedo = (1U<<6),
-    Config_ShowFolding = (1U<<7),
-};
-
 KSyntaxHighlighting::Repository *SyntaxTextEdit::syntaxRepo()
 {
     static KSyntaxHighlighting::Repository s_syntaxRepo;
@@ -151,48 +139,41 @@ int SyntaxTextEdit::lineMarginWidth() const
 
 void SyntaxTextEdit::setShowLineNumbers(bool show)
 {
-    if (show)
-        m_config |= Config_ShowLineNumbers;
-    else
-        m_config &= ~Config_ShowLineNumbers;
+    m_config.setFlag(SyntaxTextEdit_Config::ShowLineNumbers, show);
     updateMargins();
     m_lineMargin->update();
 }
 
 bool SyntaxTextEdit::showLineNumbers() const
 {
-    return !!(m_config & Config_ShowLineNumbers);
+    return m_config.testFlag(SyntaxTextEdit_Config::ShowLineNumbers);
 }
 
 void SyntaxTextEdit::setShowFolding(bool show)
 {
-    if (show)
-        m_config |= Config_ShowFolding;
-    else
-        m_config &= ~Config_ShowFolding;
+    m_config.setFlag(SyntaxTextEdit_Config::ShowFolding, show);
     updateMargins();
     m_lineMargin->update();
 }
 
 bool SyntaxTextEdit::showFolding() const
 {
-    return !!(m_config & Config_ShowFolding);
+    return m_config.testFlag(SyntaxTextEdit_Config::ShowFolding);
 }
 
 void SyntaxTextEdit::setShowWhitespace(bool show)
 {
     QTextOption opt = document()->defaultTextOption();
-    if (show)
-        opt.setFlags(opt.flags() | QTextOption::ShowTabsAndSpaces);
-    else
-        opt.setFlags(opt.flags() & ~QTextOption::ShowTabsAndSpaces);
+    QTextOption::Flags textFlags = opt.flags();
+    textFlags.setFlag(QTextOption::ShowTabsAndSpaces, show);
+    opt.setFlags(textFlags);
     document()->setDefaultTextOption(opt);
 }
 
 bool SyntaxTextEdit::showWhitespace() const
 {
     const QTextOption opt = document()->defaultTextOption();
-    return !!(opt.flags() & QTextOption::ShowTabsAndSpaces);
+    return opt.flags().testFlag(QTextOption::ShowTabsAndSpaces);
 }
 
 void SyntaxTextEdit::setScrollPastEndOfFile(bool scroll)
@@ -212,16 +193,13 @@ bool SyntaxTextEdit::scrollPastEndOfFile() const
 
 void SyntaxTextEdit::setHighlightCurrentLine(bool show)
 {
-    if (show)
-        m_config |= Config_HighlightCurLine;
-    else
-        m_config &= ~Config_HighlightCurLine;
+    m_config.setFlag(SyntaxTextEdit_Config::HighlightCurLine, show);
     viewport()->update();
 }
 
 bool SyntaxTextEdit::highlightCurrentLine() const
 {
-    return !!(m_config & Config_HighlightCurLine);
+    return m_config.testFlag(SyntaxTextEdit_Config::HighlightCurLine);
 }
 
 void SyntaxTextEdit::setTabWidth(int width)
@@ -441,29 +419,23 @@ void SyntaxTextEdit::smartEnd(QTextCursor::MoveMode moveMode)
 
 void SyntaxTextEdit::setAutoIndent(bool ai)
 {
-    if (ai)
-        m_config |= Config_AutoIndent;
-    else
-        m_config &= ~Config_AutoIndent;
+    m_config.setFlag(SyntaxTextEdit_Config::AutoIndent, ai);
 }
 
 bool SyntaxTextEdit::autoIndent() const
 {
-    return !!(m_config & Config_AutoIndent);
+    return m_config.testFlag(SyntaxTextEdit_Config::AutoIndent);
 }
 
 void SyntaxTextEdit::setShowLongLineEdge(bool show)
 {
-    if (show)
-        m_config |= Config_LongLineEdge;
-    else
-        m_config &= ~Config_LongLineEdge;
+    m_config.setFlag(SyntaxTextEdit_Config::LongLineEdge, show);
     viewport()->update();
 }
 
 bool SyntaxTextEdit::showLongLineEdge() const
 {
-    return !!(m_config & Config_LongLineEdge);
+    return m_config.testFlag(SyntaxTextEdit_Config::LongLineEdge);
 }
 
 void SyntaxTextEdit::setLongLineWidth(int pos)
@@ -474,16 +446,13 @@ void SyntaxTextEdit::setLongLineWidth(int pos)
 
 void SyntaxTextEdit::setShowIndentGuides(bool show)
 {
-    if (show)
-        m_config |= Config_IndentGuides;
-    else
-        m_config &= ~Config_IndentGuides;
+    m_config.setFlag(SyntaxTextEdit_Config::IndentGuides, show);
     viewport()->update();
 }
 
 bool SyntaxTextEdit::showIndentGuides() const
 {
-    return !!(m_config & Config_IndentGuides);
+    return m_config.testFlag(SyntaxTextEdit_Config::IndentGuides);
 }
 
 void SyntaxTextEdit::setWordWrap(bool wrap)
@@ -586,29 +555,23 @@ void SyntaxTextEdit::updateExtraSelections()
 
 void SyntaxTextEdit::setMatchBraces(bool match)
 {
-    if (match)
-        m_config |= Config_MatchBraces;
-    else
-        m_config &= ~Config_MatchBraces;
+    m_config.setFlag(SyntaxTextEdit_Config::MatchBraces, match);
     updateCursor();
 }
 
 bool SyntaxTextEdit::matchBraces() const
 {
-    return !!(m_config & Config_MatchBraces);
+    return m_config.testFlag(SyntaxTextEdit_Config::MatchBraces);
 }
 
 void SyntaxTextEdit::setExternalUndoRedo(bool enable)
 {
-    if (enable)
-        m_config |= Config_ExternalUndoRedo;
-    else
-        m_config &= ~Config_ExternalUndoRedo;
+    m_config.setFlag(SyntaxTextEdit_Config::ExternalUndoRedo, enable);
 }
 
 bool SyntaxTextEdit::externalUndoRedo() const
 {
-    return !!(m_config & Config_ExternalUndoRedo);
+    return m_config.testFlag(SyntaxTextEdit_Config::ExternalUndoRedo);
 }
 
 void SyntaxTextEdit::setDefaultFont(const QFont &font)

@@ -174,9 +174,22 @@ private:
     QColor m_editorBg;
     int m_tabCharSize, m_indentWidth;
     int m_longLineMarker;
-    unsigned int m_config;
     IndentationMode m_indentationMode;
     int m_originalFontSize;
+
+    enum class SyntaxTextEdit_Config
+    {
+        ShowLineNumbers = (1U<<0),
+        AutoIndent = (1U<<1),
+        MatchBraces = (1U<<2),
+        HighlightCurLine = (1U<<3),
+        IndentGuides = (1U<<4),
+        LongLineEdge = (1U<<5),
+        ExternalUndoRedo = (1U<<6),
+        ShowFolding = (1U<<7),
+    };
+    Q_DECLARE_FLAGS(SyntaxTextEdit_Configs, SyntaxTextEdit_Config)
+    SyntaxTextEdit_Configs m_config;
 
     QPixmap m_foldOpen, m_foldClosed;
 
