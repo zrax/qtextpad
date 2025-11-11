@@ -171,16 +171,12 @@ private:
     QColor m_searchBg;
     QColor m_braceMatchBg;
     QColor m_errorBg;
+    QColor m_editorBg;
     int m_tabCharSize, m_indentWidth;
     int m_longLineMarker;
     unsigned int m_config;
     IndentationMode m_indentationMode;
     int m_originalFontSize;
-
-#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-    QColor m_editorBg;
-    bool m_styleNeedsBgRepaint;
-#endif
 
     QPixmap m_foldOpen, m_foldClosed;
 
