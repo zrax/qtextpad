@@ -19,7 +19,6 @@ jobs:
             msvc_arch: "x64"
             kf_cmake_args: ""
             build_installer: "$false"
-            deploy_openssl: "$true"
           - runs_on: windows-2022
             kf_version: "6.19"
             kf_fullver: "6.19.0"
@@ -28,7 +27,6 @@ jobs:
             msvc_arch: "x64"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
             build_installer: "$true"
-            deploy_openssl: "$false"
           - runs_on: windows-11-arm
             kf_version: "6.19"
             kf_fullver: "6.19.0"
@@ -37,7 +35,6 @@ jobs:
             msvc_arch: "arm64"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
             build_installer: "$true"
-            deploy_openssl: "$false"
 
     steps:
       - uses: actions/checkout@v4
@@ -101,12 +98,7 @@ jobs:
 
           # OpenSSL libs are required for the online repository update in Qt5,
           # but Qt6 can use the Windows SChannel backend instead
-          if (${{ matrix.cfg.deploy_openssl }}) {
-              copy -Path `
-                  "C:\Program Files\OpenSSL\bin\libcrypto-1_1-${{ matrix.cfg.msvc_arch }}.dll", `
-                  "C:\Program Files\OpenSSL\bin\libssl-1_1-${{ matrix.cfg.msvc_arch }}.dll" `
-                  -Destination qtextpad-${{ matrix.cfg.msvc_arch }}
-          } elseif (Test-Path qtextpad-${{ matrix.cfg.msvc_arch }}\tls\qopensslbackend.dll) {
+          if (Test-Path qtextpad-${{ matrix.cfg.msvc_arch }}\tls\qopensslbackend.dll) {
               del qtextpad-${{ matrix.cfg.msvc_arch }}\tls\qopensslbackend.dll
           }
 
