@@ -21,8 +21,8 @@ jobs:
             build_installer: "$false"
             deploy_openssl: "$true"
           - runs_on: windows-2022
-            kf_version: "6.13"
-            kf_fullver: "6.13.0"
+            kf_version: "6.19"
+            kf_fullver: "6.19.0"
             qt_version: "6.8.3"
             qt_arch: "msvc2022_64"
             msvc_arch: "x64"
@@ -30,8 +30,8 @@ jobs:
             build_installer: "$true"
             deploy_openssl: "$false"
           - runs_on: windows-11-arm
-            kf_version: "6.13"
-            kf_fullver: "6.13.0"
+            kf_version: "6.19"
+            kf_fullver: "6.19.0"
             qt_version: "6.8.3"
             qt_arch: "msvc2022_arm64"
             msvc_arch: "arm64"
