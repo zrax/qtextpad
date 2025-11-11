@@ -6,16 +6,18 @@ on:
 
 jobs:
   build:
-    runs-on: macos-13
-    name: "macOS-x86_64-Qt${{ matrix.cfg.qt_version }}"
+    runs-on: "${{ matrix.cfg.runs_on }}"
+    name: "macOS-Qt${{ matrix.cfg.qt_version }}"
     strategy:
       matrix:
         cfg:
-          - kf_version: "5.116"
+          - runs_on: macos-15-intel
+            kf_version: "5.116"
             kf_fullver: "5.116.0"
             qt_version: "5.15.2"
             kf_cmake_args: ""
-          - kf_version: "6.19"
+          - runs_on: macos-15
+            kf_version: "6.19"
             kf_fullver: "6.19.0"
             qt_version: "6.8.3"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
