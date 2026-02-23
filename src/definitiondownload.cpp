@@ -28,7 +28,7 @@
 class ResizedPlainTextEdit : public QPlainTextEdit
 {
 public:
-    ResizedPlainTextEdit(QWidget *parent) : QPlainTextEdit(parent) { }
+    explicit ResizedPlainTextEdit(QWidget *parent) : QPlainTextEdit(parent) { }
 
 protected:
     QSize sizeHint() const override

@@ -29,7 +29,7 @@ class TreeFilterEdit : public QLineEdit
     Q_OBJECT
 
 public:
-    TreeFilterEdit(QWidget *parent = Q_NULLPTR);
+    explicit TreeFilterEdit(QWidget *parent = Q_NULLPTR);
 
     QSize sizeHint() const Q_DECL_OVERRIDE;
 
@@ -53,7 +53,7 @@ class FilteredTreePopup : public QWidget
     Q_OBJECT
 
 public:
-    FilteredTreePopup(QWidget *parent = Q_NULLPTR);
+    explicit FilteredTreePopup(QWidget *parent = Q_NULLPTR);
 
     QSize sizeHint() const Q_DECL_OVERRIDE;
     TreeFilterEdit *filter() { return m_filter; }
@@ -76,7 +76,7 @@ class SyntaxPopup : public FilteredTreePopup
     Q_OBJECT
 
 public:
-    SyntaxPopup(QWidget *parent = Q_NULLPTR);
+    explicit SyntaxPopup(QWidget *parent = Q_NULLPTR);
 
 Q_SIGNALS:
     void syntaxSelected(const KSyntaxHighlighting::Definition &syntax);
@@ -93,7 +93,7 @@ class EncodingPopup : public FilteredTreePopup
     Q_OBJECT
 
 public:
-    EncodingPopup(QWidget *parent = Q_NULLPTR);
+    explicit EncodingPopup(QWidget *parent = Q_NULLPTR);
 
 Q_SIGNALS:
     void encodingSelected(const QString &codecName);
