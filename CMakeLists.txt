@@ -79,6 +79,7 @@ if(NOT QTEXTPAD_WIDGET_ONLY)
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VERSION}"
             MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2020 Michael Hansen"
             MACOSX_BUNDLE_ICON_FILE "qtextpad.icns"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "net.zrax.qtextpad"
         )
 
         install(TARGETS qtextpad BUNDLE DESTINATION .)
