@@ -16,10 +16,10 @@ jobs:
             kf_fullver: "5.116.0"
             qt_version: "5.15.2"
             kf_cmake_args: ""
-          - runs_on: macos-15
-            kf_version: "6.19"
-            kf_fullver: "6.19.0"
-            qt_version: "6.8.3"
+          - runs_on: macos-26
+            kf_version: "6.30"
+            kf_fullver: "6.30.0"
+            qt_version: "6.12.0"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
