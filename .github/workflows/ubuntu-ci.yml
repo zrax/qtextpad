@@ -6,13 +6,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: "${{ matrix.cfg.runs_on }}"
+    strategy:
+      matrix:
+        cfg:
+          - runs-on: ubuntu-24.04
+            qt_kf_pkgs: qtbase5-dev libkf5syntaxhighlighting-dev libicu-dev
+          - runs-on: ubuntu-26.04-arm64
+            qt_kf_pkgs: qt6-base-dev libkf6syntaxhighlighting-dev libicu-dev
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install qtbase5-dev libkf5syntaxhighlighting-dev libicu-dev
+          sudo apt install ${{ matrix.cfg.qt_kf_pkgs }}
       - name: Build qtextpad
         run: |
           mkdir build && cd build
