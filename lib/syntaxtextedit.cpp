@@ -58,8 +58,8 @@ const KSyntaxHighlighting::Definition &SyntaxTextEdit::nullSyntax()
 
 SyntaxTextEdit::SyntaxTextEdit(QWidget *parent)
     : QPlainTextEdit(parent), m_tabCharSize(4), m_indentWidth(4),
-      m_longLineMarker(80), m_config(), m_indentationMode(),
-      m_originalFontSize()
+      m_longLineMarker(80), m_indentationMode(), m_originalFontSize(),
+      m_config()
 {
     m_lineMargin = new LineMargin(this);
     m_highlighter = new SyntaxHighlighter(document());
