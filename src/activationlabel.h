@@ -24,7 +24,7 @@ class ActivationLabel : public QLabel
     Q_OBJECT
 
 public:
-    ActivationLabel(QWidget *parent = Q_NULLPTR)
+    explicit ActivationLabel(QWidget *parent = Q_NULLPTR)
         : QLabel(parent) { }
 
 Q_SIGNALS:
