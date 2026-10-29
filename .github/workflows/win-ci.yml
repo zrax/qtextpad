@@ -37,7 +37,7 @@ jobs:
             build_installer: "$true"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install Qt
@@ -111,7 +111,7 @@ jobs:
               cmake -E rename qtextpad-${{ matrix.cfg.msvc_arch }}.exe "..\qtextpad-${{ matrix.cfg.msvc_arch }}-${buildver}.exe"
           }
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: QTextPad-${{ matrix.cfg.msvc_arch }}-qt${{ matrix.cfg.qt_version }}
           path: qtextpad-${{ matrix.cfg.msvc_arch }}-*.*
