@@ -7,13 +7,16 @@ on:
 jobs:
   build:
     runs-on: "${{ matrix.cfg.runs_on }}"
+    name: "${{ matrix.cfg.name }}"
     strategy:
       matrix:
         cfg:
-          - runs-on: ubuntu-24.04
+          - runs_on: ubuntu-24.04
             qt_kf_pkgs: qtbase5-dev libkf5syntaxhighlighting-dev
-          - runs-on: ubuntu-26.04-arm64
+            name: Ubuntu-24.04-qt5
+          - runs_on: ubuntu-26.04-arm
             qt_kf_pkgs: qt6-base-dev libkf6syntaxhighlighting-dev
+            name: Ubuntu-26.04-arm-qt6
     steps:
       - uses: actions/checkout@v7
       - name: Install dependencies
