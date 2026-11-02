@@ -1317,10 +1317,8 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
         cursorBlockRect.translate(contentOffset());
         cursorBlockRect.setLeft(eventRect.left());
         cursorBlockRect.setWidth(eventRect.width());
-        if (eventRect.intersects(cursorBlockRect.toAlignedRect())) {
-            QPainter p(viewport());
+        if (eventRect.intersects(cursorBlockRect.toAlignedRect()))
             p.fillRect(cursorBlockRect, m_cursorLineBg);
-        }
     }
 
     if (showLongLineEdge() && m_longLineMarker > 0) {
@@ -1329,7 +1327,6 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
                 fm.horizontalAdvance(QString(m_longLineMarker, QLatin1Char('x')))
                 + contentOffset().x() + document()->documentMargin();
         if (longLinePos < viewRect.width()) {
-            QPainter p(viewport());
             QRectF longLineRect(longLinePos, eventRect.top(),
                                 viewRect.width() - longLinePos, eventRect.height());
             p.fillRect(longLineRect, m_longLineBg);
@@ -1347,7 +1344,6 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
             break;
 
         if (m_highlighter->isFoldable(block) && SyntaxHighlighter::isFolded(block)) {
-            QPainter p(viewport());
             blockRect.setLeft(eventRect.left());
             blockRect.setRight(eventRect.right());
             p.setPen(QPen(m_codeFoldingBg, 1.0, Qt::DashLine));
@@ -1365,7 +1361,6 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
 
     // Overlay indentation guides after rendering the text
     if (showIndentGuides()) {
-        QPainter p(viewport());
         p.setPen(m_indentGuideFg);
         block = firstVisibleBlock();
         const QFontMetricsF fm(font());
