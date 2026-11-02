@@ -182,7 +182,7 @@ TextCodec *QTextPadCharsets::codecForName(const QByteArray &name)
 TextCodec *QTextPadCharsets::codecForLocale()
 {
     QByteArray defaultName = ucnv_getDefaultName();
-    QByteArray preferredName = QTextPadCharsets::getPreferredName(defaultName);
+    QByteArray preferredName = getPreferredName(defaultName);
     if (preferredName.isEmpty())
         return TextCodec::create(defaultName);
     return TextCodec::create(preferredName);

@@ -1485,7 +1485,7 @@ void QTextPadWindow::printPreviewDocument()
 
 void QTextPadWindow::editorContextMenu(const QPoint &pos)
 {
-    std::unique_ptr<QMenu> menu(new QMenu(editor()));
+    auto menu = std::make_unique<QMenu>(editor());
     for (auto action : m_editorContextActions)
         menu->addAction(action);
 

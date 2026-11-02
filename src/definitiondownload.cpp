@@ -62,10 +62,10 @@ DefinitionDownloadDialog::DefinitionDownloadDialog(
     layout->addWidget(m_buttonBox);
 
     m_downloader = new KSyntaxHighlighting::DefinitionDownloader(repository, this);
-    QObject::connect(m_downloader, &KSyntaxHighlighting::DefinitionDownloader::informationMessage,
-                     m_status, &QPlainTextEdit::appendPlainText);
-    QObject::connect(m_downloader, &KSyntaxHighlighting::DefinitionDownloader::done,
-                     this, &DefinitionDownloadDialog::downloadFinished);
+    connect(m_downloader, &KSyntaxHighlighting::DefinitionDownloader::informationMessage,
+            m_status, &QPlainTextEdit::appendPlainText);
+    connect(m_downloader, &KSyntaxHighlighting::DefinitionDownloader::done,
+            this, &DefinitionDownloadDialog::downloadFinished);
 
     m_status->appendPlainText(tr("Updating syntax definitions from online repository..."));
     m_downloader->start();
