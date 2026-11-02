@@ -92,7 +92,7 @@ protected:
 
             // Don't close the popup right after clicking, so the user can
             // briefly see the visual feedback for the item they selected.
-            QTimer::singleShot(100, []() {
+            QTimer::singleShot(100, nullptr, [] {
                 auto popupWidget = QApplication::activePopupWidget();
                 if (popupWidget)
                     popupWidget->close();
@@ -119,7 +119,7 @@ protected:
 
             // Don't close the popup right after clicking, so the user can
             // briefly see the visual feedback for the item they selected.
-            QTimer::singleShot(100, []() {
+            QTimer::singleShot(100, nullptr, [] {
                 auto popupWidget = QApplication::activePopupWidget();
                 if (popupWidget)
                     popupWidget->close();
@@ -596,7 +596,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
 
-    connect(qApp, &QApplication::focusChanged, [this](QWidget *, QWidget *focus) {
+    connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *focus) {
         if (focus == editor() && m_searchWidget->isVisible())
             showSearchBar(false);
     });
