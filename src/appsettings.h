@@ -48,6 +48,9 @@ public:
     SIMPLE_SETTING(bool, "ShowToolBar", showToolBar, setShowToolBar, true)
     SIMPLE_SETTING(bool, "ShowStatusBar", showStatusBar, setShowStatusBar, true)
     SIMPLE_SETTING(bool, "ShowFilePath", showFilePath, setShowFilePath, false)
+    SIMPLE_SETTING(bool, "Tabs/HideSingleTab", hideSingleTab, setHideSingleTab, true)
+    SIMPLE_SETTING(bool, "Tabs/CloseWindowWithLastTab", closeWindowOnLastTab,
+                   setCloseWindowOnLastTab, false)
 
     // Editor settings
     SIMPLE_SETTING(bool, "Editor/WordWrap", wordWrap, setWordWrap, false)

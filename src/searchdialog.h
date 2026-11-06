@@ -19,6 +19,7 @@
 
 #include <QDialog>
 #include <QList>
+#include <QPointer>
 #include <QTextCursor>
 #include <QRegularExpressionMatch>
 
@@ -47,6 +48,7 @@ public:
     }
 
     void setSearchText(const QString &text);
+    void setEditor(SyntaxTextEdit *editor);
     void activate();
 
 public Q_SLOTS:
@@ -66,7 +68,7 @@ private:
     QAction *m_escapes;
     QAction *m_wrapSearch;
 
-    SyntaxTextEdit *m_editor;
+    QPointer<SyntaxTextEdit> m_editor;
     SyntaxTextEdit::SearchParams m_searchParams;
 };
 
@@ -76,6 +78,7 @@ class SearchDialog : public QDialog
 
 public:
     static SearchDialog *create(QTextPadWindow *parent);
+    static void setActiveEditor(SyntaxTextEdit *editor);
 
     ~SearchDialog() Q_DECL_OVERRIDE;
 
@@ -109,7 +112,8 @@ private:
     QPushButton *m_replaceSelectionButton;
     QTextCursor m_replaceCursor;
 
-    SyntaxTextEdit *m_editor;
+    QPointer<SyntaxTextEdit> m_editor;
+    QMetaObject::Connection m_selectionConnection;
     SyntaxTextEdit::SearchParams m_searchParams;
     QRegularExpressionMatch m_regexMatch;
 };

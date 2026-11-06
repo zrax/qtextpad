@@ -125,6 +125,15 @@ void SearchWidget::setSearchText(const QString &text)
     m_searchText->setText(text);
 }
 
+void SearchWidget::setEditor(SyntaxTextEdit *editor)
+{
+    if (m_editor == editor)
+        return;
+    if (m_editor)
+        m_editor->clearLiveSearch();
+    m_editor = editor;
+}
+
 void SearchWidget::activate()
 {
     QTextPadSettings settings;
@@ -330,16 +339,12 @@ SearchDialog *SearchDialog::create(QTextPadWindow *parent)
         s_instance->show();
         s_instance->raise();
         s_instance->activateWindow();
-
-        s_instance->m_editor = parent->editor();
-        connect(s_instance->m_editor, &SyntaxTextEdit::selectionChanged, s_instance, [] {
-            bool hasSelection = s_instance->m_editor->textCursor().hasSelection();
-            s_instance->m_replaceSelectionButton->setEnabled(hasSelection);
-        });
     }
 
-    if (parent)
+    if (parent) {
+        setActiveEditor(parent->editor());
         parent->showSearchBar(false);
+    }
 
     const QTextCursor cursor = s_instance->m_editor->textCursor();
     if (cursor.hasSelection()) {
@@ -349,6 +354,25 @@ SearchDialog *SearchDialog::create(QTextPadWindow *parent)
     s_instance->m_replaceSelectionButton->setEnabled(cursor.hasSelection());
 
     return s_instance;
+}
+
+void SearchDialog::setActiveEditor(SyntaxTextEdit *editor)
+{
+    if (!s_instance)
+        return;
+
+    QObject::disconnect(s_instance->m_selectionConnection);
+    s_instance->m_editor = editor;
+    s_instance->m_replaceCursor = QTextCursor();
+    if (editor) {
+        s_instance->m_selectionConnection = QObject::connect(editor,
+                &SyntaxTextEdit::selectionChanged, s_instance, [] {
+            const bool hasSelection = s_instance->m_editor
+                    && s_instance->m_editor->textCursor().hasSelection();
+            s_instance->m_replaceSelectionButton->setEnabled(hasSelection);
+        });
+        s_instance->m_replaceSelectionButton->setEnabled(editor->textCursor().hasSelection());
+    }
 }
 
 static QString translateCharEscape(QStringView digits, int *advance)
