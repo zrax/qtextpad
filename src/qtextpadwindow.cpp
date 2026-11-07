@@ -169,7 +169,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto newAction = fileMenu->addAction(ICON("document-new"), tr("&New"));
     newAction->setShortcut(QKeySequence::New);
     auto newTabAction = fileMenu->addAction(tr("New &Tab"));
-    newTabAction->setShortcut(Qt::CTRL | Qt::Key_T);
+    newTabAction->setShortcut(QKeySequence::AddTab);
     auto newWindowAction = fileMenu->addAction(ICON("window-new"), tr("New &Window"));
     newWindowAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_N);
     (void) fileMenu->addSeparator();
@@ -191,7 +191,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Pre&view"));
     (void) fileMenu->addSeparator();
     auto closeTabAction = fileMenu->addAction(tr("Clos&e Tab"));
-    closeTabAction->setShortcut(Qt::CTRL | Qt::Key_W);
+    closeTabAction->setShortcut(QKeySequence::Close);
     auto quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
 
@@ -632,9 +632,19 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     installEventFilter(this);
 }
 
-void QTextPadWindow::setOpenFilename(const QString &filename)
+QTextPadWindow::~QTextPadWindow()
 {
-    DocumentTab *tab = currentTab();
+    //Prevent the stacks and editors from calling back into window state on shutdown
+    m_closing = true;
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        auto tab = static_cast<DocumentTab *>(m_tabs->widget(i));
+        tab->undoStack()->disconnect(this);
+        tab->editor()->disconnect(this);
+    }
+}
+
+void QTextPadWindow::setOpenFilename(DocumentTab *tab, const QString &filename)
+{
     const QString oldFilename = tab->filename;
     tab->filename = filename;
 
@@ -647,9 +657,14 @@ void QTextPadWindow::setOpenFilename(const QString &filename)
     }
 }
 
+void QTextPadWindow::setOpenFilename(const QString &filename)
+{
+    setOpenFilename(currentTab(), filename);
+}
+
 DocumentTab *QTextPadWindow::currentTab() const
 {
-    return static_cast<DocumentTab *>(m_tabs->currentWidget());
+    return m_tabs ? static_cast<DocumentTab *>(m_tabs->currentWidget()) : Q_NULLPTR;
 }
 
 SyntaxTextEdit *QTextPadWindow::editor() const
@@ -681,17 +696,26 @@ QList<SyntaxTextEdit *> QTextPadWindow::editors() const
     return result;
 }
 
+// Resolves symlinks and redundant segments when the file exists
+// falls back to the absolute path for files that don't exist (yet).
+static QString normalizedPath(const QString &path)
+{
+    const QFileInfo fi(path);
+    const QString canon = fi.canonicalFilePath();
+    return canon.isEmpty() ? fi.absoluteFilePath() : canon;
+}
+
 DocumentTab *QTextPadWindow::findTab(const QString &filename, const DocumentTab *exclude) const
 {
     if (filename.isEmpty())
         return Q_NULLPTR;
 
-    const QString absName = QFileInfo(filename).absoluteFilePath();
+    const QString normName = normalizedPath(filename);
     for (int i = 0; i < m_tabs->count(); ++i) {
         auto tab = static_cast<DocumentTab *>(m_tabs->widget(i));
         if (tab == exclude || tab->filename.isEmpty())
             continue;
-        if (QFileInfo(tab->filename).absoluteFilePath().compare(absName, FILE_COMPARE_CS) == 0)
+        if (normalizedPath(tab->filename).compare(normName, FILE_COMPARE_CS) == 0)
             return tab;
     }
     return Q_NULLPTR;
@@ -743,20 +767,28 @@ DocumentTab *QTextPadWindow::addDocumentTab()
 
     // Window-level actions only follow the stack/editor of the active tab
     connect(stack, &QUndoStack::canUndoChanged, this, [this, tab](bool enabled) {
+        if (m_closing)
+            return;
         if (tab == currentTab() && m_undoAction)
             m_undoAction->setEnabled(enabled);
     });
     connect(stack, &QUndoStack::canRedoChanged, this, [this, tab](bool enabled) {
+        if (m_closing)
+            return;
         if (tab == currentTab() && m_redoAction)
             m_redoAction->setEnabled(enabled);
     });
     connect(stack, &QUndoStack::cleanChanged, this, [this, tab](bool) {
+        if (m_closing)
+            return;
         if (tab == currentTab())
             updateTitle();
         else
             updateTabText(tab);
     });
     connect(textEdit, &QPlainTextEdit::copyAvailable, this, [this, tab](bool available) {
+        if (m_closing)
+            return;
         if (tab == currentTab() && m_deleteAction)
             m_deleteAction->setEnabled(available);
     });
@@ -834,8 +866,10 @@ void QTextPadWindow::closeTab(int index)
     if (!tab)
         return;
 
+    const bool lastTab = m_tabs->count() == 1;
+
     // closeEvent() takes care of prompting for the remaining document
-    if (m_tabs->count() == 1 && QTextPadSettings().closeWindowOnLastTab()) {
+    if (lastTab && QTextPadSettings().closeWindowOnLastTab()) {
         close();
         return;
     }
@@ -844,15 +878,13 @@ void QTextPadWindow::closeTab(int index)
     if (!promptForSave())
         return;
 
-    if (m_tabs->count() == 1) {
+    if (lastTab) {
         // Keep the window around with a fresh, empty document
         resetEditor();
         updateTitle();
         return;
     }
 
-    setOpenFilename(QString());
-    m_tabs->removeTab(index);
     tab->deleteLater();
 }
 

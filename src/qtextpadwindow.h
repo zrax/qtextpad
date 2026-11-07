@@ -67,6 +67,7 @@ class QTextPadWindow : public QMainWindow
 
 public:
     explicit QTextPadWindow(QWidget *parent = Q_NULLPTR);
+    ~QTextPadWindow() Q_DECL_OVERRIDE;
 
     // Editor of the currently active tab
     SyntaxTextEdit *editor() const;
@@ -158,6 +159,7 @@ private:
     bool m_closing = false;
 
     QFileSystemWatcher *m_fileWatcher;
+    void setOpenFilename(DocumentTab *tab, const QString &filename);
     void setOpenFilename(const QString &filename);
 
     QToolBar *m_toolBar;
@@ -172,7 +174,7 @@ private:
     QAction *m_undoAction = Q_NULLPTR;
     QAction *m_redoAction = Q_NULLPTR;
     QAction *m_deleteAction = Q_NULLPTR;
-    QAction *m_overwriteModeAction;
+    QAction *m_overwriteModeAction = Q_NULLPTR;
     QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
     QAction *m_fullScreenAction;
