@@ -27,6 +27,7 @@ class SyntaxTextEdit;
 class SearchWidget;
 class ActivationLabel;
 
+class QTabWidget;
 class QToolButton;
 class QMenu;
 class QActionGroup;
@@ -40,21 +41,43 @@ namespace KSyntaxHighlighting
     class Theme;
 }
 
+class DocumentTab : public QWidget
+{
+public:
+    explicit DocumentTab(QWidget *parent = Q_NULLPTR);
+
+    SyntaxTextEdit *editor() const { return m_editor; }
+    QUndoStack *undoStack() const { return m_undoStack; }
+
+    QString filename;
+    unsigned int fileState = 0;
+    QDateTime cachedModTime;
+    QString textEncoding;
+    FileTypeInfo::LineEndingType lineEndingMode = FileTypeInfo::LFOnly;
+    bool utfBOM = false;
+
+private:
+    SyntaxTextEdit *m_editor;
+    QUndoStack *m_undoStack;
+};
+
 class QTextPadWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
     explicit QTextPadWindow(QWidget *parent = Q_NULLPTR);
+    ~QTextPadWindow() Q_DECL_OVERRIDE;
 
-    SyntaxTextEdit *editor() { return m_editor; }
+    // Editor of the currently active tab
+    SyntaxTextEdit *editor() const;
 
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
     void setEditorTheme(const KSyntaxHighlighting::Theme &theme);
     void setDefaultEditorTheme();
     void setEncoding(const QString &codecName);
 
-    QString textEncoding() const { return m_textEncoding; }
+    QString textEncoding() const;
 
     bool utfBOM() const;
     void setUtfBOM(bool bom);
@@ -63,11 +86,13 @@ public:
     void setAutoIndent(bool ai);
 
     void setLineEndingMode(FileTypeInfo::LineEndingType mode);
-    FileTypeInfo::LineEndingType lineEndingMode() const { return m_lineEndingMode; }
+    FileTypeInfo::LineEndingType lineEndingMode() const;
 
     bool saveDocumentTo(const QString &filename);
     bool loadDocumentFrom(const QString &filename,
                           const QString &textEncoding = QString());
+    bool openDocument(const QString &filename,
+                      const QString &textEncoding = QString());
     bool isDocumentModified() const;
     bool documentExists() const;
 
@@ -78,6 +103,8 @@ public Q_SLOTS:
     bool promptForSave();
     bool promptForDiscard();
     void newDocument();
+    void closeTab(int index);
+    void currentTabChanged(int index);
     void resetEditor();
     bool saveDocument();
     bool saveDocumentAs();
@@ -127,14 +154,12 @@ private:
         FS_OutOfDate = 0x02,
     };
 
-    SyntaxTextEdit *m_editor;
-    SearchWidget *m_searchWidget;
-    QString m_textEncoding;
+    QTabWidget *m_tabs;
+    SearchWidget *m_searchWidget = Q_NULLPTR;
+    bool m_closing = false;
 
-    QString m_openFilename;
-    unsigned int m_fileState;
     QFileSystemWatcher *m_fileWatcher;
-    QDateTime m_cachedModTime;
+    void setOpenFilename(DocumentTab *tab, const QString &filename);
     void setOpenFilename(const QString &filename);
 
     QToolBar *m_toolBar;
@@ -146,7 +171,10 @@ private:
 
     // QAction caches
     QAction *m_reloadAction;
-    QAction *m_overwriteModeAction;
+    QAction *m_undoAction = Q_NULLPTR;
+    QAction *m_redoAction = Q_NULLPTR;
+    QAction *m_deleteAction = Q_NULLPTR;
+    QAction *m_overwriteModeAction = Q_NULLPTR;
     QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
     QAction *m_fullScreenAction;
@@ -160,16 +188,23 @@ private:
     QActionGroup *m_indentModeActions;
     QList<QAction *> m_editorContextActions;
 
-    ActivationLabel *m_positionLabel;
+    ActivationLabel *m_positionLabel = Q_NULLPTR;
     ActivationLabel *m_crlfLabel;
     ActivationLabel *m_insertLabel;
     QToolButton *m_indentButton;
     QToolButton *m_encodingButton;
     QToolButton *m_syntaxButton;
-    FileTypeInfo::LineEndingType m_lineEndingMode;
 
-    // Custom Undo Stack for adding non-editor undo items
-    QUndoStack *m_undoStack;
+    // Active tab helpers
+    DocumentTab *currentTab() const;
+    QUndoStack *undoStack() const;
+    QList<SyntaxTextEdit *> editors() const;
+    DocumentTab *findTab(const QString &filename,
+                         const DocumentTab *exclude = Q_NULLPTR) const;
+    DocumentTab *addDocumentTab();
+    void updateTabText(DocumentTab *tab);
+    void updateSyntaxStatus(const KSyntaxHighlighting::Definition &syntax);
+    void syncIndentSettings();
 
     QString documentTitle();
     void updateTitle();

@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
     QString textEncoding;
     if (parser.isSet(encodingOption))
         textEncoding = parser.value(encodingOption);
-    if (!startupFile.isEmpty() && win.loadDocumentFrom(startupFile, textEncoding)) {
+    if (!startupFile.isEmpty() && win.openDocument(startupFile, textEncoding)) {
         if (startupLine > 0)
             win.gotoLine(startupLine, startupCol);
         if (parser.isSet(syntaxOption)) {
