@@ -143,7 +143,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto newAction = fileMenu->addAction(ICON("document-new"), tr("&New"));
     newAction->setShortcut(QKeySequence::New);
-    auto newTabAction = fileMenu->addAction(tr("New &Tab"));
+    auto newTabAction = fileMenu->addAction(ICON("tab-new"), tr("New &Tab"));
     newTabAction->setShortcut(QKeySequence::AddTab);
     auto newWindowAction = fileMenu->addAction(ICON("window-new"), tr("New &Window"));
     newWindowAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_N);
@@ -165,7 +165,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     printAction->setShortcut(QKeySequence::Print);
     auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Pre&view"));
     (void) fileMenu->addSeparator();
-    auto closeTabAction = fileMenu->addAction(tr("Clos&e Tab"));
+    auto closeTabAction = fileMenu->addAction(ICON("tab-close"), tr("Clos&e Tab"));
     closeTabAction->setShortcut(Qt::CTRL | Qt::Key_W);
     auto quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
