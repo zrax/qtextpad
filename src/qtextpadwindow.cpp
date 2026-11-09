@@ -166,7 +166,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Pre&view"));
     (void) fileMenu->addSeparator();
     auto closeTabAction = fileMenu->addAction(tr("Clos&e Tab"));
-    closeTabAction->setShortcut(QKeySequence::Close);
+    closeTabAction->setShortcut(Qt::CTRL | Qt::Key_W);
     auto quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
 
