@@ -58,6 +58,8 @@ target_sources(qtextpad
         charsets.cpp
         definitiondownload.h
         definitiondownload.cpp
+        documenttabs.h
+        documenttabs.cpp
         filetypeinfo.h
         filetypeinfo.cpp
         indentsettings.h

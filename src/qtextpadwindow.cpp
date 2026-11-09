@@ -33,7 +33,6 @@
 #include <QPrintDialog>
 #include <QPrintPreviewDialog>
 #include <QClipboard>
-#include <QUndoStack>
 #include <QTextBlock>
 #include <QTimer>
 #include <QFileInfo>
@@ -42,7 +41,6 @@
 #include <QProcess>
 #include <QFileSystemWatcher>
 #include <QTabWidget>
-#include <QVBoxLayout>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
@@ -53,6 +51,7 @@
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Theme>
 
+#include "documenttabs.h"
 #include "activationlabel.h"
 #include "syntaxtextedit.h"
 #include "settingspopup.h"
@@ -129,36 +128,12 @@ protected:
     }
 };
 
-DocumentTab::DocumentTab(QWidget *parent)
-    : QWidget(parent)
-{
-    textEncoding = QStringLiteral("UTF-8");
-#ifdef _WIN32
-    lineEndingMode = FileTypeInfo::CRLF;
-#else
-    lineEndingMode = FileTypeInfo::LFOnly;
-#endif
-
-    m_editor = new SyntaxTextEdit(this);
-    m_editor->setFrameStyle(QFrame::NoFrame);
-    m_undoStack = new QUndoStack(this);
-
-    auto layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-    layout->addWidget(m_editor);
-}
-
 QTextPadWindow::QTextPadWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     QTextPadSettings settings;
 
-    m_tabs = new QTabWidget(this);
-    m_tabs->setDocumentMode(true);
-    m_tabs->setMovable(true);
-    m_tabs->setTabsClosable(true);
-    m_tabs->setTabBarAutoHide(settings.hideSingleTab());
+    m_tabs = new DocumentTabWidget(this);
     setCentralWidget(m_tabs);
     addDocumentTab();
 

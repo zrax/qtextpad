@@ -26,6 +26,7 @@
 class SyntaxTextEdit;
 class SearchWidget;
 class ActivationLabel;
+class DocumentTab;
 
 class QTabWidget;
 class QToolButton;
@@ -40,26 +41,6 @@ namespace KSyntaxHighlighting
     class Definition;
     class Theme;
 }
-
-class DocumentTab : public QWidget
-{
-public:
-    explicit DocumentTab(QWidget *parent = Q_NULLPTR);
-
-    SyntaxTextEdit *editor() const { return m_editor; }
-    QUndoStack *undoStack() const { return m_undoStack; }
-
-    QString filename;
-    unsigned int fileState = 0;
-    QDateTime cachedModTime;
-    QString textEncoding;
-    FileTypeInfo::LineEndingType lineEndingMode = FileTypeInfo::LFOnly;
-    bool utfBOM = false;
-
-private:
-    SyntaxTextEdit *m_editor;
-    QUndoStack *m_undoStack;
-};
 
 class QTextPadWindow : public QMainWindow
 {
