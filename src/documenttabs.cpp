@@ -42,6 +42,7 @@ DocumentTab::DocumentTab(QWidget *parent)
     layout->addWidget(m_editor);
 }
 
+
 void DocumentTabBar::mouseReleaseEvent(QMouseEvent *event)
 {
     // This feature is built-in to Qt as of 6.11
@@ -58,16 +59,34 @@ void DocumentTabBar::mouseReleaseEvent(QMouseEvent *event)
     QTabBar::mouseReleaseEvent(event);
 }
 
+void DocumentTabBar::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::MouseButton::LeftButton) {
+        const int tabIndex = tabAt(event->pos());
+        if (tabIndex < 0) {
+            Q_EMIT newTabRequested();
+            return;
+        }
+    }
+
+    QTabBar::mouseDoubleClickEvent(event);
+}
+
+
 DocumentTabWidget::DocumentTabWidget(QWidget *parent)
     : QTabWidget(parent)
 {
     QTextPadSettings settings;
 
     // This must be created before anything that affects the tabs or tab bar is called
-    setTabBar(new DocumentTabBar(this));
+    auto tabBar = new DocumentTabBar(this);
+    setTabBar(tabBar);
 
     setDocumentMode(true);
     setMovable(true);
     setTabsClosable(true);
     setTabBarAutoHide(settings.hideSingleTab());
+
+    connect(tabBar, &DocumentTabBar::newTabRequested,
+            this, &DocumentTabWidget::newTabRequested);
 }

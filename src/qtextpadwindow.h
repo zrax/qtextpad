@@ -27,8 +27,8 @@ class SyntaxTextEdit;
 class SearchWidget;
 class ActivationLabel;
 class DocumentTab;
+class DocumentTabWidget;
 
-class QTabWidget;
 class QToolButton;
 class QMenu;
 class QActionGroup;
@@ -135,7 +135,7 @@ private:
         FS_OutOfDate = 0x02,
     };
 
-    QTabWidget *m_tabs;
+    DocumentTabWidget *m_tabs;
     SearchWidget *m_searchWidget = Q_NULLPTR;
     bool m_closing = false;
 

@@ -570,6 +570,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
+    connect(m_tabs, &DocumentTabWidget::newTabRequested, this, &QTextPadWindow::newDocument);
 
     connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *focus) {
         if (focus == editor() && m_searchWidget->isVisible())

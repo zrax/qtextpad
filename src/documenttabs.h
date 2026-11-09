@@ -56,8 +56,12 @@ public:
     explicit DocumentTabBar(QWidget *parent = Q_NULLPTR)
         : QTabBar(parent) { }
 
+Q_SIGNALS:
+    void newTabRequested();
+
 protected:
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 };
 
 class DocumentTabWidget : public QTabWidget
@@ -66,6 +70,9 @@ class DocumentTabWidget : public QTabWidget
 
 public:
     explicit DocumentTabWidget(QWidget *parent = Q_NULLPTR);
+
+Q_SIGNALS:
+    void newTabRequested();
 };
 
 #endif // QTEXTPAD_DOCUMENTTABS_H
