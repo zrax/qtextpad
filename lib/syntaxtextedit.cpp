@@ -1361,6 +1361,10 @@ void SyntaxTextEdit::paintEvent(QPaintEvent *e)
 
     // Overlay indentation guides after rendering the text
     if (showIndentGuides()) {
+        // This shadows the outer QPainter because it is invalidated after
+        // QPlainTextEdit::paintEvent() is called.
+        QPainter p(viewport());
+
         p.setPen(m_indentGuideFg);
         block = firstVisibleBlock();
         const QFontMetricsF fm(font());
