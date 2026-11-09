@@ -18,6 +18,7 @@
 
 #include <QUndoStack>
 #include <QVBoxLayout>
+#include <QFileInfo>
 
 #include "appsettings.h"
 #include "syntaxtextedit.h"
@@ -40,6 +41,16 @@ DocumentTab::DocumentTab(QWidget *parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
     layout->addWidget(m_editor);
+}
+
+QString DocumentTab::documentName() const
+{
+    return filename.isEmpty() ? tr("Untitled") : QFileInfo(filename).fileName();
+}
+
+QString DocumentTab::absolutePath() const
+{
+    return filename.isEmpty() ? QString() : QFileInfo(filename).absoluteFilePath();
 }
 
 

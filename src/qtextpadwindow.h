@@ -191,7 +191,6 @@ private:
     void updateSyntaxStatus(const KSyntaxHighlighting::Definition &syntax);
     void syncIndentSettings();
 
-    QString documentTitle();
     void updateTitle();
     void populateRecentFiles();
     void populateThemeMenu();

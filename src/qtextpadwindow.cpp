@@ -795,17 +795,13 @@ void QTextPadWindow::updateTabText(DocumentTab *tab)
     if (index < 0)
         return;
 
-    QString name = tab->filename.isEmpty() ? tr("Untitled")
-                                           : QFileInfo(tab->filename).fileName();
-
+    QString name = tab->documentName();
     name.replace(QLatin1Char('&'), QLatin1String("&&"));
     if (!tab->undoStack()->isClean())
         name = QStringLiteral("* ") + name;
 
     m_tabs->setTabText(index, name);
-    m_tabs->setTabToolTip(index, tab->filename.isEmpty()
-                                 ? QString()
-                                 : QFileInfo(tab->filename).absoluteFilePath());
+    m_tabs->setTabToolTip(index, tab->absolutePath());
 }
 
 void QTextPadWindow::currentTabChanged(int index)
@@ -1349,7 +1345,8 @@ bool QTextPadWindow::promptForSave()
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Would you like to save your changes first?")
-                            .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+                            .arg(currentTab()->documentName()),
+                            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (response == QMessageBox::Cancel)
             return false;
         else if (response == QMessageBox::Yes)
@@ -1382,7 +1379,7 @@ bool QTextPadWindow::promptForDiscard()
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Are you sure you want to discard your changes?")
-                            .arg(documentTitle()), QMessageBox::Yes | QMessageBox::No);
+                            .arg(currentTab()->documentName()), QMessageBox::Yes | QMessageBox::No);
         if (response == QMessageBox::No)
             return false;
     }
@@ -1434,13 +1431,8 @@ bool QTextPadWindow::saveDocument()
 
 bool QTextPadWindow::saveDocumentAs()
 {
-    QString startPath;
-    if (!currentTab()->filename.isEmpty()) {
-        QFileInfo fi(currentTab()->filename);
-        startPath = fi.absoluteFilePath();
-    }
-
-    QString path = QFileDialog::getSaveFileName(this, tr("Save File As"), startPath);
+    QString path = QFileDialog::getSaveFileName(this, tr("Save File As"),
+                                                currentTab()->absolutePath());
     if (path.isEmpty())
         return false;
     if (!saveDocumentTo(path))
@@ -1456,13 +1448,8 @@ bool QTextPadWindow::saveDocumentAs()
 
 bool QTextPadWindow::saveDocumentCopy()
 {
-    QString startPath;
-    if (!currentTab()->filename.isEmpty()) {
-        QFileInfo fi(currentTab()->filename);
-        startPath = fi.absolutePath();
-    }
-
-    QString path = QFileDialog::getSaveFileName(this, tr("Save Copy As"), startPath);
+    QString path = QFileDialog::getSaveFileName(this, tr("Save Copy As"),
+                                                currentTab()->absolutePath());
     if (path.isEmpty())
         return false;
     return saveDocumentTo(path);
@@ -1470,12 +1457,8 @@ bool QTextPadWindow::saveDocumentCopy()
 
 bool QTextPadWindow::loadDocument()
 {
-    QString startPath;
-    if (!currentTab()->filename.isEmpty()) {
-        QFileInfo fi(currentTab()->filename);
-        startPath = fi.absolutePath();
-    }
-    QString path = QFileDialog::getOpenFileName(this, tr("Open File"), startPath);
+    QString path = QFileDialog::getOpenFileName(this, tr("Open File"),
+                                                currentTab()->absolutePath());
     if (path.isEmpty())
         return false;
 
@@ -1503,7 +1486,7 @@ void QTextPadWindow::reloadDocumentEncoding(const QString &textEncoding)
 void QTextPadWindow::printDocument()
 {
     QPrinter printer;
-    printer.setDocName(documentTitle());
+    printer.setDocName(currentTab()->documentName());
 
     QPrintDialog printDialog(&printer, this);
     if (printDialog.exec() == QDialog::Accepted)
@@ -1513,7 +1496,7 @@ void QTextPadWindow::printDocument()
 void QTextPadWindow::printPreviewDocument()
 {
     QPrinter printer;
-    printer.setDocName(documentTitle());
+    printer.setDocName(currentTab()->documentName());
 
     QPrintPreviewDialog previewDialog(&printer, this);
     connect(&previewDialog, &QPrintPreviewDialog::paintRequested,
@@ -1558,18 +1541,9 @@ void QTextPadWindow::updateCursorPosition()
     m_positionLabel->setText(positionText);
 }
 
-QString QTextPadWindow::documentTitle()
-{
-    if (currentTab()->filename.isEmpty())
-        return tr("Untitled");
-
-    QFileInfo fi(currentTab()->filename);
-    return fi.fileName();
-}
-
 void QTextPadWindow::updateTitle()
 {
-    QString title = documentTitle();
+    QString title = currentTab()->documentName();
     if (m_showFilePath && !currentTab()->filename.isEmpty()) {
         QFileInfo fi(currentTab()->filename);
         title += QStringLiteral(" [%1]").arg(fi.absolutePath());

@@ -35,6 +35,8 @@ public:
 
     SyntaxTextEdit *editor() const { return m_editor; }
     QUndoStack *undoStack() const { return m_undoStack; }
+    QString documentName() const;
+    QString absolutePath() const;
 
     QString filename;
     unsigned int fileState = 0;
