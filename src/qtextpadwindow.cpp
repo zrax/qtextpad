@@ -264,7 +264,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     longLineAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_M);
     longLineAction->setCheckable(true);
     auto longLineWidthAction = viewMenu->addAction(tr("Set Long Line Wi&dth..."));
-    auto indentGuidesAction = viewMenu->addAction(tr("&Indentation Guides"));
+    auto indentGuidesAction = viewMenu->addAction(tr("Indentation &Guides"));
     indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_T);
     indentGuidesAction->setCheckable(true);
     (void) viewMenu->addSeparator();
@@ -292,11 +292,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     zoomOutAction->setShortcut(QKeySequence::ZoomOut);
     auto zoomResetAction = viewMenu->addAction(ICON("zoom-original"), tr("Reset &Zoom"));
     zoomResetAction->setShortcut(Qt::CTRL | Qt::Key_0);
-    (void) viewMenu->addSeparator();
-    auto nextTabAction = viewMenu->addAction(tr("Ne&xt Tab"));
-    nextTabAction->setShortcut(Qt::CTRL | Qt::Key_PageDown);
-    auto prevTabAction = viewMenu->addAction(tr("Pre&vious Tab"));
-    prevTabAction->setShortcut(Qt::CTRL | Qt::Key_PageUp);
     (void) viewMenu->addSeparator();
     m_fullScreenAction = viewMenu->addAction(ICON("view-fullscreen"), tr("&Full Screen"));
     m_fullScreenAction->setShortcut(Qt::Key_F11);
@@ -361,12 +356,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(zoomInAction, &QAction::triggered, this, [this] { editor()->zoomIn(); });
     connect(zoomOutAction, &QAction::triggered, this, [this] { editor()->zoomOut(); });
     connect(zoomResetAction, &QAction::triggered, this, [this] { editor()->zoomReset(); });
-    connect(nextTabAction, &QAction::triggered, this, [this] {
-        m_tabs->setCurrentIndex((m_tabs->currentIndex() + 1) % m_tabs->count());
-    });
-    connect(prevTabAction, &QAction::triggered, this, [this] {
-        m_tabs->setCurrentIndex((m_tabs->currentIndex() + m_tabs->count() - 1) % m_tabs->count());
-    });
     connect(m_fullScreenAction, &QAction::toggled, this, &QTextPadWindow::toggleFullScreen);
 
     QMenu *toolsMenu = menuBar()->addMenu(tr("&Tools"));
@@ -476,6 +465,28 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     });
     connect(closeWindowAction, &QAction::toggled, this, [](bool closeWindow) {
         QTextPadSettings().setCloseWindowOnLastTab(closeWindow);
+    });
+
+    m_documentsMenu = menuBar()->addMenu(tr("&Documents"));
+    auto saveAllAction = m_documentsMenu->addAction(ICON("document-save-all"), tr("&Save All"));
+    saveAllAction->setShortcut(Qt::CTRL | Qt::ALT | Qt::Key_S);
+    auto closeAllAction = m_documentsMenu->addAction(ICON("tab-close"), tr("Close All &Tabs"));
+    auto closeOtherAction = m_documentsMenu->addAction(ICON("tab-close-other"), tr("Close &Other Tabs"));
+    (void) m_documentsMenu->addSeparator();
+    auto prevTabAction = m_documentsMenu->addAction(tr("Pre&vious Tab"));
+    prevTabAction->setShortcut(Qt::CTRL | Qt::Key_PageUp);
+    auto nextTabAction = m_documentsMenu->addAction(tr("Ne&xt Tab"));
+    nextTabAction->setShortcut(Qt::CTRL | Qt::Key_PageDown);
+    (void) m_documentsMenu->addSeparator();
+
+    connect(saveAllAction, &QAction::triggered, this, &QTextPadWindow::promptSaveAll);
+    connect(closeAllAction, &QAction::triggered, this, &QTextPadWindow::closeAllTabs);
+    connect(closeOtherAction, &QAction::triggered, this, &QTextPadWindow::closeOtherTabs);
+    connect(prevTabAction, &QAction::triggered, this, [this] {
+        m_tabs->setCurrentIndex((m_tabs->currentIndex() + m_tabs->count() - 1) % m_tabs->count());
+    });
+    connect(nextTabAction, &QAction::triggered, this, [this] {
+        m_tabs->setCurrentIndex((m_tabs->currentIndex() + 1) % m_tabs->count());
     });
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -607,7 +618,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
 QTextPadWindow::~QTextPadWindow()
 {
-    //Prevent the stacks and editors from calling back into window state on shutdown
+    // Prevent the stacks and editors from calling back into window state on shutdown
     m_closing = true;
     for (int i = 0; i < m_tabs->count(); ++i) {
         auto tab = static_cast<DocumentTab *>(m_tabs->widget(i));
@@ -859,6 +870,47 @@ void QTextPadWindow::closeTab(int index)
     }
 
     tab->deleteLater();
+}
+
+bool QTextPadWindow::closeAllTabs()
+{
+    if (!promptSaveAll())
+        return false;
+
+    while (m_tabs->count() > 1) {
+        auto tab = static_cast<DocumentTab *>(m_tabs->widget(0));
+        m_tabs->removeTab(0);
+        tab->deleteLater();
+    }
+
+    // Reuse the last tab for a new, empty document
+    resetEditor();
+    updateTitle();
+    return true;
+}
+
+void QTextPadWindow::closeOtherTabs()
+{
+    auto currentTab = m_tabs->currentIndex();
+    auto currentTabWidget = m_tabs->widget(currentTab);
+    if (!promptSaveAll(currentTab))
+        return;
+
+    int tabIndex = 0;
+    while (m_tabs->count() > 1) {
+        if (m_tabs->widget(tabIndex) == currentTabWidget) {
+            Q_ASSERT(tabIndex == 0);
+            tabIndex = 1;
+        }
+
+        auto tab = static_cast<DocumentTab *>(m_tabs->widget(tabIndex));
+        m_tabs->removeTab(tabIndex);
+        tab->deleteLater();
+    }
+
+    // Our tab should be the only one remaining
+    if (m_tabs->count() > 0)
+        m_tabs->setCurrentIndex(0);
 }
 
 bool QTextPadWindow::openDocument(const QString &filename, const QString &textEncoding)
@@ -1302,6 +1354,19 @@ bool QTextPadWindow::promptForSave()
             return false;
         else if (response == QMessageBox::Yes)
             return saveDocument();
+    }
+    return true;
+}
+
+bool QTextPadWindow::promptSaveAll(int excludeIndex)
+{
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (i == excludeIndex)
+            continue;
+
+        m_tabs->setCurrentIndex(i);
+        if (!promptForSave())
+            return false;
     }
     return true;
 }
@@ -1870,13 +1935,10 @@ void QTextPadWindow::closeEvent(QCloseEvent *event)
 {
     // Offer to save every modified document before the window goes away
     m_closing = true;
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        m_tabs->setCurrentIndex(i);
-        if (!promptForSave()) {
-            m_closing = false;
-            event->ignore();
-            return;
-        }
+    if (!promptSaveAll()) {
+        m_closing = false;
+        event->ignore();
+        return;
     }
 
     if ((windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) == 0) {

@@ -82,9 +82,12 @@ public:
 public Q_SLOTS:
     void checkForModifications();
     bool promptForSave();
+    bool promptSaveAll(int excludeIndex = -1);
     bool promptForDiscard();
     void newDocument();
     void closeTab(int index);
+    bool closeAllTabs();
+    void closeOtherTabs();
     void currentTabChanged(int index);
     void resetEditor();
     bool saveDocument();
@@ -148,6 +151,7 @@ private:
     QMenu *m_themeMenu;
     QMenu *m_syntaxMenu;
     QMenu *m_setEncodingMenu;
+    QMenu *m_documentsMenu;
     bool m_showFilePath;
 
     // QAction caches
