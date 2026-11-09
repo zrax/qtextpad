@@ -135,10 +135,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     m_tabs = new DocumentTabWidget(this);
     setCentralWidget(m_tabs);
-    addDocumentTab();
 
     m_searchWidget = new SearchWidget(this);
-    showSearchBar(false);
+    m_searchWidget->setVisible(false);
+    m_searchWidget->setEnabled(false);
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
     auto newTabAction = fileMenu->addAction(ICON("document-new"), tr("New &Tab"));
@@ -251,7 +251,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(QApplication::clipboard(), &QClipboard::dataChanged, this, [this, pasteAction] {
         pasteAction->setEnabled(editor()->canPaste());
     });
-    pasteAction->setEnabled(editor()->canPaste());
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
     m_themeMenu = viewMenu->addMenu(tr("&Theme"));
@@ -539,7 +538,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_syntaxButton->setPopupMode(QToolButton::InstantPopup);
     m_syntaxButton->addAction(new SyntaxPopupAction(this));
     statusBar()->addPermanentWidget(m_syntaxButton);
-    updateCursorPosition();
 
     if (!settings.showStatusBar())
         statusBar()->setVisible(false);
@@ -552,17 +550,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_crlfLabel, &ActivationLabel::activated,
             this, &QTextPadWindow::nextLineEndingMode);
 
-    wordWrapAction->setChecked(editor()->wordWrap());
-    longLineAction->setChecked(editor()->showLongLineEdge());
-    indentGuidesAction->setChecked(editor()->showIndentGuides());
-    showLineNumbersAction->setChecked(editor()->showLineNumbers());
-    showFoldingAction->setChecked(editor()->showFolding());
-    showWhitespaceAction->setChecked(editor()->showWhitespace());
-    scrollPastEndOfFileAction->setChecked(editor()->scrollPastEndOfFile());
-    showCurrentLineAction->setChecked(editor()->highlightCurrentLine());
-    showMatchingBraces->setChecked(editor()->matchBraces());
-    m_autoIndentAction->setChecked(editor()->autoIndent());
-
     KSyntaxHighlighting::Theme theme;
     QString themeName = settings.editorTheme();
     if (!themeName.isEmpty())
@@ -574,7 +561,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     m_insertLabel->setMinimumWidth(QFontMetrics(m_insertLabel->font()).boundingRect(tr("OVR")).width() + 4);
     m_crlfLabel->setMinimumWidth(QFontMetrics(m_crlfLabel->font()).boundingRect(tr("CRLF")).width() + 4);
-    setOverwriteMode(false);
 
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
@@ -586,8 +572,23 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     });
 
     // Set up the editor and status for a clean, empty document
-    resetEditor();
-    updateTitle();
+    newDocument();
+
+    // Populate the initial state of actions which need an editor to be present
+    // in order to work properly
+    auto initialEditor = editor();
+    pasteAction->setEnabled(initialEditor->canPaste());
+    wordWrapAction->setChecked(initialEditor->wordWrap());
+    longLineAction->setChecked(initialEditor->showLongLineEdge());
+    indentGuidesAction->setChecked(initialEditor->showIndentGuides());
+    showLineNumbersAction->setChecked(initialEditor->showLineNumbers());
+    showFoldingAction->setChecked(initialEditor->showFolding());
+    showWhitespaceAction->setChecked(initialEditor->showWhitespace());
+    scrollPastEndOfFileAction->setChecked(initialEditor->scrollPastEndOfFile());
+    showCurrentLineAction->setChecked(initialEditor->highlightCurrentLine());
+    showMatchingBraces->setChecked(initialEditor->matchBraces());
+    m_autoIndentAction->setChecked(initialEditor->autoIndent());
+    setOverwriteMode(false);
 
     resize(settings.windowSize());
 
@@ -648,7 +649,7 @@ void QTextPadWindow::setOpenFilename(const QString &filename)
 
 DocumentTab *QTextPadWindow::currentTab() const
 {
-    return m_tabs ? static_cast<DocumentTab *>(m_tabs->currentWidget()) : Q_NULLPTR;
+    return static_cast<DocumentTab *>(m_tabs->currentWidget());
 }
 
 SyntaxTextEdit *QTextPadWindow::editor() const
@@ -806,7 +807,7 @@ void QTextPadWindow::updateTabText(DocumentTab *tab)
 
 void QTextPadWindow::currentTabChanged(int index)
 {
-    if (index < 0 || !m_searchWidget)
+    if (index < 0)
         return;
 
     DocumentTab *tab = currentTab();
@@ -2189,5 +2190,4 @@ void QTextPadWindow::populateIndentButtonMenu()
             m_autoIndentAction, &QAction::trigger);
 
     m_indentButton->setMenu(indentMenu);
-    updateIndentStatus();
 }

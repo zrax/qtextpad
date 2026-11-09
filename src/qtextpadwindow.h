@@ -139,7 +139,7 @@ private:
     };
 
     DocumentTabWidget *m_tabs;
-    SearchWidget *m_searchWidget = Q_NULLPTR;
+    SearchWidget *m_searchWidget;
     bool m_closing = false;
 
     QFileSystemWatcher *m_fileWatcher;
@@ -156,10 +156,10 @@ private:
 
     // QAction caches
     QAction *m_reloadAction;
-    QAction *m_undoAction = Q_NULLPTR;
-    QAction *m_redoAction = Q_NULLPTR;
-    QAction *m_deleteAction = Q_NULLPTR;
-    QAction *m_overwriteModeAction = Q_NULLPTR;
+    QAction *m_undoAction;
+    QAction *m_redoAction;
+    QAction *m_deleteAction;
+    QAction *m_overwriteModeAction;
     QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
     QAction *m_fullScreenAction;
@@ -173,7 +173,7 @@ private:
     QActionGroup *m_indentModeActions;
     QList<QAction *> m_editorContextActions;
 
-    ActivationLabel *m_positionLabel = Q_NULLPTR;
+    ActivationLabel *m_positionLabel;
     ActivationLabel *m_crlfLabel;
     ActivationLabel *m_insertLabel;
     QToolButton *m_indentButton;

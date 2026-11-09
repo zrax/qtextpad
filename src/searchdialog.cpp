@@ -42,7 +42,7 @@
 static SearchDialog *s_instance = Q_NULLPTR;
 
 SearchWidget::SearchWidget(QTextPadWindow *parent)
-    : QWidget(parent), m_editor(parent->editor())
+    : QWidget(parent)
 {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     const bool darkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
@@ -103,7 +103,8 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
         m_searchParams.searchText = m_escapes->isChecked()
                                   ? SearchDialog::translateEscapes(text)
                                   : text;
-        m_editor->setLiveSearch(m_searchParams);
+        if (m_editor)
+            m_editor->setLiveSearch(m_searchParams);
     });
     connect(m_searchText, &QLineEdit::returnPressed, this, [this] { searchNext(false); });
     connect(tbNext, &QToolButton::clicked, this, [this] { searchNext(false); });
@@ -149,7 +150,8 @@ void SearchWidget::activate()
 
     setFocus(Qt::OtherFocusReason);
     m_searchText->selectAll();
-    m_editor->setLiveSearch(m_searchParams);
+    if (m_editor)
+        m_editor->setLiveSearch(m_searchParams);
 }
 
 void SearchWidget::searchNext(bool reverse)
@@ -159,7 +161,7 @@ void SearchWidget::searchNext(bool reverse)
         setEnabled(true);
         activate();
     }
-    if (m_searchParams.searchText.isEmpty())
+    if (!m_editor || m_searchParams.searchText.isEmpty())
         return;
 
     auto searchCursor = m_editor->textSearch(m_editor->textCursor(),
@@ -215,7 +217,8 @@ void SearchWidget::updateSettings()
     settings.setSearchEscapes(m_escapes->isChecked());
     settings.setSearchWrap(m_wrapSearch->isChecked());
 
-    m_editor->setLiveSearch(m_searchParams);
+    if (m_editor)
+        m_editor->setLiveSearch(m_searchParams);
 }
 
 /* Just sets some more sane defaults for QComboBox:
@@ -237,7 +240,7 @@ public:
 };
 
 SearchDialog::SearchDialog(QWidget *parent)
-    : QDialog(parent), m_editor()
+    : QDialog(parent)
 {
     s_instance = this;
     setAttribute(Qt::WA_DeleteOnClose);
@@ -361,11 +364,13 @@ void SearchDialog::setActiveEditor(SyntaxTextEdit *editor)
     if (!s_instance)
         return;
 
-    QObject::disconnect(s_instance->m_selectionConnection);
+    Q_ASSERT(editor);
+
+    disconnect(s_instance->m_selectionConnection);
     s_instance->m_editor = editor;
     s_instance->m_replaceCursor = QTextCursor();
     if (editor) {
-        s_instance->m_selectionConnection = QObject::connect(editor,
+        s_instance->m_selectionConnection = connect(editor,
                 &SyntaxTextEdit::selectionChanged, s_instance, [] {
             const bool hasSelection = s_instance->m_editor
                     && s_instance->m_editor->textCursor().hasSelection();
