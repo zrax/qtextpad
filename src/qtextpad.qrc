@@ -32,7 +32,6 @@
         <file>icons/qtextpad/16x16/actions/help-about.png</file>
         <file>icons/qtextpad/16x16/actions/search-filter.png</file>
         <file>icons/qtextpad/16x16/actions/tab-close.png</file>
-        <file>icons/qtextpad/16x16/actions/tab-new.png</file>
         <file>icons/qtextpad/16x16/actions/view-fullscreen.png</file>
         <file>icons/qtextpad/16x16/actions/view-refresh.png</file>
         <file>icons/qtextpad/16x16/actions/view-restore.png</file>
@@ -57,7 +56,6 @@
         <file>icons/qtextpad/22x22/actions/go-jump.png</file>
         <file>icons/qtextpad/22x22/actions/help-about.png</file>
         <file>icons/qtextpad/22x22/actions/tab-close.png</file>
-        <file>icons/qtextpad/22x22/actions/tab-new.png</file>
         <file>icons/qtextpad/22x22/actions/view-fullscreen.png</file>
         <file>icons/qtextpad/22x22/actions/view-refresh.png</file>
         <file>icons/qtextpad/22x22/actions/view-restore.png</file>
@@ -88,7 +86,6 @@
         <file>icons/qtextpad-dark/16x16/actions/help-about.png</file>
         <file>icons/qtextpad-dark/16x16/actions/search-filter.png</file>
         <file>icons/qtextpad-dark/16x16/actions/tab-close.png</file>
-        <file>icons/qtextpad-dark/16x16/actions/tab-new.png</file>
         <file>icons/qtextpad-dark/16x16/actions/view-fullscreen.png</file>
         <file>icons/qtextpad-dark/16x16/actions/view-refresh.png</file>
         <file>icons/qtextpad-dark/16x16/actions/view-restore.png</file>
@@ -113,7 +110,6 @@
         <file>icons/qtextpad-dark/22x22/actions/go-jump.png</file>
         <file>icons/qtextpad-dark/22x22/actions/help-about.png</file>
         <file>icons/qtextpad-dark/22x22/actions/tab-close.png</file>
-        <file>icons/qtextpad-dark/22x22/actions/tab-new.png</file>
         <file>icons/qtextpad-dark/22x22/actions/view-fullscreen.png</file>
         <file>icons/qtextpad-dark/22x22/actions/view-refresh.png</file>
         <file>icons/qtextpad-dark/22x22/actions/view-restore.png</file>

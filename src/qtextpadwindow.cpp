@@ -141,10 +141,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showSearchBar(false);
 
     QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
-    auto newAction = fileMenu->addAction(ICON("document-new"), tr("&New"));
-    newAction->setShortcut(QKeySequence::New);
-    auto newTabAction = fileMenu->addAction(ICON("tab-new"), tr("New &Tab"));
-    newTabAction->setShortcut(QKeySequence::AddTab);
+    auto newTabAction = fileMenu->addAction(ICON("document-new"), tr("New &Tab"));
+    newTabAction->setShortcuts({ QKeySequence::AddTab, QKeySequence::New });
     auto newWindowAction = fileMenu->addAction(ICON("window-new"), tr("New &Window"));
     newWindowAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_N);
     (void) fileMenu->addSeparator();
@@ -170,7 +168,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
 
-    connect(newAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
     connect(newTabAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
     connect(closeTabAction, &QAction::triggered, this,
             [this] { closeTab(m_tabs->currentIndex()); });
@@ -490,7 +487,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_toolBar = addToolBar(tr("Toolbar"));
     m_toolBar->setIconSize(QSize(22, 22));
     m_toolBar->setMovable(false);
-    m_toolBar->addAction(newAction);
+    m_toolBar->addAction(newTabAction);
     m_toolBar->addAction(openAction);
     m_toolBar->addAction(saveAction);
     (void) m_toolBar->addSeparator();
