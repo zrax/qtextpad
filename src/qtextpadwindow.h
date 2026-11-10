@@ -98,6 +98,7 @@ public Q_SLOTS:
     void reloadDocumentEncoding(const QString &textEncoding);
     void printDocument();
     void printPreviewDocument();
+    void openContainingFolder();
 
     void editorContextMenu(const QPoint& pos);
     void tabContextMenu(const QPoint& pos);

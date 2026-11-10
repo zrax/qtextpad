@@ -20,6 +20,7 @@
 #include <QLabel>
 #include <QToolButton>
 #include <QPushButton>
+#include <QTabWidget>
 #include <QGridLayout>
 #include <QMenuBar>
 #include <QToolBar>
@@ -40,7 +41,7 @@
 #include <QDateTime>
 #include <QProcess>
 #include <QFileSystemWatcher>
-#include <QTabWidget>
+#include <QDesktopServices>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
@@ -165,6 +166,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     (void) fileMenu->addSeparator();
     auto copyPathAction = fileMenu->addAction(tr("Cop&y Path"));
     auto copyFilenameAction = fileMenu->addAction(tr("Copy File&name"));
+    auto openContainingFolderAction = fileMenu->addAction(tr("Open Containing &Folder"));
     (void) fileMenu->addSeparator();
     auto closeTabAction = fileMenu->addAction(ICON("tab-close"), tr("Clos&e Tab"));
     closeTabAction->setShortcut(Qt::CTRL | Qt::Key_W);
@@ -190,6 +192,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(copyFilenameAction, &QAction::triggered, this, [this] {
         QApplication::clipboard()->setText(currentTab()->documentName());
     });
+    connect(openContainingFolderAction, &QAction::triggered,
+            this, &QTextPadWindow::openContainingFolder);
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
 
     QMenu *editMenu = menuBar()->addMenu(tr("&Edit"));
@@ -505,6 +509,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     };
     m_tabContextActions << copyPathAction;
     m_tabContextActions << copyFilenameAction;
+    m_tabContextActions << openContainingFolderAction;
     m_tabContextActions << newSeparator();
     m_tabContextActions << saveAction;
     m_tabContextActions << saveAsAction;
@@ -1551,6 +1556,18 @@ void QTextPadWindow::printPreviewDocument()
     connect(&previewDialog, &QPrintPreviewDialog::paintRequested,
             editor(), &SyntaxTextEdit::printDocument);
     previewDialog.exec();
+}
+
+void QTextPadWindow::openContainingFolder()
+{
+    const QString path = currentTab()->absolutePath();
+    if (path.isEmpty())
+        return;
+
+    QDir containingDir(path);
+    containingDir.cdUp();
+    if (containingDir.exists())
+        QDesktopServices::openUrl(QUrl::fromLocalFile(containingDir.path()));
 }
 
 void QTextPadWindow::editorContextMenu(const QPoint &pos)
