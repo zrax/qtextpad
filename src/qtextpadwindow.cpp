@@ -477,6 +477,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto nextTabAction = m_documentsMenu->addAction(tr("Ne&xt Tab"));
     nextTabAction->setShortcut(Qt::CTRL | Qt::Key_PageDown);
     (void) m_documentsMenu->addSeparator();
+    m_documentsGroup = new QActionGroup(this);
 
     connect(saveAllAction, &QAction::triggered, this, &QTextPadWindow::promptSaveAll);
     connect(closeAllAction, &QAction::triggered, this, &QTextPadWindow::closeAllTabs);
@@ -565,6 +566,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
     connect(m_tabs, &DocumentTabWidget::newTabRequested, this, &QTextPadWindow::newDocument);
+    connect(m_tabs->tabBar(), &QTabBar::tabMoved, this, [this](int from, int to) {
+        if (from != to)
+            updateDocumentsMenu();
+    });
 
     connect(qApp, &QApplication::focusChanged, this, [this](QWidget *, QWidget *focus) {
         if (focus == editor() && m_searchWidget->isVisible())
@@ -786,7 +791,8 @@ DocumentTab *QTextPadWindow::addDocumentTab()
             showSearchBar(false);
     });
 
-    m_tabs->addTab(tab, tr("Untitled"));
+    int tabIndex = m_tabs->addTab(tab, tr("Untitled"));
+    addDocumentsMenuItem(tabIndex);
     return tab;
 }
 
@@ -803,6 +809,10 @@ void QTextPadWindow::updateTabText(DocumentTab *tab)
 
     m_tabs->setTabText(index, name);
     m_tabs->setTabToolTip(index, tab->absolutePath());
+
+    auto actions = m_documentsGroup->actions();
+    if (index < actions.count())
+        actions.at(index)->setText(name);
 }
 
 void QTextPadWindow::currentTabChanged(int index)
@@ -837,6 +847,10 @@ void QTextPadWindow::currentTabChanged(int index)
     updateTitle();
     textEdit->setFocus(Qt::OtherFocusReason);
 
+    auto tabActions = m_documentsGroup->actions();
+    if (index < tabActions.count())
+        tabActions.at(index)->setChecked(true);
+
     if (!m_closing && QApplication::applicationState() == Qt::ApplicationActive)
         checkForModifications();
 }
@@ -866,7 +880,10 @@ void QTextPadWindow::closeTab(int index)
         return;
     }
 
+    m_tabs->removeTab(index);
     tab->deleteLater();
+
+    updateDocumentsMenu();
 }
 
 bool QTextPadWindow::closeAllTabs()
@@ -2190,4 +2207,33 @@ void QTextPadWindow::populateIndentButtonMenu()
             m_autoIndentAction, &QAction::trigger);
 
     m_indentButton->setMenu(indentMenu);
+}
+
+void QTextPadWindow::addDocumentsMenuItem(int tabIndex)
+{
+    auto tab = static_cast<DocumentTab *>(m_tabs->widget(tabIndex));
+    auto action = m_documentsMenu->addAction(tab->documentName());
+    if (tabIndex < 9)
+        action->setShortcut(QKeySequence(Qt::ALT | (Qt::Key_1 + tabIndex)));
+    else if (tabIndex == 9)
+        action->setShortcut(Qt::ALT | Qt::Key_0);
+    action->setCheckable(true);
+    action->setChecked(tabIndex == m_tabs->currentIndex());
+    m_documentsGroup->addAction(action);
+
+    connect(action, &QAction::triggered, this, [this, tabIndex] {
+        m_tabs->setCurrentIndex(tabIndex);
+    });
+}
+
+void QTextPadWindow::updateDocumentsMenu()
+{
+    const auto actions = m_documentsGroup->actions();
+    for (QAction *action : actions) {
+        m_documentsGroup->removeAction(action);
+        delete action;
+    }
+
+    for (int i = 0; i < m_tabs->count(); ++i)
+        addDocumentsMenuItem(i);
 }

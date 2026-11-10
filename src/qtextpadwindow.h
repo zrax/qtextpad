@@ -171,6 +171,7 @@ private:
     QActionGroup *m_tabWidthActions;
     QActionGroup *m_indentWidthActions;
     QActionGroup *m_indentModeActions;
+    QActionGroup *m_documentsGroup;
     QList<QAction *> m_editorContextActions;
 
     ActivationLabel *m_positionLabel;
@@ -197,6 +198,8 @@ private:
     void populateSyntaxMenu();
     void populateEncodingMenu();
     void populateIndentButtonMenu();
+    void addDocumentsMenuItem(int tabIndex);
+    void updateDocumentsMenu();
 };
 
 #endif // QTEXTPAD_WINDOW_H
