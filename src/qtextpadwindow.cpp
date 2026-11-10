@@ -489,6 +489,21 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         m_tabs->setCurrentIndex((m_tabs->currentIndex() + 1) % m_tabs->count());
     });
 
+    auto newSeparator = [this] {
+        auto sep = new QAction(this);
+        sep->setSeparator(true);
+        return sep;
+    };
+    m_tabContextActions << saveAction;
+    m_tabContextActions << saveAsAction;
+    m_tabContextActions << saveCopyAction;
+    m_tabContextActions << newSeparator();
+    m_tabContextActions << printAction;
+    m_tabContextActions << newSeparator();
+    m_tabContextActions << closeTabAction;
+    m_tabContextActions << closeOtherAction;
+    m_tabContextActions << closeAllAction;
+
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     auto aboutAction = helpMenu->addAction(ICON("help-about"), tr("&About..."));
     aboutAction->setShortcut(QKeySequence::HelpContents);
@@ -566,6 +581,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
     connect(m_tabs, &DocumentTabWidget::newTabRequested, this, &QTextPadWindow::newDocument);
+
+    m_tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_tabs->tabBar(), &QTabBar::customContextMenuRequested, this, &QTextPadWindow::tabContextMenu);
+
     connect(m_tabs->tabBar(), &QTabBar::tabMoved, this, [this](int from, int to) {
         if (from != to)
             updateDocumentsMenu();
@@ -1541,6 +1560,22 @@ void QTextPadWindow::editorContextMenu(const QPoint &pos)
 #endif
 
     menu->exec(editor()->viewport()->mapToGlobal(pos));
+}
+
+void QTextPadWindow::tabContextMenu(const QPoint &pos)
+{
+    auto tabIndex = m_tabs->tabBar()->tabAt(pos);
+    if (tabIndex < 0)
+        return;
+
+    m_tabs->setCurrentIndex(tabIndex);
+    auto menu = std::make_unique<QMenu>(m_tabs);
+    for (auto action : m_tabContextActions)
+        menu->addAction(action);
+
+    // Show the menu under the tab, to leave the tab itself visible
+    const QRect tabRect = m_tabs->tabBar()->tabRect(tabIndex);
+    menu->exec(m_tabs->mapToGlobal(tabRect.bottomLeft()));
 }
 
 void QTextPadWindow::updateCursorPosition()

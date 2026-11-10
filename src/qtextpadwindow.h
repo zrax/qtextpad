@@ -100,6 +100,7 @@ public Q_SLOTS:
     void printPreviewDocument();
 
     void editorContextMenu(const QPoint& pos);
+    void tabContextMenu(const QPoint& pos);
     void updateCursorPosition();
     void nextInsertMode();
     void nextLineEndingMode();
@@ -173,6 +174,7 @@ private:
     QActionGroup *m_indentModeActions;
     QActionGroup *m_documentsGroup;
     QList<QAction *> m_editorContextActions;
+    QList<QAction *> m_tabContextActions;
 
     ActivationLabel *m_positionLabel;
     ActivationLabel *m_crlfLabel;
