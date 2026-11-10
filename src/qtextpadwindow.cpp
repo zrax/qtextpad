@@ -163,6 +163,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     printAction->setShortcut(QKeySequence::Print);
     auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Pre&view"));
     (void) fileMenu->addSeparator();
+    auto copyPathAction = fileMenu->addAction(tr("Cop&y Path"));
+    auto copyFilenameAction = fileMenu->addAction(tr("Copy File&name"));
+    (void) fileMenu->addSeparator();
     auto closeTabAction = fileMenu->addAction(ICON("tab-close"), tr("Clos&e Tab"));
     closeTabAction->setShortcut(Qt::CTRL | Qt::Key_W);
     auto quitAction = fileMenu->addAction(tr("&Quit"));
@@ -181,6 +184,12 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(saveCopyAction, &QAction::triggered, this, &QTextPadWindow::saveDocumentCopy);
     connect(printAction, &QAction::triggered, this, &QTextPadWindow::printDocument);
     connect(printPreviewAction, &QAction::triggered, this, &QTextPadWindow::printPreviewDocument);
+    connect(copyPathAction, &QAction::triggered, this, [this] {
+        QApplication::clipboard()->setText(currentTab()->absolutePath());
+    });
+    connect(copyFilenameAction, &QAction::triggered, this, [this] {
+        QApplication::clipboard()->setText(currentTab()->documentName());
+    });
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
 
     QMenu *editMenu = menuBar()->addMenu(tr("&Edit"));
@@ -494,6 +503,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         sep->setSeparator(true);
         return sep;
     };
+    m_tabContextActions << copyPathAction;
+    m_tabContextActions << copyFilenameAction;
+    m_tabContextActions << newSeparator();
     m_tabContextActions << saveAction;
     m_tabContextActions << saveAsAction;
     m_tabContextActions << saveCopyAction;
