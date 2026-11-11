@@ -45,8 +45,8 @@ add_definitions(-DQT_NO_CAST_FROM_ASCII -DQT_NO_CAST_TO_ASCII)
 # build only the editor widget.
 
 if(NOT QTEXTPAD_WIDGET_ONLY)
-    set(APP_MAJOR 1)
-    set(APP_MINOR 13)
+    set(APP_MAJOR 2)
+    set(APP_MINOR 0)
     set(APP_VERSION "${APP_MAJOR}.${APP_MINOR}-pre")
     if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
         find_program(GIT_EXECUTABLE NAMES git git.cmd)
