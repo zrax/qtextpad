@@ -64,6 +64,8 @@ target_sources(qtextpad
         filetypeinfo.cpp
         indentsettings.h
         indentsettings.cpp
+        ipc.h
+        ipc.cpp
         qtextpadwindow.h
         qtextpadwindow.cpp
         searchdialog.h
@@ -82,5 +84,6 @@ if(WIN32)
     target_sources(qtextpad PRIVATE qtextpad.rc)
 endif()
 
-target_link_libraries(qtextpad PRIVATE syntaxtextedit ICU::uc ICU::data)
+target_link_libraries(qtextpad PRIVATE syntaxtextedit ICU::uc ICU::data
+                      Qt${QT_VERSION_MAJOR}::Network)
 target_compile_definitions(qtextpad PRIVATE QT_NO_KEYWORDS)

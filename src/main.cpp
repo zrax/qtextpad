@@ -19,6 +19,8 @@
 #include <QLibraryInfo>
 #include <QCommandLineParser>
 #include <QIcon>
+#include <QFileInfo>
+#include <QMessageBox>
 #include <QtGlobal>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QStyleHints>
@@ -32,6 +34,8 @@
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"
 #include "appversion.h"
+#include "appsettings.h"
+#include "ipc.h"
 
 // Determine if the default icon theme includes the necessary icons for
 // our toolbar.  If not, we need to use our own theme.
@@ -130,6 +134,10 @@ int main(int argc, char *argv[])
     parser.addOption(encodingOption);
     parser.addOption(syntaxOption);
 
+    const QCommandLineOption newInstanceOption(QStringList{QStringLiteral("n"), QStringLiteral("new-instance")},
+            QCoreApplication::translate("main", "Open a separate window even if Single Instance Mode is enabled."));
+    parser.addOption(newInstanceOption);
+
     const QCommandLineOption updateOption(QStringList{QStringLiteral("update-definitions")},
             QCoreApplication::translate("main", "Download updated syntax definitions from the internet and exit."));
     parser.addOption(updateOption);
@@ -149,21 +157,6 @@ int main(int argc, char *argv[])
         downloader.start();
         return QApplication::exec();
     }
-
-    setDefaultIconTheme();
-
-    // TODO: Make a unique icon for QTextPad?
-    // This one is borrowed from Oxygen
-    QIcon appIcon;
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-64.png"), QSize(64, 64));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-48.png"), QSize(48, 48));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-32.png"), QSize(32, 32));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-16.png"), QSize(16, 16));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
-    QApplication::setWindowIcon(appIcon);
-
-    QTextPadWindow win;
-    win.show();
 
     QString startupFile;
     int startupLine = -1;
@@ -191,25 +184,70 @@ int main(int argc, char *argv[])
             startupFile = arg;
         }
     }
+    const QString textEncoding = parser.isSet(encodingOption)
+                               ? parser.value(encodingOption) : QString();
+    const QString syntaxName = parser.isSet(syntaxOption)
+                             ? parser.value(syntaxOption) : QString();
 
-    QString textEncoding;
-    if (parser.isSet(encodingOption))
-        textEncoding = parser.value(encodingOption);
-    if (!startupFile.isEmpty() && win.openDocument(startupFile, textEncoding)) {
-        if (startupLine > 0)
-            win.gotoLine(startupLine, startupCol);
-        if (parser.isSet(syntaxOption)) {
-            auto syntaxRepo = SyntaxTextEdit::syntaxRepo();
-            auto syntaxDef = syntaxRepo->definitionForName(parser.value(syntaxOption));
-            if (syntaxDef.isValid()) {
-                win.setSyntax(syntaxDef);
-            } else {
-                qDebug("%s", qPrintable(
-                    QCoreApplication::translate("main", "Invalid syntax definition specified: %1")
-                            .arg(parser.value(syntaxOption))));
+    if (!parser.isSet(newInstanceOption)) {
+        IpcOpenRequest req;
+        req.path = QFileInfo(startupFile).absoluteFilePath(); // receiver has another cwd
+        req.encoding = textEncoding;
+        req.syntax = syntaxName;
+        req.line = startupLine;
+        req.column = startupCol;
+
+        if (QTextPadSettings().singleInstance()) {
+            QList<IpcOpenRequest> requests;
+            if (!startupFile.isEmpty())
+                requests.append(req);
+            // Nobody running, nobody accepting, or anything failing: continue
+            if (QTextPadIpc::forwardToExisting(requests))
+                return 0;
+        } else if (!startupFile.isEmpty()) {
+            // Single Instance off, but another window may already opened the file
+            const QString peer = QTextPadIpc::findInstanceWithFile(req);
+            if (!peer.isEmpty()) {
+                const auto answer = QMessageBox::question(nullptr,
+                        QCoreApplication::translate("main", "QTextPad"),
+                        QCoreApplication::translate("main",
+                                "This file is already open in another QTextPad window. "
+                                "Would you like to focus that window instead?"),
+                        QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
+                        QMessageBox::Yes);
+                if (answer == QMessageBox::Cancel)
+                    return 0;
+                if (answer == QMessageBox::Yes
+                        && QTextPadIpc::focusFileInInstance(peer, req))
+                    return 0;
+                // No (or the peer vanished): carry on and open it here
             }
         }
     }
+
+    setDefaultIconTheme();
+
+    // TODO: Make a unique icon for QTextPad?
+    // This one is borrowed from Oxygen
+    QIcon appIcon;
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-64.png"), QSize(64, 64));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-48.png"), QSize(48, 48));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-32.png"), QSize(32, 32));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-16.png"), QSize(16, 16));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
+    QApplication::setWindowIcon(appIcon);
+
+    QTextPadWindow win;
+    win.show();
+
+    // Always listen, even with Single Instance off:
+    // the setting is read live, so turning it on later in any window just works.
+    // also makes "File already opened" dialog works
+    auto ipc = new QTextPadIpc(&win);
+    ipc->start();
+
+    if (!startupFile.isEmpty())
+        win.openDocumentWithOptions(startupFile, textEncoding, syntaxName, startupLine, startupCol);
 
     return QApplication::exec();
 }

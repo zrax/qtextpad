@@ -60,10 +60,16 @@ public:
 
 Q_SIGNALS:
     void newTabRequested();
+    void tabDragRequested(int index);
 
 protected:
+    void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+
+private:
+    int m_pressIndex = -1;
 };
 
 class DocumentTabWidget : public QTabWidget
@@ -75,6 +81,7 @@ public:
 
 Q_SIGNALS:
     void newTabRequested();
+    void tabDragRequested(int index);
 };
 
 #endif // QTEXTPAD_DOCUMENTTABS_H

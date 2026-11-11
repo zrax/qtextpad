@@ -19,6 +19,8 @@
 #include <QUndoStack>
 #include <QVBoxLayout>
 #include <QFileInfo>
+#include <QApplication>
+#include <QMouseEvent>
 
 #include "appsettings.h"
 #include "syntaxtextedit.h"
@@ -54,8 +56,45 @@ QString DocumentTab::absolutePath() const
 }
 
 
+void DocumentTabBar::mousePressEvent(QMouseEvent *event)
+{
+    m_pressIndex = (event->button() == Qt::MouseButton::LeftButton) ? tabAt(event->pos()) : -1;
+    QTabBar::mousePressEvent(event);
+}
+
+void DocumentTabBar::mouseMoveEvent(QMouseEvent *event)
+{
+    // Moving sideways reorders tabs (built into QTabBar). Leaving the bar
+    // vertically turns it into a drag which another window can accept
+    if (m_pressIndex >= 0 && (event->buttons() & Qt::MouseButton::LeftButton)) {
+        const int margin = 2 * QApplication::startDragDistance();
+        const int y = event->pos().y();
+        if (y < -margin || y > height() + margin) {
+            const int index = m_pressIndex;
+            m_pressIndex = -1;
+
+            // Finish QTabBar's own move-in-progress before the QDrag takes over
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            QMouseEvent release(QEvent::MouseButtonRelease, event->position(),
+                                event->globalPosition(), Qt::MouseButton::LeftButton,
+                                Qt::MouseButton::NoButton, event->modifiers());
+#else
+            QMouseEvent release(QEvent::MouseButtonRelease, event->pos(),
+                                event->globalPos(), Qt::MouseButton::LeftButton,
+                                Qt::MouseButton::NoButton, event->modifiers());
+#endif
+            QTabBar::mouseReleaseEvent(&release);
+            Q_EMIT tabDragRequested(index);
+            return;
+        }
+    }
+    QTabBar::mouseMoveEvent(event);
+}
+
 void DocumentTabBar::mouseReleaseEvent(QMouseEvent *event)
 {
+    m_pressIndex = -1;
+
     // This feature is built-in to Qt as of 6.11
 #if QT_VERSION < QT_VERSION_CHECK(6, 11, 0)
     if (event->button() == Qt::MouseButton::MiddleButton) {
@@ -96,8 +135,11 @@ DocumentTabWidget::DocumentTabWidget(QWidget *parent)
     setDocumentMode(true);
     setMovable(true);
     setTabsClosable(true);
+    tabBar->setAcceptDrops(true);
     setTabBarAutoHide(settings.hideSingleTab());
 
     connect(tabBar, &DocumentTabBar::newTabRequested,
             this, &DocumentTabWidget::newTabRequested);
+    connect(tabBar, &DocumentTabBar::tabDragRequested,
+            this, &DocumentTabWidget::tabDragRequested);
 }
