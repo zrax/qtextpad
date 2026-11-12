@@ -47,6 +47,10 @@
 #include <QDropEvent>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
+#include <QUndoStack>
+#include <QTextCursor>
+#include <QVector>
 #include <QCoreApplication>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
@@ -1266,9 +1270,78 @@ QByteArray QTextPadWindow::serializeTab(DocumentTab *tab)
                     ? tab->cachedModTime.toString(Qt::ISODateWithMs) : QString());
     obj.insert(QStringLiteral("modified"), !tab->undoStack()->isClean());
     obj.insert(QStringLiteral("line"), ed->textCursor().blockNumber() + 1);
-    // Unsaved edits travel with the tab, so this is the buffer, not the file
+
+    // Undo history travels as one text snapshot per undo step, so the receiving
+    // window can replay it
+    constexpr int MaxHistorySteps = 100; // memory limit, don't store all stack'
+    QUndoStack *stack = tab->undoStack();
+    if (tab == currentTab() && stack->count() > 0 && stack->count() <= MaxHistorySteps) {
+        const int curIndex = stack->index();
+        QJsonArray history;
+        {
+            const QSignalBlocker blocker(stack);
+            for (int i = 0; i <= stack->count(); ++i) {
+                stack->setIndex(i);
+                history.append(convertRawText(ed->document()->toRawText()));
+            }
+            stack->setIndex(curIndex);
+        }
+        obj.insert(QStringLiteral("history"), history);
+        obj.insert(QStringLiteral("historyIndex"), curIndex);
+        obj.insert(QStringLiteral("cleanIndex"), stack->cleanIndex());
+    }
+
     obj.insert(QStringLiteral("text"), convertRawText(ed->document()->toRawText()));
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+static bool replayUndoHistory(SyntaxTextEdit *ed, QUndoStack *stack, const QJsonObject &obj)
+{
+    const QJsonArray history = obj.value(QStringLiteral("history")).toArray();
+    if (history.size() < 2)
+        return false;
+
+    ed->setPlainText(history.at(0).toString());
+    ed->document()->clearUndoRedoStacks();
+    stack->clear();
+
+    QVector<int> indexMap(history.size(), 0);  // old stack index -> new stack index
+    QString prev = history.at(0).toString();
+    for (int i = 1; i < history.size(); ++i) {
+        const QString next = history.at(i).toString();
+        if (next != prev) {
+            // Trim the common prefix/suffix
+            int p = 0;
+            const int maxP = qMin(prev.size(), next.size());
+            while (p < maxP && prev.at(p) == next.at(p))
+                ++p;
+            int s = 0;
+            const int maxS = maxP - p;
+            while (s < maxS && prev.at(prev.size() - 1 - s) == next.at(next.size() - 1 - s))
+                ++s;
+
+            QTextCursor cursor(ed->document());
+            cursor.setPosition(p);
+            cursor.setPosition(prev.size() - s, QTextCursor::KeepAnchor);
+            cursor.beginEditBlock();
+            cursor.removeSelectedText();
+            cursor.insertText(next.mid(p, next.size() - p - s));
+            cursor.endEditBlock();
+            prev = next;
+        }
+        indexMap[i] = stack->count();
+    }
+
+    const int oldClean = obj.value(QStringLiteral("cleanIndex")).toInt(-1);
+    const int oldCur = obj.value(QStringLiteral("historyIndex")).toInt(history.size() - 1);
+    if (oldClean >= 0 && oldClean < indexMap.size()) {
+        stack->setIndex(indexMap.at(oldClean));
+        stack->setClean();
+    } else {
+        stack->resetClean();
+    }
+    stack->setIndex(indexMap.value(oldCur, stack->count()));
+    return true;
 }
 
 bool QTextPadWindow::importTab(const QByteArray &payload)
@@ -1320,7 +1393,7 @@ bool QTextPadWindow::importTab(const QByteArray &payload)
 
     undoStack()->clear();
     undoStack()->setClean();
-    if (modified)
+    if (!replayUndoHistory(editor(), undoStack(), obj) && modified)
         undoStack()->resetClean(); // the buffer differs from what is on disk
 
     m_reloadAction->setEnabled(documentExists());
