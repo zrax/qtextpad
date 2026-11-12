@@ -630,7 +630,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showCurrentLineAction->setChecked(initialEditor->highlightCurrentLine());
     showMatchingBraces->setChecked(initialEditor->matchBraces());
     m_autoIndentAction->setChecked(initialEditor->autoIndent());
-    setOverwriteMode(false);
 
     resize(settings.windowSize());
 
@@ -770,7 +769,7 @@ DocumentTab *QTextPadWindow::addDocumentTab()
     textEdit->setWordWrap(settings.wordWrap());
     textEdit->setIndentationMode(settings.indentMode());
     textEdit->setScrollPastEndOfFile(settings.scrollPastEndOfFile());
-    textEdit->setOverwriteMode(m_overwriteModeAction && m_overwriteModeAction->isChecked());
+    textEdit->setOverwriteMode(false);
 
     KSyntaxHighlighting::Theme theme;
     const QString themeName = settings.editorTheme();
@@ -868,9 +867,9 @@ void QTextPadWindow::currentTabChanged(int index)
     m_undoAction->setEnabled(tab->undoStack()->canUndo());
     m_redoAction->setEnabled(tab->undoStack()->canRedo());
     m_deleteAction->setEnabled(textEdit->textCursor().hasSelection());
-    textEdit->setOverwriteMode(m_overwriteModeAction->isChecked());
     m_reloadAction->setEnabled(documentExists());
     m_utfBOMAction->setChecked(tab->utfBOM);
+    setOverwriteMode(textEdit->overwriteMode());
     setEncoding(tab->textEncoding);
     setLineEndingMode(tab->lineEndingMode);
 
