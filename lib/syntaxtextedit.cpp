@@ -27,11 +27,6 @@
 #include <QGuiApplication>
 #include <QStyleHints>
 
-#if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-#include <QApplication>
-#include <QStyle>
-#endif
-
 #include <KSyntaxHighlighting/Theme>
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/Repository>
