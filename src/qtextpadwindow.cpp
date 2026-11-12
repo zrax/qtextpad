@@ -42,6 +42,16 @@
 #include <QProcess>
 #include <QFileSystemWatcher>
 #include <QDesktopServices>
+#include <QDrag>
+#include <QMimeData>
+#include <QDropEvent>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QUndoStack>
+#include <QTextCursor>
+#include <QVector>
+#include <QCoreApplication>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
@@ -74,6 +84,9 @@
 #else
 #define FILE_COMPARE_CS Qt::CaseSensitive
 #endif
+
+static const QString s_tabMime = QStringLiteral("application/x-qtextpad-tab");
+static const QString s_tabPidMime = QStringLiteral("application/x-qtextpad-tab-pid");
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -177,7 +190,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(closeTabAction, &QAction::triggered, this,
             [this] { closeTab(m_tabs->currentIndex()); });
     connect(newWindowAction, &QAction::triggered, [](bool) {
-        QProcess::startDetached(QCoreApplication::applicationFilePath(), QStringList());
+        QProcess::startDetached(QCoreApplication::applicationFilePath(),
+                                QStringList{ QStringLiteral("--new-instance") });
     });
     connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
     connect(m_reloadAction, &QAction::triggered, this, &QTextPadWindow::reloadDocument);
@@ -463,6 +477,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto closeWindowAction = settingsMenu->addAction(tr("Close &Window with Last Tab"));
     closeWindowAction->setCheckable(true);
     closeWindowAction->setChecked(settings.closeWindowOnLastTab());
+    auto singleInstanceAction = settingsMenu->addAction(tr("Single Insta&nce Mode"));
+    singleInstanceAction->setCheckable(true);
+    singleInstanceAction->setChecked(settings.singleInstance());
+    singleInstanceAction->setToolTip(
+            tr("Open files from newly launched copies of QTextPad in an existing window"));
 
     connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CROnly); });
@@ -477,6 +496,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     });
     connect(closeWindowAction, &QAction::toggled, this, [](bool closeWindow) {
         QTextPadSettings().setCloseWindowOnLastTab(closeWindow);
+    });
+    connect(singleInstanceAction, &QAction::toggled, this, [](bool enabled) {
+        QTextPadSettings().setSingleInstance(enabled);
     });
 
     m_documentsMenu = menuBar()->addMenu(tr("&Documents"));
@@ -598,6 +620,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
     connect(m_tabs, &DocumentTabWidget::newTabRequested, this, &QTextPadWindow::newDocument);
+    connect(m_tabs, &DocumentTabWidget::tabDragRequested, this, &QTextPadWindow::startTabDrag);
+    m_tabs->tabBar()->installEventFilter(this);
 
     m_tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tabs->tabBar(), &QTabBar::customContextMenuRequested, this, &QTextPadWindow::tabContextMenu);
@@ -770,6 +794,7 @@ DocumentTab *QTextPadWindow::addDocumentTab()
     textEdit->setIndentationMode(settings.indentMode());
     textEdit->setScrollPastEndOfFile(settings.scrollPastEndOfFile());
     textEdit->setOverwriteMode(m_overwriteModeAction && m_overwriteModeAction->isChecked());
+    textEdit->viewport()->installEventFilter(this); // accept tab drops over the editor
 
     KSyntaxHighlighting::Theme theme;
     const QString themeName = settings.editorTheme();
@@ -1185,6 +1210,268 @@ static QString convertRawText(const QString &text)
         }
     }
     return result;
+}
+
+void QTextPadWindow::bringToFront()
+{
+    // Wayland: client can't simply grab focus: hide and re-show, small flicker but reliable
+    if (isMinimized())
+        setWindowState(windowState() & ~Qt::WindowMinimized);
+    hide();
+    raise();
+    show();
+    activateWindow();
+}
+
+bool QTextPadWindow::hasDocument(const QString &filename) const
+{
+    return findTab(filename) != Q_NULLPTR;
+}
+
+bool QTextPadWindow::focusDocument(const QString &filename)
+{
+    DocumentTab *tab = findTab(filename);
+    if (!tab)
+        return false;
+    m_tabs->setCurrentWidget(tab);
+    bringToFront();
+    return true;
+}
+
+bool QTextPadWindow::openDocumentWithOptions(const QString &filename,
+        const QString &textEncoding, const QString &syntax, int line, int column)
+{
+    if (!openDocument(filename, textEncoding))
+        return false;
+
+    if (line > 0)
+        gotoLine(line, column);
+    if (!syntax.isEmpty()) {
+        auto syntaxDef = SyntaxTextEdit::syntaxRepo()->definitionForName(syntax);
+        if (syntaxDef.isValid())
+            setSyntax(syntaxDef);
+        else
+            qDebug("Invalid syntax definition specified: %s", qPrintable(syntax));
+    }
+    return true;
+}
+
+QByteArray QTextPadWindow::serializeTab(DocumentTab *tab)
+{
+    SyntaxTextEdit *ed = tab->editor();
+    QJsonObject obj;
+    obj.insert(QStringLiteral("filename"), tab->filename);
+    obj.insert(QStringLiteral("encoding"), tab->textEncoding);
+    obj.insert(QStringLiteral("lineEnding"), static_cast<int>(tab->lineEndingMode));
+    obj.insert(QStringLiteral("utfBOM"), tab->utfBOM);
+    obj.insert(QStringLiteral("syntax"), ed->syntaxName());
+    obj.insert(QStringLiteral("fileState"), static_cast<int>(tab->fileState));
+    obj.insert(QStringLiteral("modTime"), tab->cachedModTime.isValid()
+                    ? tab->cachedModTime.toString(Qt::ISODateWithMs) : QString());
+    obj.insert(QStringLiteral("modified"), !tab->undoStack()->isClean());
+    obj.insert(QStringLiteral("line"), ed->textCursor().blockNumber() + 1);
+
+    // Undo history travels as one text snapshot per undo step, so the receiving
+    // window can replay it
+    constexpr int MaxHistorySteps = 100; // memory limit, don't store all stack'
+    QUndoStack *stack = tab->undoStack();
+    if (tab == currentTab() && stack->count() > 0 && stack->count() <= MaxHistorySteps) {
+        const int curIndex = stack->index();
+        QJsonArray history;
+        {
+            const QSignalBlocker blocker(stack);
+            for (int i = 0; i <= stack->count(); ++i) {
+                stack->setIndex(i);
+                history.append(convertRawText(ed->document()->toRawText()));
+            }
+            stack->setIndex(curIndex);
+        }
+        obj.insert(QStringLiteral("history"), history);
+        obj.insert(QStringLiteral("historyIndex"), curIndex);
+        obj.insert(QStringLiteral("cleanIndex"), stack->cleanIndex());
+    }
+
+    obj.insert(QStringLiteral("text"), convertRawText(ed->document()->toRawText()));
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+static bool replayUndoHistory(SyntaxTextEdit *ed, QUndoStack *stack, const QJsonObject &obj)
+{
+    const QJsonArray history = obj.value(QStringLiteral("history")).toArray();
+    if (history.size() < 2)
+        return false;
+
+    ed->setPlainText(history.at(0).toString());
+    ed->document()->clearUndoRedoStacks();
+    stack->clear();
+
+    QVector<int> indexMap(history.size(), 0);  // old stack index -> new stack index
+    QString prev = history.at(0).toString();
+    for (int i = 1; i < history.size(); ++i) {
+        const QString next = history.at(i).toString();
+        if (next != prev) {
+            // Trim the common prefix/suffix
+            int p = 0;
+            const int maxP = qMin(prev.size(), next.size());
+            while (p < maxP && prev.at(p) == next.at(p))
+                ++p;
+            int s = 0;
+            const int maxS = maxP - p;
+            while (s < maxS && prev.at(prev.size() - 1 - s) == next.at(next.size() - 1 - s))
+                ++s;
+
+            QTextCursor cursor(ed->document());
+            cursor.setPosition(p);
+            cursor.setPosition(prev.size() - s, QTextCursor::KeepAnchor);
+            cursor.beginEditBlock();
+            cursor.removeSelectedText();
+            cursor.insertText(next.mid(p, next.size() - p - s));
+            cursor.endEditBlock();
+            prev = next;
+        }
+        indexMap[i] = stack->count();
+    }
+
+    const int oldClean = obj.value(QStringLiteral("cleanIndex")).toInt(-1);
+    const int oldCur = obj.value(QStringLiteral("historyIndex")).toInt(history.size() - 1);
+    if (oldClean >= 0 && oldClean < indexMap.size()) {
+        stack->setIndex(indexMap.at(oldClean));
+        stack->setClean();
+    } else {
+        stack->resetClean();
+    }
+    stack->setIndex(indexMap.value(oldCur, stack->count()));
+    return true;
+}
+
+bool QTextPadWindow::importTab(const QByteArray &payload)
+{
+    QJsonParseError err;
+    const QJsonDocument doc = QJsonDocument::fromJson(payload, &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject())
+        return false;
+    const QJsonObject obj = doc.object();
+
+    const QString filename = obj.value(QStringLiteral("filename")).toString();
+    const bool modified = obj.value(QStringLiteral("modified")).toBool();
+
+    // This window already shows the file: focus it. If the incoming copy has
+    // unsaved edits, refuse the drop, prevents changes get lost.
+    if (!filename.isEmpty()) {
+        if (DocumentTab *existing = findTab(filename)) {
+            if (modified)
+                return false;
+            m_tabs->setCurrentWidget(existing);
+            return true;
+        }
+    }
+
+    DocumentTab *previous = currentTab();
+    const bool reuse = previous->filename.isEmpty() && !isDocumentModified()
+                       && previous->editor()->document()->isEmpty();
+    if (!reuse)
+        m_tabs->setCurrentWidget(addDocumentTab());
+
+    showSearchBar(false);
+    editor()->clear();
+    setSyntax(SyntaxTextEdit::nullSyntax());
+    setEncoding(obj.value(QStringLiteral("encoding")).toString());
+    setLineEndingMode(static_cast<FileTypeInfo::LineEndingType>(
+                          obj.value(QStringLiteral("lineEnding")).toInt()));
+    editor()->setPlainText(obj.value(QStringLiteral("text")).toString());
+    editor()->document()->clearUndoRedoStacks();
+
+    auto definition = SyntaxTextEdit::syntaxRepo()->definitionForName(
+                          obj.value(QStringLiteral("syntax")).toString());
+    if (definition.isValid())
+        setSyntax(definition);
+
+    setOpenFilename(filename);
+    currentTab()->fileState = static_cast<unsigned int>(obj.value(QStringLiteral("fileState")).toInt());
+    currentTab()->cachedModTime = QDateTime::fromString(
+                obj.value(QStringLiteral("modTime")).toString(), Qt::ISODateWithMs);
+
+    undoStack()->clear();
+    undoStack()->setClean();
+    if (!replayUndoHistory(editor(), undoStack(), obj) && modified)
+        undoStack()->resetClean(); // the buffer differs from what is on disk
+
+    m_reloadAction->setEnabled(documentExists());
+    setUtfBOM(obj.value(QStringLiteral("utfBOM")).toBool());
+    const int line = obj.value(QStringLiteral("line")).toInt();
+    if (line > 0)
+        gotoLine(line);
+    updateTitle();
+    return true;
+}
+
+void QTextPadWindow::removeTabNoPrompt(DocumentTab *tab)
+{
+    const int index = m_tabs->indexOf(tab);
+    if (index < 0)
+        return;
+
+    if (m_tabs->count() == 1) {
+        if (QTextPadSettings().closeWindowOnLastTab()) {
+            tab->undoStack()->setClean(); // avoid the save prompt, the content moved
+            close();
+        } else {
+            m_tabs->setCurrentIndex(index);
+            resetEditor();
+            updateTitle();
+        }
+        return;
+    }
+
+    setOpenFilename(tab, QString()); // stop watching it from this window
+    m_tabs->removeTab(index);
+    tab->deleteLater();
+    updateDocumentsMenu();
+}
+
+void QTextPadWindow::startTabDrag(int index)
+{
+    auto tab = static_cast<DocumentTab *>(m_tabs->widget(index));
+    if (!tab)
+        return;
+
+    auto mime = new QMimeData;
+    mime->setData(s_tabMime, serializeTab(tab));
+    mime->setData(s_tabPidMime, QByteArray::number(QCoreApplication::applicationPid()));
+
+    auto drag = new QDrag(this);
+    drag->setMimeData(mime);
+    const QPixmap preview = m_tabs->tabBar()->grab(m_tabs->tabBar()->tabRect(index));
+    drag->setPixmap(preview);
+    drag->setHotSpot(QPoint(preview.width() / 2, preview.height() / 2));
+
+    // Only a MoveAction means another window really took the document
+    const QPointer<DocumentTab> guard(tab);
+    if (drag->exec(Qt::MoveAction) == Qt::MoveAction && guard)
+        removeTabNoPrompt(tab);
+}
+
+bool QTextPadWindow::handleTabDrag(QEvent *event)
+{
+    auto dropEvent = static_cast<QDropEvent *>(event);
+    const QMimeData *mime = dropEvent->mimeData();
+    if (!mime->hasFormat(s_tabMime))
+        return false;
+
+    if (mime->data(s_tabPidMime) == QByteArray::number(QCoreApplication::applicationPid())) {
+        dropEvent->ignore();
+        return true;
+    }
+
+    if (event->type() == QEvent::Drop) {
+        if (importTab(mime->data(s_tabMime)))
+            dropEvent->acceptProposedAction();
+        else
+            dropEvent->ignore();
+    } else {
+        dropEvent->acceptProposedAction();
+    }
+    return true;
 }
 
 bool QTextPadWindow::saveDocumentTo(const QString &filename)
@@ -2008,6 +2295,17 @@ void QTextPadWindow::closeEvent(QCloseEvent *event)
 
 bool QTextPadWindow::eventFilter(QObject *obj, QEvent *event)
 {
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove:
+    case QEvent::Drop:
+        if (handleTabDrag(event))
+            return true;
+        break;
+    default:
+        break;
+    }
+
     if (m_searchWidget->isVisible() && event->type() == QEvent::KeyPress) {
         auto keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->key() == Qt::Key_Escape) {

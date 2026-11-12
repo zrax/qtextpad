@@ -79,6 +79,12 @@ public:
 
     void gotoLine(int line, int column = 0);
 
+    void bringToFront();
+    bool hasDocument(const QString &filename) const;
+    bool focusDocument(const QString &filename);
+    bool openDocumentWithOptions(const QString &filename, const QString &textEncoding,
+                                 const QString &syntax, int line, int column);
+
 public Q_SLOTS:
     void checkForModifications();
     bool promptForSave();
@@ -191,6 +197,11 @@ private:
     DocumentTab *findTab(const QString &filename,
                          const DocumentTab *exclude = Q_NULLPTR) const;
     DocumentTab *addDocumentTab();
+    void startTabDrag(int index);
+    bool handleTabDrag(QEvent *event);
+    QByteArray serializeTab(DocumentTab *tab);
+    bool importTab(const QByteArray &payload);
+    void removeTabNoPrompt(DocumentTab *tab);
     void updateTabText(DocumentTab *tab);
     void updateSyntaxStatus(const KSyntaxHighlighting::Definition &syntax);
     void syncIndentSettings();

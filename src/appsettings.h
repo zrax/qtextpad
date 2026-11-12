@@ -51,6 +51,7 @@ public:
     SIMPLE_SETTING(bool, "Tabs/HideSingleTab", hideSingleTab, setHideSingleTab, true)
     SIMPLE_SETTING(bool, "Tabs/CloseWindowWithLastTab", closeWindowOnLastTab,
                    setCloseWindowOnLastTab, false)
+    SIMPLE_SETTING(bool, "SingleInstance", singleInstance, setSingleInstance, false)
 
     // Editor settings
     SIMPLE_SETTING(bool, "Editor/WordWrap", wordWrap, setWordWrap, false)
