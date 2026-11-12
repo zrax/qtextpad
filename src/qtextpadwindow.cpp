@@ -39,7 +39,6 @@
 #include <QFileInfo>
 #include <QPrinter>
 #include <QDateTime>
-#include <QProcess>
 #include <QFileSystemWatcher>
 #include <QDesktopServices>
 
@@ -178,7 +177,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(closeTabAction, &QAction::triggered, this,
             [this] { closeTab(m_tabs->currentIndex()); });
     connect(newWindowAction, &QAction::triggered, [](bool) {
-        QProcess::startDetached(QCoreApplication::applicationFilePath(), QStringList());
+        auto win = new QTextPadWindow();
+        win->setAttribute(Qt::WA_DeleteOnClose);
+        win->show();
     });
     connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
     connect(m_reloadAction, &QAction::triggered, this, &QTextPadWindow::reloadDocument);
@@ -845,7 +846,7 @@ void QTextPadWindow::updateTabText(DocumentTab *tab)
 
 void QTextPadWindow::currentTabChanged(int index)
 {
-    if (index < 0)
+    if (index < 0 || m_closing)
         return;
 
     DocumentTab *tab = currentTab();
@@ -883,7 +884,7 @@ void QTextPadWindow::currentTabChanged(int index)
     if (index < tabActions.count())
         tabActions.at(index)->setChecked(true);
 
-    if (!m_closing && QApplication::applicationState() == Qt::ApplicationActive)
+    if (QApplication::applicationState() == Qt::ApplicationActive)
         checkForModifications();
 }
 

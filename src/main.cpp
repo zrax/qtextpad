@@ -167,8 +167,9 @@ int main(int argc, char *argv[])
     appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
     QApplication::setWindowIcon(appIcon);
 
-    QTextPadWindow win;
-    win.show();
+    auto win = new QTextPadWindow();
+    win->setAttribute(Qt::WA_DeleteOnClose);
+    win->show();
 
     QList<StartupFileInfo> startupFiles;
     const QStringList positionalArguments = parser.positionalArguments();
@@ -219,11 +220,11 @@ int main(int argc, char *argv[])
     }
 
     for (const auto &startupFile : startupFiles) {
-        if (win.openDocument(startupFile.filename, textEncoding)) {
+        if (win->openDocument(startupFile.filename, textEncoding)) {
             if (startupFile.line > 0)
-                win.gotoLine(startupFile.line, startupFile.column);
+                win->gotoLine(startupFile.line, startupFile.column);
             if (syntaxDef.isValid())
-                win.setSyntax(syntaxDef);
+                win->setSyntax(syntaxDef);
         }
     }
 
