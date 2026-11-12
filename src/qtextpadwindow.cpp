@@ -149,7 +149,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     (void) fileMenu->addSeparator();
     auto openAction = fileMenu->addAction(ICON("document-open"), tr("&Open..."));
     openAction->setShortcut(QKeySequence::Open);
-    m_recentFiles = fileMenu->addMenu(tr("Open &Recent"));
+    m_recentFiles = fileMenu->addMenu(ICON("document-open-recent"), tr("Open &Recent"));
     populateRecentFiles();
     m_reloadAction = fileMenu->addAction(ICON("view-refresh"), tr("Re&load"));
     m_reloadAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_R);
@@ -164,13 +164,14 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     printAction->setShortcut(QKeySequence::Print);
     auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Pre&view"));
     (void) fileMenu->addSeparator();
-    auto copyPathAction = fileMenu->addAction(tr("Cop&y Path"));
-    auto copyFilenameAction = fileMenu->addAction(tr("Copy File&name"));
-    auto openContainingFolderAction = fileMenu->addAction(tr("Open Containing &Folder"));
+    auto copyPathAction = fileMenu->addAction(ICON("edit-copy"), tr("Cop&y Path"));
+    auto copyFilenameAction = fileMenu->addAction(ICON("edit-copy"), tr("Copy File&name"));
+    auto openContainingFolderAction = fileMenu->addAction(
+            ICON("document-open-folder"), tr("Open Containing &Folder"));
     (void) fileMenu->addSeparator();
     auto closeTabAction = fileMenu->addAction(ICON("tab-close"), tr("Clos&e Tab"));
     closeTabAction->setShortcut(Qt::CTRL | Qt::Key_W);
-    auto quitAction = fileMenu->addAction(tr("&Quit"));
+    auto quitAction = fileMenu->addAction(ICON("application-exit"), tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
 
     connect(newTabAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
