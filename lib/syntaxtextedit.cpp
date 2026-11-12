@@ -24,11 +24,8 @@
 #include <QStack>
 #include <QStringView>
 #include <QtMath>
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
 #include <QStyleHints>
-#endif
 
 #if defined(Q_OS_WIN) && QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 #include <QApplication>
@@ -636,7 +633,7 @@ void SyntaxTextEdit::setDefaultTheme()
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     const bool useDarkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
 #else
-    const bool useDarkTheme = (palette().color(QPalette::Base).lightness() < 128);
+    const bool useDarkTheme = (QGuiApplication::palette().color(QPalette::Window).lightness() < 128);
 #endif
 
     setTheme(useDarkTheme ? syntaxRepo()->defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)

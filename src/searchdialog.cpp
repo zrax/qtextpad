@@ -30,11 +30,8 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QStringView>
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
 #include <QStyleHints>
-#endif
 
 #include "qtextpadwindow.h"
 #include "appsettings.h"
@@ -47,7 +44,7 @@ SearchWidget::SearchWidget(QTextPadWindow *parent)
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     const bool darkTheme = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
 #else
-    const bool darkTheme = (palette().color(QPalette::Window).lightness() < 128);
+    const bool darkTheme = (QGuiApplication::palette().color(QPalette::Window).lightness() < 128);
 #endif
 
     auto tbMenu = new QToolButton(this);
