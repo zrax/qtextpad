@@ -54,8 +54,8 @@ public:
     SyntaxTextEdit *editor() const;
 
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
-    void setEditorTheme(const KSyntaxHighlighting::Theme &theme);
-    void setDefaultEditorTheme();
+    static void setEditorTheme(const KSyntaxHighlighting::Theme &theme);
+    static void setDefaultEditorTheme();
     void setEncoding(const QString &codecName);
     void setUtfBOM(bool bom);
 
@@ -163,8 +163,21 @@ private:
     QAction *m_redoAction;
     QAction *m_deleteAction;
     QAction *m_overwriteModeAction;
+    QAction *m_wordWrapAction;
+    QAction *m_longLineAction;
+    QAction *m_indentGuidesAction;
+    QAction *m_showLineNumbersAction;
+    QAction *m_showFoldingAction;
+    QAction *m_showWhitespaceAction;
+    QAction *m_scrollPastEndOfFileAction;
+    QAction *m_showCurrentLineAction;
+    QAction *m_showMatchingBraces;
     QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
+    QAction *m_showStatusBarAction;
+    QAction *m_showFilePathAction;
+    QAction *m_hideSingleTabAction;
+    QAction *m_closeWindowAction;
     QAction *m_fullScreenAction;
     QActionGroup *m_themeActions;
     QAction *m_defaultThemeAction;
@@ -187,9 +200,10 @@ private:
 
     // Active tab helpers
     DocumentTab *currentTab() const;
-    QList<SyntaxTextEdit *> editors() const;
-    DocumentTab *findTab(const QString &filename,
-                         const DocumentTab *exclude = Q_NULLPTR) const;
+    static QList<QTextPadWindow *> windows(QTextPadWindow *exclude = Q_NULLPTR);
+    static QList<SyntaxTextEdit *> editors();
+    static DocumentTab *findTab(const QString &filename,
+                                const DocumentTab *exclude = Q_NULLPTR);
     DocumentTab *addDocumentTab();
     void updateTabText(DocumentTab *tab);
     void updateSyntaxStatus(const KSyntaxHighlighting::Definition &syntax);

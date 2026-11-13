@@ -128,6 +128,17 @@ protected:
     }
 };
 
+#define SYNC_EDITORS(expr) \
+    for (auto editor : editors()) { \
+        editor->expr; \
+    }
+
+#define SYNC_WINDOWS(action, expr) \
+    for (auto win : windows(this)) { \
+        QSignalBlocker blocker(win->action); \
+        win->action->expr; \
+    }
+
 QTextPadWindow::QTextPadWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -271,34 +282,43 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_themeMenu = viewMenu->addMenu(tr("&Theme"));
     populateThemeMenu();
     (void) viewMenu->addSeparator();
-    auto wordWrapAction = viewMenu->addAction(tr("&Word Wrap"));
-    wordWrapAction->setShortcut(Qt::CTRL | Qt::ALT | Qt::Key_W);
-    wordWrapAction->setCheckable(true);
-    auto longLineAction = viewMenu->addAction(tr("Long Line &Margin"));
-    longLineAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_M);
-    longLineAction->setCheckable(true);
+    m_wordWrapAction = viewMenu->addAction(tr("&Word Wrap"));
+    m_wordWrapAction->setShortcut(Qt::CTRL | Qt::ALT | Qt::Key_W);
+    m_wordWrapAction->setCheckable(true);
+    m_wordWrapAction->setChecked(settings.wordWrap());
+    m_longLineAction = viewMenu->addAction(tr("Long Line &Margin"));
+    m_longLineAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_M);
+    m_longLineAction->setCheckable(true);
+    m_longLineAction->setChecked(settings.showLongLineMargin());
     auto longLineWidthAction = viewMenu->addAction(tr("Set Long Line Wi&dth..."));
-    auto indentGuidesAction = viewMenu->addAction(tr("Indentation &Guides"));
-    indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_T);
-    indentGuidesAction->setCheckable(true);
+    m_indentGuidesAction = viewMenu->addAction(tr("Indentation &Guides"));
+    m_indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_T);
+    m_indentGuidesAction->setCheckable(true);
+    m_indentGuidesAction->setChecked(settings.indentationGuides());
     (void) viewMenu->addSeparator();
-    auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
-    showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_L);
-    showLineNumbersAction->setCheckable(true);
-    auto showFoldingAction = viewMenu->addAction(tr("Show &Fold Margin"));
-    showFoldingAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_H);
-    showFoldingAction->setCheckable(true);
-    auto showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
-    showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
-    showWhitespaceAction->setCheckable(true);
+    m_showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
+    m_showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_L);
+    m_showLineNumbersAction->setCheckable(true);
+    m_showLineNumbersAction->setChecked(settings.lineNumbers());
+    m_showFoldingAction = viewMenu->addAction(tr("Show &Fold Margin"));
+    m_showFoldingAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_H);
+    m_showFoldingAction->setCheckable(true);
+    m_showFoldingAction->setChecked(settings.showFolding());
+    m_showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
+    m_showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
+    m_showWhitespaceAction->setCheckable(true);
+    m_showWhitespaceAction->setChecked(settings.showWhitespace());
     (void) viewMenu->addSeparator();
-    auto scrollPastEndOfFileAction = viewMenu->addAction(tr("Scroll &Past End of File"));
-    scrollPastEndOfFileAction->setCheckable(true);
+    m_scrollPastEndOfFileAction = viewMenu->addAction(tr("Scroll &Past End of File"));
+    m_scrollPastEndOfFileAction->setCheckable(true);
+    m_scrollPastEndOfFileAction->setChecked(settings.scrollPastEndOfFile());
     (void) viewMenu->addSeparator();
-    auto showCurrentLineAction = viewMenu->addAction(tr("Highlight &Current Line"));
-    showCurrentLineAction->setCheckable(true);
-    auto showMatchingBraces = viewMenu->addAction(tr("Match &Braces"));
-    showMatchingBraces->setCheckable(true);
+    m_showCurrentLineAction = viewMenu->addAction(tr("Highlight &Current Line"));
+    m_showCurrentLineAction->setCheckable(true);
+    m_showCurrentLineAction->setChecked(settings.highlightCurLine());
+    m_showMatchingBraces = viewMenu->addAction(tr("Match &Braces"));
+    m_showMatchingBraces->setCheckable(true);
+    m_showMatchingBraces->setChecked(settings.matchBraces());
     (void) viewMenu->addSeparator();
     auto zoomInAction = viewMenu->addAction(ICON("zoom-in"), tr("Zoom &In"));
     zoomInAction->setShortcut(QKeySequence::ZoomIn);
@@ -311,60 +331,60 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_fullScreenAction->setShortcut(Qt::Key_F11);
     m_fullScreenAction->setCheckable(true);
 
-    connect(wordWrapAction, &QAction::toggled, this,
+    connect(m_wordWrapAction, &QAction::toggled, this,
             [this](bool wrap) {
-                for (auto ed : editors())
-                    ed->setWordWrap(wrap);
+                SYNC_EDITORS(setWordWrap(wrap))
+                SYNC_WINDOWS(m_wordWrapAction, setChecked(wrap))
                 QTextPadSettings().setWordWrap(wrap);
             });
-    connect(longLineAction, &QAction::toggled, this,
+    connect(m_longLineAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowLongLineEdge(show);
+                SYNC_EDITORS(setShowLongLineEdge(show))
+                SYNC_WINDOWS(m_longLineAction, setChecked(show))
                 QTextPadSettings().setShowLongLineMargin(show);
             });
     connect(longLineWidthAction, &QAction::triggered,
             this, &QTextPadWindow::promptLongLineWidth);
-    connect(indentGuidesAction, &QAction::toggled, this,
+    connect(m_indentGuidesAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowIndentGuides(show);
+                SYNC_EDITORS(setShowIndentGuides(show))
+                SYNC_WINDOWS(m_indentGuidesAction, setChecked(show))
                 QTextPadSettings().setIndentationGuides(show);
             });
-    connect(showLineNumbersAction, &QAction::toggled, this,
+    connect(m_showLineNumbersAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowLineNumbers(show);
+                SYNC_EDITORS(setShowLineNumbers(show))
+                SYNC_WINDOWS(m_showLineNumbersAction, setChecked(show))
                 QTextPadSettings().setLineNumbers(show);
             });
-    connect(showFoldingAction, &QAction::toggled, this,
+    connect(m_showFoldingAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowFolding(show);
+                SYNC_EDITORS(setShowFolding(show))
+                SYNC_WINDOWS(m_showFoldingAction, setChecked(show))
                 QTextPadSettings().setShowFolding(show);
             });
-    connect(showWhitespaceAction, &QAction::toggled, this,
+    connect(m_showWhitespaceAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowWhitespace(show);
+                SYNC_EDITORS(setShowWhitespace(show))
+                SYNC_WINDOWS(m_showWhitespaceAction, setChecked(show))
                 QTextPadSettings().setShowWhitespace(show);
             });
-    connect(scrollPastEndOfFileAction, &QAction::toggled, this,
+    connect(m_scrollPastEndOfFileAction, &QAction::toggled, this,
             [this](bool scroll) {
-                for (auto ed : editors())
-                    ed->setScrollPastEndOfFile(scroll);
+                SYNC_EDITORS(setScrollPastEndOfFile(scroll))
+                SYNC_WINDOWS(m_scrollPastEndOfFileAction, setChecked(scroll))
                 QTextPadSettings().setScrollPastEndOfFile(scroll);
             });
-    connect(showCurrentLineAction, &QAction::toggled, this,
+    connect(m_showCurrentLineAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setHighlightCurrentLine(show);
+                SYNC_EDITORS(setHighlightCurrentLine(show))
+                SYNC_WINDOWS(m_showCurrentLineAction, setChecked(show))
                 QTextPadSettings().setHighlightCurLine(show);
             });
-    connect(showMatchingBraces, &QAction::toggled, this,
+    connect(m_showMatchingBraces, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setMatchBraces(show);
+                SYNC_EDITORS(setMatchBraces(show))
+                SYNC_WINDOWS(m_showMatchingBraces, setChecked(show))
                 QTextPadSettings().setMatchBraces(show);
             });
     connect(zoomInAction, &QAction::triggered, this, [this] { editor()->zoomIn(); });
@@ -447,25 +467,26 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_autoIndentAction = settingsMenu->addAction(tr("&Auto Indent"));
     m_autoIndentAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
     m_autoIndentAction->setCheckable(true);
+    m_autoIndentAction->setChecked(settings.autoIndent());
     (void) settingsMenu->addSeparator();
     auto showToolBarAction = settingsMenu->addAction(tr("Show Tool &Bar"));
     showToolBarAction->setCheckable(true);
     showToolBarAction->setChecked(settings.showToolBar());
-    auto showStatusBarAction = settingsMenu->addAction(tr("Show Stat&us Bar"));
-    showStatusBarAction->setCheckable(true);
-    showStatusBarAction->setChecked(settings.showStatusBar());
-    auto showFilePathAction = settingsMenu->addAction(tr("Show &Path in Title Bar"));
-    showFilePathAction->setCheckable(true);
+    m_showStatusBarAction = settingsMenu->addAction(tr("Show Stat&us Bar"));
+    m_showStatusBarAction->setCheckable(true);
+    m_showStatusBarAction->setChecked(settings.showStatusBar());
+    m_showFilePathAction = settingsMenu->addAction(tr("Show &Path in Title Bar"));
+    m_showFilePathAction->setCheckable(true);
     m_showFilePath = settings.showFilePath();
-    showFilePathAction->setChecked(m_showFilePath);
+    m_showFilePathAction->setChecked(m_showFilePath);
     (void) settingsMenu->addSeparator();
-    auto hideSingleTabAction = settingsMenu->addAction(tr("&Hide Tab Bar with a Single Tab"));
-    hideSingleTabAction->setCheckable(true);
-    hideSingleTabAction->setChecked(settings.hideSingleTab());
-    auto closeWindowAction = settingsMenu->addAction(tr("Close &Window with Last Tab"));
-    closeWindowAction->setCheckable(true);
+    m_hideSingleTabAction = settingsMenu->addAction(tr("&Hide Tab Bar with a Single Tab"));
+    m_hideSingleTabAction->setCheckable(true);
+    m_hideSingleTabAction->setChecked(settings.hideSingleTab());
+    m_closeWindowAction = settingsMenu->addAction(tr("Close &Window with Last Tab"));
+    m_closeWindowAction->setCheckable(true);
     m_closeWindowOnLastTab = settings.closeWindowOnLastTab();
-    closeWindowAction->setChecked(m_closeWindowOnLastTab);
+    m_closeWindowAction->setChecked(m_closeWindowOnLastTab);
 
     connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CROnly); });
@@ -473,13 +494,17 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(crlfAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CRLF); });
     connect(indentSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptIndentSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
-    connect(showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
-    connect(hideSingleTabAction, &QAction::toggled, this, [this](bool hide) {
-        m_tabs->setTabBarAutoHide(hide);
+    connect(m_showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
+    connect(m_hideSingleTabAction, &QAction::toggled, this, [this](bool hide) {
+        for (auto win : windows())
+            win->m_tabs->setTabBarAutoHide(hide);
+        SYNC_WINDOWS(m_hideSingleTabAction, setChecked(hide))
         QTextPadSettings().setHideSingleTab(hide);
     });
-    connect(closeWindowAction, &QAction::toggled, this, [this](bool closeWindow) {
-        m_closeWindowOnLastTab = closeWindow;
+    connect(m_closeWindowAction, &QAction::toggled, this, [this](bool closeWindow) {
+        for (auto win : windows())
+            win->m_closeWindowOnLastTab = closeWindow;
+        SYNC_WINDOWS(m_closeWindowAction, setChecked(closeWindow))
         QTextPadSettings().setCloseWindowOnLastTab(closeWindow);
     });
 
@@ -550,7 +575,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     if (!settings.showToolBar())
         m_toolBar->setVisible(false);
-    connect(showToolBarAction, &QAction::toggled, m_toolBar, &QToolBar::setVisible);
+    connect(showToolBarAction, &QAction::toggled, [](bool visible) {
+        for (auto win : windows())
+            win->m_toolBar->setVisible(visible);
+        // The menu action is automatically updated by the below connection
+    });
     connect(m_toolBar->toggleViewAction(), &QAction::toggled,
             showToolBarAction, &QAction::setChecked);
 
@@ -578,7 +607,13 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     if (!settings.showStatusBar())
         statusBar()->setVisible(false);
-    connect(showStatusBarAction, &QAction::toggled, statusBar(), &QStatusBar::setVisible);
+    connect(m_showStatusBarAction, &QAction::toggled, [](bool visible) {
+        for (auto win : windows()) {
+            win->statusBar()->setVisible(visible);
+            QSignalBlocker blocker(win->m_showStatusBarAction);
+            win->m_showStatusBarAction->setChecked(visible);
+        }
+    });
 
     connect(m_positionLabel, &ActivationLabel::activated,
             this, &QTextPadWindow::navigateToLine);
@@ -618,21 +653,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     // Set up the editor and status for a clean, empty document
     newDocument();
-
-    // Populate the initial state of actions which need an editor to be present
-    // in order to work properly
-    auto initialEditor = editor();
-    pasteAction->setEnabled(initialEditor->canPaste());
-    wordWrapAction->setChecked(initialEditor->wordWrap());
-    longLineAction->setChecked(initialEditor->showLongLineEdge());
-    indentGuidesAction->setChecked(initialEditor->showIndentGuides());
-    showLineNumbersAction->setChecked(initialEditor->showLineNumbers());
-    showFoldingAction->setChecked(initialEditor->showFolding());
-    showWhitespaceAction->setChecked(initialEditor->showWhitespace());
-    scrollPastEndOfFileAction->setChecked(initialEditor->scrollPastEndOfFile());
-    showCurrentLineAction->setChecked(initialEditor->highlightCurrentLine());
-    showMatchingBraces->setChecked(initialEditor->matchBraces());
-    m_autoIndentAction->setChecked(initialEditor->autoIndent());
+    pasteAction->setEnabled(editor()->canPaste());
 
     resize(settings.windowSize());
 
@@ -706,11 +727,22 @@ SyntaxTextEdit *QTextPadWindow::editor() const
     return currentTab()->editor();
 }
 
-QList<SyntaxTextEdit *> QTextPadWindow::editors() const
+QList<QTextPadWindow *> QTextPadWindow::windows(QTextPadWindow *exclude)
+{
+    QList<QTextPadWindow *> result;
+    for (auto topLevel : qApp->topLevelWidgets()) {
+        if (auto window = qobject_cast<QTextPadWindow *>(topLevel); window && window != exclude)
+            result.append(window);
+    }
+    return result;
+}
+
+QList<SyntaxTextEdit *> QTextPadWindow::editors()
 {
     QList<SyntaxTextEdit *> result;
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        result.append(static_cast<DocumentTab *>(m_tabs->widget(i))->editor());
+    for (auto window : windows()) {
+        for (int i = 0; i < window->m_tabs->count(); ++i)
+            result.append(static_cast<DocumentTab *>(window->m_tabs->widget(i))->editor());
     }
     return result;
 }
@@ -724,25 +756,27 @@ static QString normalizedPath(const QString &path)
     return canon.isEmpty() ? fi.absoluteFilePath() : canon;
 }
 
-DocumentTab *QTextPadWindow::findTab(const QString &filename, const DocumentTab *exclude) const
+DocumentTab *QTextPadWindow::findTab(const QString &filename, const DocumentTab *exclude)
 {
     if (filename.isEmpty())
         return Q_NULLPTR;
 
     const QString normName = normalizedPath(filename);
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        auto tab = static_cast<DocumentTab *>(m_tabs->widget(i));
-        if (tab == exclude || tab->filename.isEmpty())
-            continue;
-        if (normalizedPath(tab->filename).compare(normName, FILE_COMPARE_CS) == 0)
-            return tab;
+    for (auto window : windows()) {
+        for (int i = 0; i < window->m_tabs->count(); ++i) {
+            auto tab = static_cast<DocumentTab *>(window->m_tabs->widget(i));
+            if (tab == exclude || tab->filename.isEmpty())
+                continue;
+            if (normalizedPath(tab->filename).compare(normName, FILE_COMPARE_CS) == 0)
+                return tab;
+        }
     }
     return Q_NULLPTR;
 }
 
 DocumentTab *QTextPadWindow::addDocumentTab()
 {
-    auto tab = new DocumentTab;
+    auto tab = new DocumentTab(m_tabs);
     SyntaxTextEdit *textEdit = tab->editor();
     QUndoStack *stack = tab->undoStack();
 
@@ -876,7 +910,6 @@ void QTextPadWindow::currentTabChanged(int index)
     updateSyntaxStatus(syntax);
 
     updateCursorPosition();
-    updateIndentStatus();
     updateTitle();
     textEdit->setFocus(Qt::OtherFocusReason);
 
@@ -963,7 +996,9 @@ void QTextPadWindow::closeOtherTabs()
 bool QTextPadWindow::openDocument(const QString &filename, const QString &textEncoding)
 {
     if (DocumentTab *existing = findTab(filename)) {
-        m_tabs->setCurrentWidget(existing);
+        existing->activateWindow();
+        auto window = qobject_cast<QTextPadWindow *>(existing->window());
+        window->m_tabs->setCurrentWidget(existing);
         return true;
     }
 
@@ -1063,14 +1098,16 @@ void QTextPadWindow::setEditorTheme(const KSyntaxHighlighting::Theme &theme)
         ed->setTheme(theme);
 
     // Update the menus when this is triggered via other callers
-    for (const auto &action : m_themeActions->actions()) {
-        if (!action->data().canConvert<KSyntaxHighlighting::Theme>())
-            continue;
+    for (auto win : windows()) {
+        for (const auto &action : win->m_themeActions->actions()) {
+            if (!action->data().canConvert<KSyntaxHighlighting::Theme>())
+                continue;
 
-        const auto actionTheme = action->data().value<KSyntaxHighlighting::Theme>();
-        if (actionTheme.filePath() == theme.filePath()) {
-            action->setChecked(true);
-            break;
+            const auto actionTheme = action->data().value<KSyntaxHighlighting::Theme>();
+            if (actionTheme.filePath() == theme.filePath()) {
+                action->setChecked(true);
+                break;
+            }
         }
     }
 
@@ -1079,10 +1116,10 @@ void QTextPadWindow::setEditorTheme(const KSyntaxHighlighting::Theme &theme)
 
 void QTextPadWindow::setDefaultEditorTheme()
 {
-    for (auto ed : editors()) {
+    for (auto ed : editors())
         ed->setDefaultTheme();
-    }
-    m_defaultThemeAction->setChecked(true);
+    for (auto win : windows())
+        win->m_defaultThemeAction->setChecked(true);
     QTextPadSettings().clearEditorTheme();
 }
 
@@ -1128,12 +1165,13 @@ void QTextPadWindow::setOverwriteMode(bool overwrite)
 
 void QTextPadWindow::setAutoIndent(bool ai)
 {
-    for (auto ed : editors()) {
-        ed->setAutoIndent(ai);
-    }
-    m_autoIndentAction->setChecked(ai);
+    for (auto editor : editors())
+        editor->setAutoIndent(ai);
     QTextPadSettings().setAutoIndent(ai);
-    updateIndentStatus();
+    for (auto win : windows()) {
+        win->m_autoIndentAction->setChecked(ai);
+        win->updateIndentStatus();
+    }
 }
 
 void QTextPadWindow::setLineEndingMode(FileTypeInfo::LineEndingType mode)
@@ -1673,10 +1711,10 @@ void QTextPadWindow::nextLineEndingMode()
 
 void QTextPadWindow::updateIndentStatus()
 {
-    SyntaxTextEdit *textEdit = editor();
-    const int tabWidth = textEdit->tabWidth();
-    const int indentWidth = textEdit->indentWidth();
-    const auto indentMode = textEdit->indentationMode();
+    QTextPadSettings settings;
+    const int tabWidth = settings.tabWidth();
+    const int indentWidth = settings.indentWidth();
+    const int indentMode = settings.indentMode();
 
     QString description;
     switch (indentMode) {
@@ -1805,7 +1843,8 @@ void QTextPadWindow::promptIndentSettings()
     if (dialog->exec() == QDialog::Accepted) {
         dialog->applySettings(editor());
         syncIndentSettings();
-        updateIndentStatus();
+        for (auto win : windows())
+            win->updateIndentStatus();
     }
 }
 
@@ -1851,9 +1890,13 @@ void QTextPadWindow::navigateToLine()
 
 void QTextPadWindow::toggleFilePath(bool show)
 {
-    m_showFilePath = show;
     QTextPadSettings().setShowFilePath(show);
-    updateTitle();
+    for (auto win : windows()) {
+        win->m_showFilePath = show;
+        QSignalBlocker blocker(win->m_showFilePathAction);
+        win->m_showFilePathAction->setChecked(show);
+        win->updateTitle();
+    }
 }
 
 void QTextPadWindow::insertDateTime(QLocale::FormatType type)
@@ -2190,11 +2233,11 @@ void QTextPadWindow::populateIndentButtonMenu()
             continue;
         connect(action, &QAction::triggered, this, [this, action] {
             const int width = action->data().toInt();
-            for (auto ed : editors()) {
+            for (auto ed : editors())
                 ed->setTabWidth(width);
-            }
             QTextPadSettings().setTabWidth(width);
-            updateIndentStatus();
+            for (auto win : windows())
+                win->updateIndentStatus();
         });
     }
     connect(tabWidthOtherAction, &QAction::triggered,
@@ -2230,11 +2273,11 @@ void QTextPadWindow::populateIndentButtonMenu()
             continue;
         connect(action, &QAction::triggered, this, [this, action] {
             const int width = action->data().toInt();
-            for (auto ed : editors()) {
+            for (auto ed : editors())
                 ed->setIndentWidth(width);
-            }
             QTextPadSettings().setIndentWidth(width);
-            updateIndentStatus();
+            for (auto win : windows())
+                win->updateIndentStatus();
         });
     }
     connect(indentWidthOtherAction, &QAction::triggered,
@@ -2265,11 +2308,11 @@ void QTextPadWindow::populateIndentButtonMenu()
     for (auto action : m_indentModeActions->actions()) {
         connect(action, &QAction::triggered, this, [this, action] {
             const int mode = action->data().toInt();
-            for (auto ed : editors()) {
+            for (auto ed : editors())
                 ed->setIndentationMode(mode);
-            }
             QTextPadSettings().setIndentMode(mode);
-            updateIndentStatus();
+            for (auto win : windows())
+                win->updateIndentStatus();
         });
     }
 
@@ -2284,6 +2327,7 @@ void QTextPadWindow::populateIndentButtonMenu()
             m_autoIndentAction, &QAction::trigger);
 
     m_indentButton->setMenu(indentMenu);
+    updateIndentStatus();
 }
 
 void QTextPadWindow::addDocumentsMenuItem(int tabIndex)
