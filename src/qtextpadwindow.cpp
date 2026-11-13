@@ -455,8 +455,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     showStatusBarAction->setChecked(settings.showStatusBar());
     auto showFilePathAction = settingsMenu->addAction(tr("Show &Path in Title Bar"));
     showFilePathAction->setCheckable(true);
-    m_showFilePath = settings.showFilePath();
-    showFilePathAction->setChecked(m_showFilePath);
+    showFilePathAction->setChecked(settings.showFilePath());
     (void) settingsMenu->addSeparator();
     auto hideSingleTabAction = settingsMenu->addAction(tr("&Hide Tab Bar with a Single Tab"));
     hideSingleTabAction->setCheckable(true);
@@ -1626,7 +1625,7 @@ void QTextPadWindow::updateCursorPosition()
 void QTextPadWindow::updateTitle()
 {
     QString title = currentTab()->documentName();
-    if (m_showFilePath && !currentTab()->filename.isEmpty()) {
+    if (QTextPadSettings().showFilePath() && !currentTab()->filename.isEmpty()) {
         QFileInfo fi(currentTab()->filename);
         title += QStringLiteral(" [%1]").arg(fi.absolutePath());
     }
@@ -1839,7 +1838,6 @@ void QTextPadWindow::navigateToLine()
 
 void QTextPadWindow::toggleFilePath(bool show)
 {
-    m_showFilePath = show;
     QTextPadSettings().setShowFilePath(show);
     updateTitle();
 }
