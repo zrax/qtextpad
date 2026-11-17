@@ -57,16 +57,12 @@ public:
     void setEditorTheme(const KSyntaxHighlighting::Theme &theme);
     void setDefaultEditorTheme();
     void setEncoding(const QString &codecName);
-
-    QString textEncoding() const;
-
     void setUtfBOM(bool bom);
 
     void setOverwriteMode(bool overwrite);
     void setAutoIndent(bool ai);
 
     void setLineEndingMode(FileTypeInfo::LineEndingType mode);
-    FileTypeInfo::LineEndingType lineEndingMode() const;
 
     bool saveDocumentTo(const QString &filename);
     bool loadDocumentFrom(const QString &filename,
@@ -184,7 +180,6 @@ private:
 
     // Active tab helpers
     DocumentTab *currentTab() const;
-    QUndoStack *undoStack() const;
     QList<SyntaxTextEdit *> editors() const;
     DocumentTab *findTab(const QString &filename,
                          const DocumentTab *exclude = Q_NULLPTR) const;

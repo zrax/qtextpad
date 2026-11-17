@@ -240,8 +240,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto gotoAction = editMenu->addAction(ICON("go-jump"), tr("&Go to line..."));
     gotoAction->setShortcut(Qt::CTRL | Qt::Key_G);
 
-    connect(m_undoAction, &QAction::triggered, this, [this] { undoStack()->undo(); });
-    connect(m_redoAction, &QAction::triggered, this, [this] { undoStack()->redo(); });
+    connect(m_undoAction, &QAction::triggered, this, [this] { currentTab()->undoStack()->undo(); });
+    connect(m_redoAction, &QAction::triggered, this, [this] { currentTab()->undoStack()->redo(); });
     connect(cutAction, &QAction::triggered, this, [this] { editor()->cutLines(); });
     connect(copyAction, &QAction::triggered, this, [this] { editor()->copyLines(); });
     connect(pasteAction, &QAction::triggered, this, [this] { editor()->paste(); });
@@ -695,21 +695,6 @@ DocumentTab *QTextPadWindow::currentTab() const
 SyntaxTextEdit *QTextPadWindow::editor() const
 {
     return currentTab()->editor();
-}
-
-QUndoStack *QTextPadWindow::undoStack() const
-{
-    return currentTab()->undoStack();
-}
-
-QString QTextPadWindow::textEncoding() const
-{
-    return currentTab()->textEncoding;
-}
-
-FileTypeInfo::LineEndingType QTextPadWindow::lineEndingMode() const
-{
-    return currentTab()->lineEndingMode;
 }
 
 QList<SyntaxTextEdit *> QTextPadWindow::editors() const
@@ -1183,11 +1168,13 @@ static QString convertRawText(const QString &text)
 
 bool QTextPadWindow::saveDocumentTo(const QString &filename)
 {
-    auto codec = QTextPadCharsets::codecForName(currentTab()->textEncoding.toLatin1());
+    DocumentTab *tab = currentTab();
+    SyntaxTextEdit *textEdit = tab->editor();
+    auto codec = QTextPadCharsets::codecForName(tab->textEncoding.toLatin1());
     if (!codec) {
         QMessageBox::critical(this, QString(),
             tr("The selected encoding (%1) is invalid.  Please select a valid "
-               "encoding before attempting to save.").arg(currentTab()->textEncoding));
+               "encoding before attempting to save.").arg(tab->textEncoding));
         return false;
     }
 
@@ -1198,8 +1185,8 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         return false;
     }
 
-    auto document = convertRawText(editor()->document()->toRawText());
-    switch (currentTab()->lineEndingMode) {
+    auto document = convertRawText(textEdit->document()->toRawText());
+    switch (tab->lineEndingMode) {
     case FileTypeInfo::CROnly:
         document.replace(QLatin1Char('\n'), QLatin1Char('\r'));
         break;
@@ -1211,7 +1198,7 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         break;
     }
 
-    const auto buffer = codec->fromUnicode(document, currentTab()->utfBOM);
+    const auto buffer = codec->fromUnicode(document, tab->utfBOM);
     qint64 count = file.write(buffer);
     if (count < 0) {
         QMessageBox::critical(this, QString(),
@@ -1222,8 +1209,8 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         return false;
     }
 
-    const QTextCursor cursor = editor()->textCursor();
-    QTextPadSettings::setFileModes(filename, currentTab()->textEncoding, editor()->syntaxName(),
+    const QTextCursor cursor = textEdit->textCursor();
+    QTextPadSettings::setFileModes(filename, tab->textEncoding, textEdit->syntaxName(),
                                    cursor.blockNumber() + 1);
     QTextPadSettings().addRecentFile(filename);
     populateRecentFiles();
@@ -1292,10 +1279,12 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     showSearchBar(false);
 
     // Don't let the syntax highlighter hinder us while setting the new content
-    editor()->clear();
+    DocumentTab *tab = currentTab();
+    SyntaxTextEdit *textEdit = tab->editor();
+    textEdit->clear();
     setSyntax(SyntaxTextEdit::nullSyntax());
-    editor()->setPlainText(document);
-    editor()->document()->clearUndoRedoStacks();
+    textEdit->setPlainText(document);
+    textEdit->document()->clearUndoRedoStacks();
 
     KSyntaxHighlighting::Definition definition;
     if (!fileModes.syntax.isEmpty())
@@ -1312,15 +1301,15 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
         gotoLine(fileModes.lineNum);
 
     setOpenFilename(filename);
-    QTextPadSettings::setFileModes(filename, currentTab()->textEncoding, definition.name(), fileModes.lineNum);
+    QTextPadSettings::setFileModes(filename, tab->textEncoding, definition.name(), fileModes.lineNum);
     QTextPadSettings().addRecentFile(filename);
     populateRecentFiles();
 
-    currentTab()->fileState = 0;
-    currentTab()->cachedModTime = QFileInfo(file).lastModified();
+    tab->fileState = 0;
+    tab->cachedModTime = QFileInfo(file).lastModified();
 
-    undoStack()->clear();
-    undoStack()->setClean();
+    tab->undoStack()->clear();
+    tab->undoStack()->setClean();
     m_reloadAction->setEnabled(true);
     setUtfBOM(detect.bomOffset() != 0);
     updateTitle();
@@ -1329,13 +1318,14 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
 
 bool QTextPadWindow::isDocumentModified() const
 {
-    return !undoStack()->isClean();
+    return !currentTab()->undoStack()->isClean();
 }
 
 bool QTextPadWindow::documentExists() const
 {
-    // Checking currentTab()->fileState is faster than asking the file system...
-    return !currentTab()->filename.isEmpty() && !(currentTab()->fileState & FS_New);
+    // Checking fileState is faster than asking the file system...
+    DocumentTab *tab = currentTab();
+    return !tab->filename.isEmpty() && !(tab->fileState & FS_New);
 }
 
 void QTextPadWindow::gotoLine(int line, int column)
@@ -1345,38 +1335,39 @@ void QTextPadWindow::gotoLine(int line, int column)
 
 void QTextPadWindow::checkForModifications()
 {
-    if (m_closing || currentTab()->filename.isEmpty() || (currentTab()->fileState & FS_OutOfDate) != 0)
+    DocumentTab *tab = currentTab();
+    if (m_closing || tab->filename.isEmpty() || (tab->fileState & FS_OutOfDate) != 0)
         return;
 
-    QFileInfo info(currentTab()->filename);
+    QFileInfo info(tab->filename);
     if (!info.exists()) {
-        if (!(currentTab()->fileState & FS_New)) {
+        if (!(tab->fileState & FS_New)) {
             auto result = QMessageBox::warning(this, tr("File Deleted"),
-                    tr("File %1 was deleted by another program.").arg(currentTab()->filename),
+                    tr("File %1 was deleted by another program.").arg(tab->filename),
                     QMessageBox::Ignore | QMessageBox::Close);
             if (result == QMessageBox::Close) {
                 closeTab(m_tabs->currentIndex());
             } else if (result == QMessageBox::Ignore) {
-                currentTab()->fileState = FS_New;
-                currentTab()->cachedModTime = QDateTime();
+                tab->fileState = FS_New;
+                tab->cachedModTime = QDateTime();
                 updateTitle();
             }
         }
-    } else if ((currentTab()->fileState & FS_New) != 0 || info.lastModified() != currentTab()->cachedModTime) {
+    } else if ((tab->fileState & FS_New) != 0 || info.lastModified() != tab->cachedModTime) {
         QMessageBox msg(this);
         msg.setIcon(QMessageBox::Warning);
         msg.setWindowTitle(tr("File Modified"));
-        msg.setText(tr("File %1 was modified by another program.").arg(currentTab()->filename));
+        msg.setText(tr("File %1 was modified by another program.").arg(tab->filename));
         auto reloadButton = msg.addButton(tr("&Reload"), QMessageBox::AcceptRole);
         auto ignoreButton = msg.addButton(QMessageBox::Ignore);
         msg.setDefaultButton(reloadButton);
 
         msg.exec();
         if (msg.clickedButton() == reloadButton) {
-            if (!loadDocumentFrom(currentTab()->filename))
+            if (!loadDocumentFrom(tab->filename))
                 closeTab(m_tabs->currentIndex());
         } else if (msg.clickedButton() == ignoreButton) {
-            currentTab()->fileState = FS_OutOfDate;
+            tab->fileState = FS_OutOfDate;
             updateTitle();
         }
     }
@@ -1384,16 +1375,18 @@ void QTextPadWindow::checkForModifications()
 
 bool QTextPadWindow::promptForSave()
 {
+    DocumentTab *tab = currentTab();
+    SyntaxTextEdit *textEdit = tab->editor();
     if (documentExists()) {
-        const QTextCursor cursor = editor()->textCursor();
-        QTextPadSettings::setFileModes(currentTab()->filename, currentTab()->textEncoding,
-                                       editor()->syntaxName(), cursor.blockNumber() + 1);
+        const QTextCursor cursor = textEdit->textCursor();
+        QTextPadSettings::setFileModes(tab->filename, tab->textEncoding,
+                                       textEdit->syntaxName(), cursor.blockNumber() + 1);
     }
 
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Would you like to save your changes first?")
-                            .arg(currentTab()->documentName()),
+                            .arg(tab->documentName()),
                             QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
         if (response == QMessageBox::Cancel)
             return false;
@@ -1418,16 +1411,18 @@ bool QTextPadWindow::promptSaveAll(int excludeIndex)
 
 bool QTextPadWindow::promptForDiscard()
 {
+    DocumentTab *tab = currentTab();
+    SyntaxTextEdit *textEdit = tab->editor();
     if (documentExists()) {
-        const QTextCursor cursor = editor()->textCursor();
-        QTextPadSettings::setFileModes(currentTab()->filename, currentTab()->textEncoding,
-                                       editor()->syntaxName(), cursor.blockNumber() + 1);
+        const QTextCursor cursor = textEdit->textCursor();
+        QTextPadSettings::setFileModes(tab->filename, tab->textEncoding,
+                                       textEdit->syntaxName(), cursor.blockNumber() + 1);
     }
 
     if (isDocumentModified()) {
         int response = QMessageBox::question(this, QString(),
                             tr("%1 has been modified.  Are you sure you want to discard your changes?")
-                            .arg(currentTab()->documentName()), QMessageBox::Yes | QMessageBox::No);
+                            .arg(tab->documentName()), QMessageBox::Yes | QMessageBox::No);
         if (response == QMessageBox::No)
             return false;
     }
@@ -1443,8 +1438,9 @@ void QTextPadWindow::newDocument()
 
 void QTextPadWindow::resetEditor()
 {
-    editor()->clear();
-    editor()->document()->clearUndoRedoStacks();
+    SyntaxTextEdit *textEdit = editor();
+    textEdit->clear();
+    textEdit->document()->clearUndoRedoStacks();
 
     setSyntax(SyntaxTextEdit::nullSyntax());
     setEncoding(QStringLiteral("UTF-8"));
@@ -1456,40 +1452,43 @@ void QTextPadWindow::resetEditor()
 #endif
 
     setOpenFilename(QString());
-    currentTab()->cachedModTime = QDateTime();
-    undoStack()->clear();
-    undoStack()->setClean();
+    DocumentTab *tab = currentTab();
+    tab->cachedModTime = QDateTime();
+    tab->undoStack()->clear();
+    tab->undoStack()->setClean();
     m_reloadAction->setEnabled(false);
     setUtfBOM(false);
 }
 
 bool QTextPadWindow::saveDocument()
 {
-    if (currentTab()->filename.isEmpty())
+    DocumentTab *tab = currentTab();
+    if (tab->filename.isEmpty())
         return saveDocumentAs();
-    if (!saveDocumentTo(currentTab()->filename))
+    if (!saveDocumentTo(tab->filename))
         return false;
 
-    currentTab()->fileState = 0;
-    currentTab()->cachedModTime = QFileInfo(currentTab()->filename).lastModified();
-    undoStack()->setClean();
+    tab->fileState = 0;
+    tab->cachedModTime = QFileInfo(tab->filename).lastModified();
+    tab->undoStack()->setClean();
     updateTitle();
     return true;
 }
 
 bool QTextPadWindow::saveDocumentAs()
 {
+    DocumentTab *tab = currentTab();
     QString path = QFileDialog::getSaveFileName(this, tr("Save File As"),
-                                                currentTab()->absolutePath());
+                                                tab->absolutePath());
     if (path.isEmpty())
         return false;
     if (!saveDocumentTo(path))
         return false;
 
     setOpenFilename(path);
-    currentTab()->fileState = 0;
-    currentTab()->cachedModTime = QFileInfo(path).lastModified();
-    undoStack()->setClean();
+    tab->fileState = 0;
+    tab->cachedModTime = QFileInfo(path).lastModified();
+    tab->undoStack()->setClean();
     updateTitle();
     return true;
 }
@@ -1566,7 +1565,8 @@ void QTextPadWindow::openContainingFolder()
 
 void QTextPadWindow::editorContextMenu(const QPoint &pos)
 {
-    auto menu = std::make_unique<QMenu>(editor());
+    SyntaxTextEdit *textEdit = editor();
+    auto menu = std::make_unique<QMenu>(textEdit);
     for (auto action : m_editorContextActions)
         menu->addAction(action);
 
@@ -1577,12 +1577,12 @@ void QTextPadWindow::editorContextMenu(const QPoint &pos)
     if (QGuiApplication::styleHints()->useRtlExtensions()) {
         menu->addSeparator();
         // Private API
-        auto ctrlCharMenu = new QUnicodeControlCharacterMenu(editor(), menu);
+        auto ctrlCharMenu = new QUnicodeControlCharacterMenu(textEdit, menu);
         menu->addMenu(ctrlCharMenu);
     }
 #endif
 
-    menu->exec(editor()->viewport()->mapToGlobal(pos));
+    menu->exec(textEdit->viewport()->mapToGlobal(pos));
 }
 
 void QTextPadWindow::tabContextMenu(const QPoint &pos)
@@ -1606,8 +1606,9 @@ void QTextPadWindow::updateCursorPosition()
     if (!m_positionLabel)
         return;
 
-    const QTextCursor cursor = editor()->textCursor();
-    const int column = editor()->textColumn(cursor.block().text(), cursor.positionInBlock());
+    SyntaxTextEdit *textEdit = editor();
+    const QTextCursor cursor = textEdit->textCursor();
+    const int column = textEdit->textColumn(cursor.block().text(), cursor.positionInBlock());
     const int selectedChars = std::abs(cursor.selectionEnd() - cursor.selectionStart());
     QString positionText = tr("Line %1, Col %2")
                                 .arg(cursor.blockNumber() + 1)
@@ -1619,21 +1620,22 @@ void QTextPadWindow::updateCursorPosition()
 
 void QTextPadWindow::updateTitle()
 {
-    QString title = currentTab()->documentName();
-    if (QTextPadSettings().showFilePath() && !currentTab()->filename.isEmpty()) {
-        QFileInfo fi(currentTab()->filename);
+    DocumentTab *tab = currentTab();
+    QString title = tab->documentName();
+    if (QTextPadSettings().showFilePath() && !tab->filename.isEmpty()) {
+        QFileInfo fi(tab->filename);
         title += QStringLiteral(" [%1]").arg(fi.absolutePath());
     }
-    if ((currentTab()->fileState & FS_OutOfDate) != 0)
+    if ((tab->fileState & FS_OutOfDate) != 0)
         title += tr(" (Not Current)");
-    else if ((currentTab()->fileState & FS_New) != 0)
+    else if ((tab->fileState & FS_New) != 0)
         title += tr(" (New File)");
     title += QStringLiteral(u" \u2013 qtextpad");  // n-dash
     if (isDocumentModified())
         title = QStringLiteral("* ") + title;
 
     setWindowTitle(title);
-    updateTabText(currentTab());
+    updateTabText(tab);
 }
 
 void QTextPadWindow::nextInsertMode()
@@ -1658,9 +1660,10 @@ void QTextPadWindow::nextLineEndingMode()
 
 void QTextPadWindow::updateIndentStatus()
 {
-    const int tabWidth = editor()->tabWidth();
-    const int indentWidth = editor()->indentWidth();
-    const auto indentMode = editor()->indentationMode();
+    SyntaxTextEdit *textEdit = editor();
+    const int tabWidth = textEdit->tabWidth();
+    const int indentWidth = textEdit->indentWidth();
+    const auto indentMode = textEdit->indentationMode();
 
     QString description;
     switch (indentMode) {
@@ -1751,7 +1754,7 @@ void QTextPadWindow::changeEncoding(const QString &encoding)
         (void)mbQuestion.exec();
         if (mbQuestion.clickedButton() == convertButton) {
             auto command = new ChangeEncodingCommand(this, currentEncoding, encoding);
-            undoStack()->push(command);
+            currentTab()->undoStack()->push(command);
         } else if (mbQuestion.clickedButton() == reloadButton) {
             reloadDocumentEncoding(encoding);
         }
@@ -1767,7 +1770,7 @@ void QTextPadWindow::changeLineEndingMode(FileTypeInfo::LineEndingType mode)
     } else {
         int oldMode = static_cast<int>(currentTab()->lineEndingMode);
         auto command = new ChangeLineEndingCommand(this, oldMode, mode);
-        undoStack()->push(command);
+        currentTab()->undoStack()->push(command);
     }
 }
 
@@ -1778,7 +1781,7 @@ void QTextPadWindow::changeUtfBOM()
         currentTab()->utfBOM = m_utfBOMAction->isChecked();
     } else {
         auto command = new ChangeUtfBOMCommand(this, m_utfBOMAction->isChecked());
-        undoStack()->push(command);
+        currentTab()->undoStack()->push(command);
     }
 }
 
@@ -1969,10 +1972,11 @@ void QTextPadWindow::resizeEvent(QResizeEvent *event)
         QMainWindow::resizeEvent(event);
 
     // Move the search widget to the upper-right corner
-    const QPoint editorPos = editor()->mapTo(this, QPoint(0, 0));
+    SyntaxTextEdit *textEdit = editor();
+    const QPoint editorPos = textEdit->mapTo(this, QPoint(0, 0));
     QSize searchSize = m_searchWidget->sizeHint();
     m_searchWidget->resize(searchSize);
-    m_searchWidget->move(editorPos.x() + editor()->viewport()->width() - searchSize.width() - 16,
+    m_searchWidget->move(editorPos.x() + textEdit->viewport()->width() - searchSize.width() - 16,
                          editorPos.y());
 }
 
