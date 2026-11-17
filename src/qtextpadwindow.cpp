@@ -1115,11 +1115,6 @@ void QTextPadWindow::setEncoding(const QString &codecName)
     }
 }
 
-bool QTextPadWindow::utfBOM() const
-{
-    return m_utfBOMAction->isChecked();
-}
-
 void QTextPadWindow::setUtfBOM(bool bom)
 {
     currentTab()->utfBOM = bom;
@@ -1216,7 +1211,7 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
         break;
     }
 
-    const auto buffer = codec->fromUnicode(document, utfBOM());
+    const auto buffer = codec->fromUnicode(document, currentTab()->utfBOM);
     qint64 count = file.write(buffer);
     if (count < 0) {
         QMessageBox::critical(this, QString(),
@@ -1736,7 +1731,8 @@ void QTextPadWindow::chooseEditorFont()
 
 void QTextPadWindow::changeEncoding(const QString &encoding)
 {
-    if (encoding == currentTab()->textEncoding)
+    const QString currentEncoding = currentTab()->textEncoding;
+    if (encoding == currentEncoding)
         return;
 
     if (!documentExists()) {
@@ -1747,14 +1743,14 @@ void QTextPadWindow::changeEncoding(const QString &encoding)
                tr("The current document encoding is '%1'.  Would you like to:<ul>"
                   "<li><b>Reload</b> the existing file in the '%2' encoding, or</li>"
                   "<li><b>Convert</b> the current document's encoding to '%2'?</li></ul>")
-                  .arg(currentTab()->textEncoding, encoding),
+                  .arg(currentEncoding, encoding),
                QMessageBox::Cancel, this);
         auto reloadButton = mbQuestion.addButton(tr("&Reload"), QMessageBox::AcceptRole);
         auto convertButton = mbQuestion.addButton(tr("&Convert"), QMessageBox::AcceptRole);
 
         (void)mbQuestion.exec();
         if (mbQuestion.clickedButton() == convertButton) {
-            auto command = new ChangeEncodingCommand(this, encoding);
+            auto command = new ChangeEncodingCommand(this, currentEncoding, encoding);
             undoStack()->push(command);
         } else if (mbQuestion.clickedButton() == reloadButton) {
             reloadDocumentEncoding(encoding);
@@ -1769,19 +1765,20 @@ void QTextPadWindow::changeLineEndingMode(FileTypeInfo::LineEndingType mode)
         // Don't save changes in the undo stack if we are creating a new file
         setLineEndingMode(mode);
     } else {
-        auto command = new ChangeLineEndingCommand(this, mode);
+        int oldMode = static_cast<int>(currentTab()->lineEndingMode);
+        auto command = new ChangeLineEndingCommand(this, oldMode, mode);
         undoStack()->push(command);
     }
 }
 
 void QTextPadWindow::changeUtfBOM()
 {
-    if (documentExists()) {
+    if (!documentExists()) {
         // Don't save changes in the undo stack if we are creating a new file
-        auto command = new ChangeUtfBOMCommand(this);
-        undoStack()->push(command);
-    } else {
         currentTab()->utfBOM = m_utfBOMAction->isChecked();
+    } else {
+        auto command = new ChangeUtfBOMCommand(this, m_utfBOMAction->isChecked());
+        undoStack()->push(command);
     }
 }
 

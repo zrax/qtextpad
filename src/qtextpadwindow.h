@@ -60,7 +60,6 @@ public:
 
     QString textEncoding() const;
 
-    bool utfBOM() const;
     void setUtfBOM(bool bom);
 
     void setOverwriteMode(bool overwrite);

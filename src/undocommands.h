@@ -38,7 +38,7 @@ private:
 class ChangeLineEndingCommand : public QUndoCommand
 {
 public:
-    ChangeLineEndingCommand(QTextPadWindow *window, int newMode);
+    ChangeLineEndingCommand(QTextPadWindow *window, int oldMode, int newMode);
 
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;
@@ -54,7 +54,7 @@ private:
 class ChangeEncodingCommand : public QUndoCommand
 {
 public:
-    ChangeEncodingCommand(QTextPadWindow *window, QString newEncoding);
+    ChangeEncodingCommand(QTextPadWindow *window, QString oldEncoding, QString newEncoding);
 
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;
@@ -70,7 +70,7 @@ private:
 class ChangeUtfBOMCommand : public QUndoCommand
 {
 public:
-    explicit ChangeUtfBOMCommand(QTextPadWindow *window);
+    explicit ChangeUtfBOMCommand(QTextPadWindow *window, bool utfBOM);
 
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;

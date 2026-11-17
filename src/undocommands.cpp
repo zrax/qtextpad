@@ -31,8 +31,8 @@ void TextEditorUndoCommand::redo()
 
 
 ChangeLineEndingCommand::ChangeLineEndingCommand(QTextPadWindow *window,
-                                                 int newMode)
-    : m_window(window), m_oldMode(window->lineEndingMode()), m_newMode(newMode)
+                                                 int oldMode, int newMode)
+    : m_window(window), m_oldMode(oldMode), m_newMode(newMode)
 {
 }
 
@@ -60,8 +60,8 @@ bool ChangeLineEndingCommand::mergeWith(const QUndoCommand *cmd)
 
 
 ChangeEncodingCommand::ChangeEncodingCommand(QTextPadWindow *window,
-                                             QString newEncoding)
-    : m_window(window), m_oldEncoding(window->textEncoding()),
+                                             QString oldEncoding, QString newEncoding)
+    : m_window(window), m_oldEncoding(std::move(oldEncoding)),
       m_newEncoding(std::move(newEncoding))
 {
 }
@@ -89,8 +89,8 @@ bool ChangeEncodingCommand::mergeWith(const QUndoCommand *cmd)
 }
 
 
-ChangeUtfBOMCommand::ChangeUtfBOMCommand(QTextPadWindow *window)
-    : m_window(window), m_utfBOM(window->utfBOM())
+ChangeUtfBOMCommand::ChangeUtfBOMCommand(QTextPadWindow *window, bool utfBOM)
+    : m_window(window), m_utfBOM(utfBOM)
 {
 }
 
