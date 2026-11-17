@@ -167,9 +167,7 @@ int main(int argc, char *argv[])
     appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
     QApplication::setWindowIcon(appIcon);
 
-    auto win = new QTextPadWindow();
-    win->setAttribute(Qt::WA_DeleteOnClose);
-    win->show();
+    auto win = QTextPadWindow::createNewWindow();
 
     QList<StartupFileInfo> startupFiles;
     const QStringList positionalArguments = parser.positionalArguments();
