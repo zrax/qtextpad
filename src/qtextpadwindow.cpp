@@ -187,11 +187,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(newTabAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
     connect(closeTabAction, &QAction::triggered, this,
             [this] { closeTab(m_tabs->currentIndex()); });
-    connect(newWindowAction, &QAction::triggered, [](bool) {
-        auto win = new QTextPadWindow();
-        win->setAttribute(Qt::WA_DeleteOnClose);
-        win->show();
-    });
+    connect(newWindowAction, &QAction::triggered, [](bool) { (void) createNewWindow(); });
     connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
     connect(m_reloadAction, &QAction::triggered, this, &QTextPadWindow::reloadDocument);
     connect(saveAction, &QAction::triggered, this, &QTextPadWindow::saveDocument);
@@ -519,6 +515,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto nextTabAction = m_documentsMenu->addAction(tr("Ne&xt Tab"));
     nextTabAction->setShortcut(Qt::CTRL | Qt::Key_PageDown);
     (void) m_documentsMenu->addSeparator();
+    m_detachAction = m_documentsMenu->addAction(ICON("tab-detach"), tr("Move to &New Window"));
+    (void) m_documentsMenu->addSeparator();
     m_documentsGroup = new QActionGroup(this);
 
     connect(saveAllAction, &QAction::triggered, this, &QTextPadWindow::promptSaveAll);
@@ -529,6 +527,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     });
     connect(nextTabAction, &QAction::triggered, this, [this] {
         m_tabs->setCurrentIndex((m_tabs->currentIndex() + 1) % m_tabs->count());
+    });
+    connect(m_detachAction, &QAction::triggered, this, [this] {
+        detachTab(m_tabs->currentIndex());
     });
 
     auto newSeparator = [this] {
@@ -545,6 +546,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_tabContextActions << saveCopyAction;
     m_tabContextActions << newSeparator();
     m_tabContextActions << printAction;
+    m_tabContextActions << newSeparator();
+    m_tabContextActions << m_detachAction;
     m_tabContextActions << newSeparator();
     m_tabContextActions << closeTabAction;
     m_tabContextActions << closeOtherAction;
@@ -691,6 +694,14 @@ QTextPadWindow::~QTextPadWindow()
         tab->undoStack()->disconnect(this);
         tab->editor()->disconnect(this);
     }
+}
+
+QTextPadWindow *QTextPadWindow::createNewWindow()
+{
+    auto win = new QTextPadWindow();
+    win->setAttribute(Qt::WA_DeleteOnClose);
+    win->show();
+    return win;
 }
 
 void QTextPadWindow::setOpenFilename(DocumentTab *tab, const QString &filename)
@@ -856,6 +867,7 @@ DocumentTab *QTextPadWindow::addDocumentTab()
 
     int tabIndex = m_tabs->addTab(tab, tr("Untitled"));
     addDocumentsMenuItem(tabIndex);
+    m_detachAction->setEnabled(m_tabs->count() > 1);
     return tab;
 }
 
@@ -991,6 +1003,32 @@ void QTextPadWindow::closeOtherTabs()
     // Our tab should be the only one remaining
     if (m_tabs->count() > 0)
         m_tabs->setCurrentIndex(0);
+}
+
+void QTextPadWindow::detachTab(int index)
+{
+    Q_ASSERT(index >= 0 && index < m_tabs->count());
+
+    auto win = createNewWindow();
+    auto tab = m_tabs->widget(index);
+    const QString tabTitle = m_tabs->tabText(index);
+    const QString tabTooltip = m_tabs->tabToolTip(index);
+
+    // The new window has an empty document tab by default...  We need to remove
+    // that tab, but only after we attach the moved tab so the tab widget is
+    // never empty.  We don't need to explicitly remove the detached tab
+    // from the current window, since Qt will do that for us automatically.
+    auto stubTab = win->m_tabs->widget(0);
+    Q_ASSERT(stubTab);
+
+    int newTabIndex = win->m_tabs->addTab(tab, tabTitle);
+    win->m_tabs->setTabToolTip(newTabIndex, tabTooltip);
+    win->m_tabs->setCurrentWidget(tab);
+    win->m_tabs->removeTab(win->m_tabs->indexOf(stubTab));
+    stubTab->deleteLater();
+
+    updateDocumentsMenu();
+    win->updateDocumentsMenu();
 }
 
 bool QTextPadWindow::openDocument(const QString &filename, const QString &textEncoding)
@@ -2357,4 +2395,6 @@ void QTextPadWindow::updateDocumentsMenu()
 
     for (int i = 0; i < m_tabs->count(); ++i)
         addDocumentsMenuItem(i);
+
+    m_detachAction->setEnabled(m_tabs->count() > 1);
 }

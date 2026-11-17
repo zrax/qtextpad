@@ -50,6 +50,8 @@ public:
     explicit QTextPadWindow(QWidget *parent = Q_NULLPTR);
     ~QTextPadWindow() Q_DECL_OVERRIDE;
 
+    static QTextPadWindow *createNewWindow();
+
     // Editor of the currently active tab
     SyntaxTextEdit *editor() const;
 
@@ -83,6 +85,7 @@ public Q_SLOTS:
     void closeTab(int index);
     bool closeAllTabs();
     void closeOtherTabs();
+    void detachTab(int index);
     void currentTabChanged(int index);
     void resetEditor();
     bool saveDocument();
@@ -187,6 +190,7 @@ private:
     QActionGroup *m_tabWidthActions;
     QActionGroup *m_indentWidthActions;
     QActionGroup *m_indentModeActions;
+    QAction *m_detachAction;
     QActionGroup *m_documentsGroup;
     QList<QAction *> m_editorContextActions;
     QList<QAction *> m_tabContextActions;
