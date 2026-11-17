@@ -24,6 +24,8 @@
 #include <QLockFile>
 #include <QIcon>
 
+#include "syntaxtextedit.h"
+
 #define RECENT_FILES        10
 #define RECENT_SEARCHES     20
 #define FM_CACHE_SIZE       50
@@ -185,6 +187,15 @@ void QTextPadSettings::setFileModes(const QString &filename, const QString &enco
     for (const auto &line : std::as_const(lines))
         cacheFile.write(line);
     cacheFile.close();
+}
+
+int QTextPadSettings::indentMode() const
+{
+    // -1 or any other invalid value will trigger the setting of the default
+    int mode = m_settings.value(QStringLiteral("Editor/IndentMode"), -1).toInt();
+    if (mode < 0 || mode >= SyntaxTextEdit::IndentMode_MAX)
+        mode = SyntaxTextEdit::IndentSpaces;
+    return mode;
 }
 
 QFont QTextPadSettings::editorFont() const
