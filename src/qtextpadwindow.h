@@ -152,6 +152,9 @@ private:
 
     // QAction caches
     QAction *m_reloadAction;
+    QAction *m_copyPathAction;
+    QAction *m_copyFilenameAction;
+    QAction *m_openContainingFolderAction;
     QAction *m_undoAction;
     QAction *m_redoAction;
     QAction *m_deleteAction;

@@ -164,9 +164,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     printAction->setShortcut(QKeySequence::Print);
     auto printPreviewAction = fileMenu->addAction(ICON("document-preview"), tr("Print Pre&view"));
     (void) fileMenu->addSeparator();
-    auto copyPathAction = fileMenu->addAction(ICON("edit-copy"), tr("Cop&y Path"));
-    auto copyFilenameAction = fileMenu->addAction(ICON("edit-copy"), tr("Copy File&name"));
-    auto openContainingFolderAction = fileMenu->addAction(
+    m_copyPathAction = fileMenu->addAction(ICON("edit-copy"), tr("Cop&y Path"));
+    m_copyFilenameAction = fileMenu->addAction(ICON("edit-copy"), tr("Copy File&name"));
+    m_openContainingFolderAction = fileMenu->addAction(
             ICON("document-open-folder"), tr("Open Containing &Folder"));
     (void) fileMenu->addSeparator();
     auto closeTabAction = fileMenu->addAction(ICON("tab-close"), tr("Clos&e Tab"));
@@ -187,13 +187,13 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(saveCopyAction, &QAction::triggered, this, &QTextPadWindow::saveDocumentCopy);
     connect(printAction, &QAction::triggered, this, &QTextPadWindow::printDocument);
     connect(printPreviewAction, &QAction::triggered, this, &QTextPadWindow::printPreviewDocument);
-    connect(copyPathAction, &QAction::triggered, this, [this] {
+    connect(m_copyPathAction, &QAction::triggered, this, [this] {
         QApplication::clipboard()->setText(currentTab()->absolutePath());
     });
-    connect(copyFilenameAction, &QAction::triggered, this, [this] {
+    connect(m_copyFilenameAction, &QAction::triggered, this, [this] {
         QApplication::clipboard()->setText(currentTab()->documentName());
     });
-    connect(openContainingFolderAction, &QAction::triggered,
+    connect(m_openContainingFolderAction, &QAction::triggered,
             this, &QTextPadWindow::openContainingFolder);
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
 
@@ -507,9 +507,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         sep->setSeparator(true);
         return sep;
     };
-    m_tabContextActions << copyPathAction;
-    m_tabContextActions << copyFilenameAction;
-    m_tabContextActions << openContainingFolderAction;
+    m_tabContextActions << m_copyPathAction;
+    m_tabContextActions << m_copyFilenameAction;
+    m_tabContextActions << m_openContainingFolderAction;
     m_tabContextActions << newSeparator();
     m_tabContextActions << saveAction;
     m_tabContextActions << saveAsAction;
@@ -673,6 +673,11 @@ void QTextPadWindow::setOpenFilename(DocumentTab *tab, const QString &filename)
     const QString oldFilename = tab->filename;
     tab->filename = filename;
 
+    const bool havePath = !filename.isEmpty();
+    m_copyPathAction->setEnabled(havePath);
+    m_copyFilenameAction->setEnabled(havePath);
+    m_openContainingFolderAction->setEnabled(havePath);
+
     // Another tab may still be showing the same file, so keep watching it
     if (!oldFilename.isEmpty() && !findTab(oldFilename, tab))
         m_fileWatcher->removePath(oldFilename);
@@ -779,13 +784,13 @@ DocumentTab *QTextPadWindow::addDocumentTab()
     connect(stack, &QUndoStack::canUndoChanged, this, [this, tab](bool enabled) {
         if (m_closing)
             return;
-        if (tab == currentTab() && m_undoAction)
+        if (tab == currentTab())
             m_undoAction->setEnabled(enabled);
     });
     connect(stack, &QUndoStack::canRedoChanged, this, [this, tab](bool enabled) {
         if (m_closing)
             return;
-        if (tab == currentTab() && m_redoAction)
+        if (tab == currentTab())
             m_redoAction->setEnabled(enabled);
     });
     connect(stack, &QUndoStack::cleanChanged, this, [this, tab](bool) {
@@ -799,7 +804,7 @@ DocumentTab *QTextPadWindow::addDocumentTab()
     connect(textEdit, &QPlainTextEdit::copyAvailable, this, [this, tab](bool available) {
         if (m_closing)
             return;
-        if (tab == currentTab() && m_deleteAction)
+        if (tab == currentTab())
             m_deleteAction->setEnabled(available);
     });
     connect(textEdit, &SyntaxTextEdit::cursorPositionChanged,
@@ -848,6 +853,10 @@ void QTextPadWindow::currentTabChanged(int index)
     showSearchBar(false);
 
     // Refresh the shared actions and the status bar from the active document
+    const bool havePath = !tab->filename.isEmpty();
+    m_copyPathAction->setEnabled(havePath);
+    m_copyFilenameAction->setEnabled(havePath);
+    m_openContainingFolderAction->setEnabled(havePath);
     m_undoAction->setEnabled(tab->undoStack()->canUndo());
     m_redoAction->setEnabled(tab->undoStack()->canRedo());
     m_deleteAction->setEnabled(textEdit->textCursor().hasSelection());
