@@ -36,8 +36,7 @@ public:
         CRLF,
     };
 
-    FileTypeInfo() : m_params() { }
-    ~FileTypeInfo();
+    FileTypeInfo() = default;
 
     static FileTypeInfo detect(const QByteArray &buffer);
 
@@ -45,29 +44,32 @@ public:
     FileTypeInfo &operator=(const FileTypeInfo &) = delete;
 
     FileTypeInfo(FileTypeInfo &&move) Q_DECL_NOEXCEPT
-        : m_params(move.m_params)
+        : m_textCodec(move.m_textCodec), m_bomOffset(move.m_bomOffset),
+          m_lineEndings(move.m_lineEndings)
     {
-        move.m_params = Q_NULLPTR;
+        move.m_textCodec = Q_NULLPTR;
     }
 
     FileTypeInfo &operator=(FileTypeInfo &&move) Q_DECL_NOEXCEPT
     {
-        Q_ASSERT(m_params == Q_NULLPTR);
-        m_params = move.m_params;
-        move.m_params = Q_NULLPTR;
+        Q_ASSERT(m_textCodec == Q_NULLPTR);
+        m_textCodec = move.m_textCodec;
+        m_bomOffset = move.m_bomOffset;
+        m_lineEndings = move.m_lineEndings;
+        move.m_textCodec = Q_NULLPTR;
         return *this;
     }
 
-    bool isValid() const { return m_params != Q_NULLPTR; }
-
-    TextCodec *textCodec() const;
-    int bomOffset() const;
-    LineEndingType lineEndings() const;
+    TextCodec *textCodec() const { return m_textCodec; }
+    int bomOffset() const { return m_bomOffset; }
+    LineEndingType lineEndings() const { return m_lineEndings; }
 
     static KSyntaxHighlighting::Definition definitionForFileMagic(const QString &filename);
 
 private:
-    void *m_params;
+    TextCodec *m_textCodec = Q_NULLPTR;
+    int m_bomOffset;
+    LineEndingType m_lineEndings;
 };
 
 #endif  // QTEXTPAD_FILETYPEINFO_H
