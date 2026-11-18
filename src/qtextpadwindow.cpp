@@ -463,7 +463,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     hideSingleTabAction->setChecked(settings.hideSingleTab());
     auto closeWindowAction = settingsMenu->addAction(tr("Close &Window with Last Tab"));
     closeWindowAction->setCheckable(true);
-    closeWindowAction->setChecked(settings.closeWindowOnLastTab());
+    m_closeWindowOnLastTab = settings.closeWindowOnLastTab();
+    closeWindowAction->setChecked(m_closeWindowOnLastTab);
 
     connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CROnly); });
@@ -476,7 +477,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
         m_tabs->setTabBarAutoHide(hide);
         QTextPadSettings().setHideSingleTab(hide);
     });
-    connect(closeWindowAction, &QAction::toggled, this, [](bool closeWindow) {
+    connect(closeWindowAction, &QAction::toggled, this, [this](bool closeWindow) {
+        m_closeWindowOnLastTab = closeWindow;
         QTextPadSettings().setCloseWindowOnLastTab(closeWindow);
     });
 
@@ -894,7 +896,7 @@ void QTextPadWindow::closeTab(int index)
     const bool lastTab = m_tabs->count() == 1;
 
     // closeEvent() takes care of prompting for the remaining document
-    if (lastTab && QTextPadSettings().closeWindowOnLastTab()) {
+    if (lastTab && m_closeWindowOnLastTab) {
         close();
         return;
     }

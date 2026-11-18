@@ -149,7 +149,10 @@ private:
     QMenu *m_syntaxMenu;
     QMenu *m_setEncodingMenu;
     QMenu *m_documentsMenu;
-    bool m_showFilePath;
+
+    // Cached settings to avoid excessive writes to the settings file
+    bool m_showFilePath;            // Checked every undo/redo
+    bool m_closeWindowOnLastTab;    // Checked every tab close
 
     // QAction caches
     QAction *m_reloadAction;
