@@ -44,6 +44,7 @@ public:
     QString textEncoding;
     FileTypeInfo::LineEndingType lineEndingMode = FileTypeInfo::LFOnly;
     bool utfBOM = false;
+    QList<QMetaObject::Connection> windowConnections;
 
 private:
     SyntaxTextEdit *m_editor;

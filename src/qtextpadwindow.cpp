@@ -787,7 +787,7 @@ DocumentTab *QTextPadWindow::findTab(const QString &filename, const DocumentTab 
 
 DocumentTab *QTextPadWindow::addDocumentTab()
 {
-    auto tab = new DocumentTab(m_tabs);
+    auto tab = new DocumentTab;
     SyntaxTextEdit *textEdit = tab->editor();
     QUndoStack *stack = tab->undoStack();
 
@@ -826,49 +826,67 @@ DocumentTab *QTextPadWindow::addDocumentTab()
     connect(textEdit, &SyntaxTextEdit::redoRequested, stack, &QUndoStack::redo);
 
     textEdit->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(textEdit, &QPlainTextEdit::customContextMenuRequested,
-            this, &QTextPadWindow::editorContextMenu);
 
-    // Window-level actions only follow the stack/editor of the active tab
-    connect(stack, &QUndoStack::canUndoChanged, this, [this, tab](bool enabled) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            m_undoAction->setEnabled(enabled);
-    });
-    connect(stack, &QUndoStack::canRedoChanged, this, [this, tab](bool enabled) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            m_redoAction->setEnabled(enabled);
-    });
-    connect(stack, &QUndoStack::cleanChanged, this, [this, tab](bool) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            updateTitle();
-        else
-            updateTabText(tab);
-    });
-    connect(textEdit, &QPlainTextEdit::copyAvailable, this, [this, tab](bool available) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            m_deleteAction->setEnabled(available);
-    });
-    connect(textEdit, &SyntaxTextEdit::cursorPositionChanged,
-            this, &QTextPadWindow::updateCursorPosition);
-    connect(textEdit, &SyntaxTextEdit::selectionChanged,
-            this, &QTextPadWindow::updateCursorPosition);
-    connect(textEdit, &SyntaxTextEdit::textChanged, this, [this] {
-        if (m_searchWidget && m_searchWidget->isVisible())
-            showSearchBar(false);
-    });
+    // Establish window-specific connections
+    reconnectTab(tab);
 
     int tabIndex = m_tabs->addTab(tab, tr("Untitled"));
     addDocumentsMenuItem(tabIndex);
     m_detachAction->setEnabled(m_tabs->count() > 1);
     return tab;
+}
+
+void QTextPadWindow::reconnectTab(DocumentTab *tab, QTextPadWindow *previous)
+{
+    SyntaxTextEdit *textEdit = tab->editor();
+    QUndoStack *stack = tab->undoStack();
+
+    // Accept tab drops over the editor
+    if (previous)
+        textEdit->viewport()->removeEventFilter(previous);
+    textEdit->viewport()->installEventFilter(this);
+
+    // Window-level actions only follow the stack/editor of the active tab
+    for (auto conn : tab->windowConnections)
+        disconnect(conn);
+    tab->windowConnections.clear();
+
+    tab->windowConnections << connect(textEdit, &QPlainTextEdit::customContextMenuRequested,
+            this, &QTextPadWindow::editorContextMenu);
+
+    tab->windowConnections << connect(stack, &QUndoStack::canUndoChanged, this,
+            [this, tab](bool enabled) {
+                if (tab == currentTab())
+                    m_undoAction->setEnabled(enabled);
+            });
+    tab->windowConnections << connect(stack, &QUndoStack::canRedoChanged, this,
+            [this, tab](bool enabled) {
+                if (tab == currentTab())
+                    m_redoAction->setEnabled(enabled);
+            });
+    tab->windowConnections << connect(stack, &QUndoStack::cleanChanged, this,
+            [this, tab](bool) {
+                if (tab == currentTab())
+                    updateTitle();
+                else
+                    updateTabText(tab);
+            });
+    tab->windowConnections << connect(textEdit, &QPlainTextEdit::copyAvailable, this,
+            [this, tab](bool available) {
+                if (tab == currentTab())
+                    m_deleteAction->setEnabled(available);
+            });
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::cursorPositionChanged,
+            this, &QTextPadWindow::updateCursorPosition);
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::selectionChanged,
+            this, &QTextPadWindow::updateCursorPosition);
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::selectionChanged,
+            this, &QTextPadWindow::updateCursorPosition);
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::textChanged, this,
+            [this] {
+                if (m_searchWidget->isVisible())
+                    showSearchBar(false);
+            });
 }
 
 void QTextPadWindow::updateTabText(DocumentTab *tab)
@@ -1008,11 +1026,11 @@ void QTextPadWindow::closeOtherTabs()
 void QTextPadWindow::detachTab(int index)
 {
     Q_ASSERT(index >= 0 && index < m_tabs->count());
+    if (m_tabs->count() == 1)
+        return;
 
     auto win = createNewWindow();
-    auto tab = m_tabs->widget(index);
-    const QString tabTitle = m_tabs->tabText(index);
-    const QString tabTooltip = m_tabs->tabToolTip(index);
+    auto tab = static_cast<DocumentTab *>(m_tabs->widget(index));
 
     // The new window has an empty document tab by default...  We need to remove
     // that tab, but only after we attach the moved tab so the tab widget is
@@ -1021,8 +1039,9 @@ void QTextPadWindow::detachTab(int index)
     auto stubTab = win->m_tabs->widget(0);
     Q_ASSERT(stubTab);
 
-    int newTabIndex = win->m_tabs->addTab(tab, tabTitle);
-    win->m_tabs->setTabToolTip(newTabIndex, tabTooltip);
+    win->m_tabs->addTab(tab, QString());
+    win->updateTabText(tab);
+    win->reconnectTab(tab, this);
     win->m_tabs->setCurrentWidget(tab);
     win->m_tabs->removeTab(win->m_tabs->indexOf(stubTab));
     stubTab->deleteLater();

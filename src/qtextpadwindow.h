@@ -209,6 +209,7 @@ private:
     static DocumentTab *findTab(const QString &filename,
                                 const DocumentTab *exclude = Q_NULLPTR);
     DocumentTab *addDocumentTab();
+    void reconnectTab(DocumentTab *tab, QTextPadWindow *previous = Q_NULLPTR);
     void updateTabText(DocumentTab *tab);
     void updateSyntaxStatus(const KSyntaxHighlighting::Definition &syntax);
     void syncIndentSettings();
