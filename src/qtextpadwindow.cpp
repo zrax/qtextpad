@@ -41,6 +41,10 @@
 #include <QDateTime>
 #include <QFileSystemWatcher>
 #include <QDesktopServices>
+#include <QDrag>
+#include <QMimeData>
+#include <QDataStream>
+#include <QDropEvent>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
@@ -73,6 +77,8 @@
 #else
 #define FILE_COMPARE_CS Qt::CaseSensitive
 #endif
+
+static const QString s_tabMime = QStringLiteral("application/x-qtextpad-tab");
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -640,6 +646,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
     connect(m_tabs, &DocumentTabWidget::newTabRequested, this, &QTextPadWindow::newDocument);
+    connect(m_tabs, &DocumentTabWidget::tabDragRequested, this, &QTextPadWindow::startTabDrag);
+
+    // Accept tab drops over the tab bar
+    m_tabs->tabBar()->installEventFilter(this);
 
     m_tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tabs->tabBar(), &QTabBar::customContextMenuRequested, this, &QTextPadWindow::tabContextMenu);
@@ -696,10 +706,12 @@ QTextPadWindow::~QTextPadWindow()
     }
 }
 
-QTextPadWindow *QTextPadWindow::createNewWindow()
+QTextPadWindow *QTextPadWindow::createNewWindow(QPoint at)
 {
     auto win = new QTextPadWindow();
     win->setAttribute(Qt::WA_DeleteOnClose);
+    if (!at.isNull())
+        win->move(at);
     win->show();
     return win;
 }
@@ -908,6 +920,93 @@ void QTextPadWindow::updateTabText(DocumentTab *tab)
         actions.at(index)->setText(name);
 }
 
+void QTextPadWindow::startTabDrag(int index, const QPixmap &preview)
+{
+    auto tab = static_cast<DocumentTab *>(m_tabs->widget(index));
+    if (!tab)
+        return;
+
+    QByteArray tabData;
+    {
+        QDataStream tabStream(&tabData, QIODevice::ReadWrite);
+        tabStream << QCoreApplication::applicationPid();
+        tabStream << reinterpret_cast<quintptr>(this);
+        tabStream << reinterpret_cast<quintptr>(tab);
+    }
+
+    auto mime = new QMimeData;
+    mime->setData(s_tabMime, tabData);
+
+    auto drag = new QDrag(this);
+    drag->setMimeData(mime);
+    drag->setPixmap(preview);
+    drag->setHotSpot(QPoint(preview.width() / 2, preview.height() / 2));
+
+    // Only a MoveAction means another window really took the document
+    if (drag->exec(Qt::MoveAction) == Qt::IgnoreAction && !drag->target()) {
+        // Check if we dropped the tab outside of the current window, and
+        // detach the tab if so.
+        const QPoint dropPosition = QCursor::pos();
+        const QRect frameRect = window()->frameGeometry();
+        if (!frameRect.contains(dropPosition)) {
+            const QRect tabRect = m_tabs->tabBar()->tabRect(0);
+            const QPoint tabPos = m_tabs->tabBar()->mapToGlobal(QPoint())
+                                    - frameRect.topLeft() + tabRect.center();
+            detachTab(index, dropPosition - tabPos);
+        }
+    }
+}
+
+bool QTextPadWindow::handleTabDrag(QDropEvent *event)
+{
+    const QMimeData *mimeData = event->mimeData();
+    if (!mimeData->hasFormat(s_tabMime))
+        return false;
+
+    qint64 hostPid = 0;
+    QTextPadWindow *hostWindow = Q_NULLPTR;
+    DocumentTab *tab = Q_NULLPTR;
+    {
+        QDataStream tabStream(mimeData->data(s_tabMime));
+        tabStream >> hostPid;
+        tabStream >> reinterpret_cast<quintptr &>(hostWindow);
+        tabStream >> reinterpret_cast<quintptr &>(tab);
+    }
+
+    // We only support moving tabs within an application instance.
+    if (hostPid != QCoreApplication::applicationPid() || hostWindow == this) {
+        event->ignore();
+        return true;
+    }
+
+    if (event->type() == QEvent::Drop) {
+        const bool lastHostTab = hostWindow->m_tabs->count() == 1;
+        if (lastHostTab) {
+            // Ensure an empty tab is present in the host window, before
+            // removing the last tab.  This can probably be removed if
+            // QTextPadWindow is updated to gracefully handle the case of
+            // having zero editor tabs...
+            hostWindow->addDocumentTab();
+        }
+
+        // Move the tab to this window.  We don't need to explicitly remove the
+        // detached tab from the host window, since Qt will do that for us automatically.
+        m_tabs->addTab(tab, QString());
+        updateTabText(tab);
+        reconnectTab(tab, hostWindow);
+        m_tabs->setCurrentWidget(tab);
+
+        updateDocumentsMenu();
+        if (lastHostTab)
+            hostWindow->close();
+        else
+            hostWindow->updateDocumentsMenu();
+    }
+
+    event->acceptProposedAction();
+    return true;
+}
+
 void QTextPadWindow::currentTabChanged(int index)
 {
     if (index < 0 || m_closing)
@@ -1023,13 +1122,13 @@ void QTextPadWindow::closeOtherTabs()
         m_tabs->setCurrentIndex(0);
 }
 
-void QTextPadWindow::detachTab(int index)
+void QTextPadWindow::detachTab(int index, QPoint at)
 {
     Q_ASSERT(index >= 0 && index < m_tabs->count());
     if (m_tabs->count() == 1)
         return;
 
-    auto win = createNewWindow();
+    auto win = createNewWindow(at);
     auto tab = static_cast<DocumentTab *>(m_tabs->widget(index));
 
     // The new window has an empty document tab by default...  We need to remove
@@ -2121,13 +2220,30 @@ void QTextPadWindow::closeEvent(QCloseEvent *event)
 
 bool QTextPadWindow::eventFilter(QObject *obj, QEvent *event)
 {
-    if (m_searchWidget->isVisible() && event->type() == QEvent::KeyPress) {
-        auto keyEvent = static_cast<QKeyEvent*>(event);
-        if (keyEvent->key() == Qt::Key_Escape) {
-            showSearchBar(false);
-            return true;
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove:
+    case QEvent::Drop:
+        {
+            // QDragEnterEvent and QDragMoveEvent both inherit QDropEvent
+            auto dropEvent = static_cast<QDropEvent *>(event);
+            if (handleTabDrag(dropEvent))
+                return true;
         }
+        break;
+    case QEvent::KeyPress:
+        if (m_searchWidget->isVisible()) {
+            auto keyEvent = static_cast<QKeyEvent*>(event);
+            if (keyEvent->key() == Qt::Key_Escape) {
+                showSearchBar(false);
+                return true;
+            }
+        }
+        break;
+    default:
+        break;
     }
+
     return QMainWindow::eventFilter(obj, event);
 }
 

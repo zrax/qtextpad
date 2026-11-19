@@ -50,7 +50,7 @@ public:
     explicit QTextPadWindow(QWidget *parent = Q_NULLPTR);
     ~QTextPadWindow() Q_DECL_OVERRIDE;
 
-    static QTextPadWindow *createNewWindow();
+    static QTextPadWindow *createNewWindow(QPoint at = QPoint());
 
     // Editor of the currently active tab
     SyntaxTextEdit *editor() const;
@@ -85,7 +85,7 @@ public Q_SLOTS:
     void closeTab(int index);
     bool closeAllTabs();
     void closeOtherTabs();
-    void detachTab(int index);
+    void detachTab(int index, QPoint at = QPoint());
     void currentTabChanged(int index);
     void resetEditor();
     bool saveDocument();
@@ -211,6 +211,9 @@ private:
     DocumentTab *addDocumentTab();
     void reconnectTab(DocumentTab *tab, QTextPadWindow *previous = Q_NULLPTR);
     void updateTabText(DocumentTab *tab);
+    void startTabDrag(int index, const QPixmap &preview);
+    bool handleTabDrag(QDropEvent *event);
+
     void updateSyntaxStatus(const KSyntaxHighlighting::Definition &syntax);
     void syncIndentSettings();
 
