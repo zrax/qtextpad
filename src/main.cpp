@@ -33,6 +33,13 @@
 #include "syntaxtextedit.h"
 #include "appversion.h"
 
+struct StartupFileInfo
+{
+    QString filename;
+    int line = -1;
+    int column = -1;
+};
+
 // Determine if the default icon theme includes the necessary icons for
 // our toolbar.  If not, we need to use our own theme.
 static bool checkDefaultIconTheme()
@@ -114,12 +121,10 @@ int main(int argc, char *argv[])
             QCoreApplication::translate("main", "qtextpad - The lightweight Qt code and text editor"));
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument(QStringLiteral("filename"),
-            QCoreApplication::translate("main", "A document to open at startup"),
-            QCoreApplication::translate("main", "[filename]"));
-    parser.addPositionalArgument(QStringLiteral("line"),
-            QCoreApplication::translate("main", "Move the cursor to the specified line"),
-            QCoreApplication::translate("main", "[+line]"));
+    parser.addPositionalArgument(QStringLiteral("filename, line, column"),
+            QCoreApplication::translate("main", "Document(s) to open at startup, with an optional "
+                                                "line and column to move the cursor to"),
+            QCoreApplication::translate("main", "[filename [+line[,column]]]..."));
 
     const QCommandLineOption encodingOption(QStringList{QStringLiteral("e"), QStringLiteral("encoding")},
             QCoreApplication::translate("main", "Specify the encoding of the file (default: detect)"),
@@ -165,49 +170,60 @@ int main(int argc, char *argv[])
     QTextPadWindow win;
     win.show();
 
-    QString startupFile;
-    int startupLine = -1;
-    int startupCol = -1;
+    QList<StartupFileInfo> startupFiles;
     const QStringList positionalArguments = parser.positionalArguments();
     for (const auto &arg : positionalArguments) {
         if (arg.startsWith(QLatin1Char('+'))) {
+            if (startupFiles.isEmpty()) {
+                qWarning("%s", qPrintable(
+                    QCoreApplication::translate("main", "Missing filename for startup line parameter '%1'").arg(arg)));
+                continue;
+            }
+
             bool ok;
             QList<QStringView> parts = QStringView(arg).split(QLatin1Char(','));
-            startupLine = parts.at(0).mid(1).toInt(&ok, 0);
-            if (!ok) {
+            const int startupLine = parts.at(0).mid(1).toInt(&ok, 0);
+            if (ok) {
+                startupFiles.last().line = startupLine;
+            } else {
                 qWarning("%s", qPrintable(
                     QCoreApplication::translate("main", "Invalid startup line parameter: '%1'").arg(arg)));
-                startupLine = -1;
             }
             if (parts.size() > 1) {
-                startupCol = parts.at(1).toInt(&ok, 0);
-                if (!ok) {
+                const int startupCol = parts.at(1).toInt(&ok, 0);
+                if (ok) {
+                    startupFiles.last().column = startupCol;
+                } else {
                     qWarning("%s", qPrintable(
                         QCoreApplication::translate("main", "Invalid startup line parameter: '%1'").arg(arg)));
-                    startupCol = -1;
                 }
             }
         } else {
-            startupFile = arg;
+            startupFiles.append(StartupFileInfo { arg, -1, -1 });
         }
     }
 
+    // NOTE: These currently affect all files specified on the command line when set.
     QString textEncoding;
     if (parser.isSet(encodingOption))
         textEncoding = parser.value(encodingOption);
-    if (!startupFile.isEmpty() && win.openDocument(startupFile, textEncoding)) {
-        if (startupLine > 0)
-            win.gotoLine(startupLine, startupCol);
-        if (parser.isSet(syntaxOption)) {
-            auto syntaxRepo = SyntaxTextEdit::syntaxRepo();
-            auto syntaxDef = syntaxRepo->definitionForName(parser.value(syntaxOption));
-            if (syntaxDef.isValid()) {
+    KSyntaxHighlighting::Definition syntaxDef;
+    if (parser.isSet(syntaxOption)) {
+        auto syntaxRepo = SyntaxTextEdit::syntaxRepo();
+        syntaxDef = syntaxRepo->definitionForName(parser.value(syntaxOption));
+        if (!syntaxDef.isValid()) {
+            qDebug("%s", qPrintable(
+                QCoreApplication::translate("main", "Invalid syntax definition specified: '%1'")
+                        .arg(parser.value(syntaxOption))));
+        }
+    }
+
+    for (const auto &startupFile : startupFiles) {
+        if (win.openDocument(startupFile.filename, textEncoding)) {
+            if (startupFile.line > 0)
+                win.gotoLine(startupFile.line, startupFile.column);
+            if (syntaxDef.isValid())
                 win.setSyntax(syntaxDef);
-            } else {
-                qDebug("%s", qPrintable(
-                    QCoreApplication::translate("main", "Invalid syntax definition specified: %1")
-                            .arg(parser.value(syntaxOption))));
-            }
         }
     }
 
