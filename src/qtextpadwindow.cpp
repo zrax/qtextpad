@@ -45,6 +45,7 @@
 #include <QMimeData>
 #include <QDataStream>
 #include <QDropEvent>
+#include <QScreen>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
@@ -952,7 +953,20 @@ void QTextPadWindow::startTabDrag(int index, const QPixmap &preview)
             const QRect tabRect = m_tabs->tabBar()->tabRect(0);
             const QPoint tabPos = m_tabs->tabBar()->mapToGlobal(QPoint())
                                     - frameRect.topLeft() + tabRect.center();
-            detachTab(index, dropPosition - tabPos);
+            QPoint winPos = dropPosition - tabPos;
+
+            QScreen *targetScreen = QGuiApplication::screenAt(dropPosition);
+            if (targetScreen) {
+                const QRect screenRect = targetScreen->availableGeometry();
+                const QSize winSize = frameRect.size();
+
+                const int maxX = std::max(screenRect.left(), screenRect.right() - winSize.width() + 1);
+                const int maxY = std::max(screenRect.top(), screenRect.bottom() - winSize.height() + 1);
+                winPos.setX(std::clamp(winPos.x(), screenRect.left(), maxX));
+                winPos.setY(std::clamp(winPos.y(), screenRect.top(), maxY));
+            }
+
+            detachTab(index, winPos);
         }
     }
 }
