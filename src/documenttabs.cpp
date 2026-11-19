@@ -16,9 +16,11 @@
 
 #include "documenttabs.h"
 
+#include <QApplication>
 #include <QUndoStack>
 #include <QVBoxLayout>
 #include <QFileInfo>
+#include <QMouseEvent>
 
 #include "appsettings.h"
 #include "syntaxtextedit.h"
@@ -53,9 +55,52 @@ QString DocumentTab::absolutePath() const
     return filename.isEmpty() ? QString() : QFileInfo(filename).absoluteFilePath();
 }
 
+void DocumentTabBar::mousePressEvent(QMouseEvent *event)
+{
+    m_pressedTabIndex = (event->button() == Qt::LeftButton) ? tabAt(event->pos()) : -1;
+
+    // The user can drag the tab horizontally before detaching it, so we need
+    // to capture the pixmap ahead of time to ensure it is drawn correctly.
+    m_dragTabPixmap = (m_pressedTabIndex >= 0) ? grab(tabRect(m_pressedTabIndex)) : QPixmap();
+
+    QTabBar::mousePressEvent(event);
+}
+
+void DocumentTabBar::mouseMoveEvent(QMouseEvent *event)
+{
+    // Moving sideways reorders tabs (built into QTabBar). Leaving the bar
+    // vertically turns it into a drag which another window can accept
+    if (m_pressedTabIndex >= 0 && (event->buttons() & Qt::LeftButton) != 0) {
+        const int margin = 2 * QApplication::startDragDistance();
+        const int y = event->pos().y();
+        if (y < -margin || y > height() + margin) {
+            const int index = m_pressedTabIndex;
+            m_pressedTabIndex = -1;
+
+            // Finish QTabBar's own move-in-progress before the QDrag takes over
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            QMouseEvent release(QEvent::MouseButtonRelease, event->position(),
+                                event->globalPosition(), Qt::MouseButton::LeftButton,
+                                Qt::MouseButton::NoButton, event->modifiers());
+#else
+            QMouseEvent release(QEvent::MouseButtonRelease, event->pos(),
+                                event->globalPos(), Qt::MouseButton::LeftButton,
+                                Qt::MouseButton::NoButton, event->modifiers());
+#endif
+            QTabBar::mouseReleaseEvent(&release);
+            Q_EMIT tabDragRequested(index, m_dragTabPixmap);
+            return;
+        }
+    }
+
+    QTabBar::mouseMoveEvent(event);
+}
 
 void DocumentTabBar::mouseReleaseEvent(QMouseEvent *event)
 {
+    m_pressedTabIndex = -1;
+    m_dragTabPixmap = QPixmap();
+
     // This feature is built-in to Qt as of 6.11
 #if QT_VERSION < QT_VERSION_CHECK(6, 11, 0)
     if (event->button() == Qt::MouseButton::MiddleButton) {
@@ -96,8 +141,11 @@ DocumentTabWidget::DocumentTabWidget(QWidget *parent)
     setDocumentMode(true);
     setMovable(true);
     setTabsClosable(true);
+    tabBar->setAcceptDrops(true);
     setTabBarAutoHide(settings.hideSingleTab());
 
     connect(tabBar, &DocumentTabBar::newTabRequested,
             this, &DocumentTabWidget::newTabRequested);
+    connect(tabBar, &DocumentTabBar::tabDragRequested,
+            this, &DocumentTabWidget::tabDragRequested);
 }
