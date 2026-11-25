@@ -14,10 +14,11 @@
  * along with QTextPad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QApplication>
 #include <QTranslator>
 #include <QLibraryInfo>
 #include <QCommandLineParser>
+#include <QJsonObject>
+#include <QFileInfo>
 #include <QIcon>
 #include <QtGlobal>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
@@ -29,6 +30,7 @@
 #include <KSyntaxHighlighting/Definition>
 #include <KSyntaxHighlighting/DefinitionDownloader>
 
+#include "singleapp.h"
 #include "qtextpadwindow.h"
 #include "syntaxtextedit.h"
 #include "appversion.h"
@@ -72,9 +74,9 @@ static void setDefaultIconTheme()
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("qtextpad"));
     QCoreApplication::setApplicationVersion(QTextPadVersion::versionString());
+    QTextpadSingleApp app(argc, argv);
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 # ifdef Q_OS_WIN
@@ -155,20 +157,6 @@ int main(int argc, char *argv[])
         return QApplication::exec();
     }
 
-    setDefaultIconTheme();
-
-    // TODO: Make a unique icon for QTextPad?
-    // This one is borrowed from Oxygen
-    QIcon appIcon;
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-64.png"), QSize(64, 64));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-48.png"), QSize(48, 48));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-32.png"), QSize(32, 32));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-16.png"), QSize(16, 16));
-    appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
-    QApplication::setWindowIcon(appIcon);
-
-    auto win = QTextPadWindow::createNewWindow();
-
     QList<StartupFileInfo> startupFiles;
     const QStringList positionalArguments = parser.positionalArguments();
     for (const auto &arg : positionalArguments) {
@@ -202,6 +190,39 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (!app.startIpcServer()) {
+        // Attempt to forward the request to a remote instance.  Only proceeds
+        // to handle the startup locally if the IPC request fails.
+        if (startupFiles.isEmpty()) {
+            QJsonObject request;
+            request.insert(QStringLiteral("cmd"), QStringLiteral("new-window"));
+            if (app.sendMessage(request))
+                return 0;
+        } else {
+            bool sendOk = true;
+            for (const auto &file : startupFiles) {
+                QJsonObject request;
+                request.insert(QStringLiteral("cmd"), QStringLiteral("open-file"));
+                request.insert(QStringLiteral("path"), QFileInfo(file.filename).absoluteFilePath());
+                request.insert(QStringLiteral("line"), file.line);
+                request.insert(QStringLiteral("column"), file.column);
+                if (parser.isSet(encodingOption))
+                    request.insert(QStringLiteral("textEncoding"), parser.value(encodingOption));
+                if (parser.isSet(syntaxOption))
+                    request.insert(QStringLiteral("syntaxDef"), parser.value(syntaxOption));
+                if (!app.sendMessage(request)) {
+                    sendOk = false;
+                    break;
+                }
+            }
+            if (sendOk)
+                return 0;
+        }
+
+        // Proceed with doing things locally
+        qDebug("Failed to send message to remote instance");
+    }
+
     // NOTE: These currently affect all files specified on the command line when set.
     QString textEncoding;
     if (parser.isSet(encodingOption))
@@ -217,6 +238,28 @@ int main(int argc, char *argv[])
         }
     }
 
+    QObject::connect(&app, &QTextpadSingleApp::messageReceived, [](const QJsonObject &msg) {
+        const QString cmd = msg.value(QStringLiteral("cmd")).toString();
+        if (cmd == QStringLiteral("new-window")) {
+            (void) QTextPadWindow::createNewWindow();
+        } else {
+            qDebug("IPC got unknown command: %s", qPrintable(cmd));
+        }
+    });
+
+    setDefaultIconTheme();
+
+    // TODO: Make a unique icon for QTextPad?
+    // This one is borrowed from Oxygen
+    QIcon appIcon;
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-64.png"), QSize(64, 64));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-48.png"), QSize(48, 48));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-32.png"), QSize(32, 32));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-16.png"), QSize(16, 16));
+    appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
+    QApplication::setWindowIcon(appIcon);
+
+    auto win = QTextPadWindow::createNewWindow();
     for (const auto &startupFile : startupFiles) {
         if (win->openDocument(startupFile.filename, textEncoding)) {
             if (startupFile.line > 0)

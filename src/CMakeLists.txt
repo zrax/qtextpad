@@ -70,6 +70,8 @@ target_sources(qtextpad
         searchdialog.cpp
         settingspopup.h
         settingspopup.cpp
+        singleapp.h
+        singleapp.cpp
         undocommands.h
         undocommands.cpp
 
@@ -82,5 +84,5 @@ if(WIN32)
     target_sources(qtextpad PRIVATE qtextpad.rc)
 endif()
 
-target_link_libraries(qtextpad PRIVATE syntaxtextedit ICU::uc ICU::data)
+target_link_libraries(qtextpad PRIVATE syntaxtextedit Qt::Network ICU::uc ICU::data)
 target_compile_definitions(qtextpad PRIVATE QT_NO_KEYWORDS)
