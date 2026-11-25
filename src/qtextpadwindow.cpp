@@ -693,6 +693,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     });
 #endif
 
+    m_lastActiveTimeMs = QDateTime::currentMSecsSinceEpoch();
     installEventFilter(this);
 }
 
@@ -715,6 +716,31 @@ QTextPadWindow *QTextPadWindow::createNewWindow(QPoint at)
         win->move(at);
     win->show();
     return win;
+}
+
+void QTextPadWindow::bringToFront()
+{
+    if (isMinimized())
+        setWindowState(windowState() & ~Qt::WindowMinimized);
+
+    // Wayland: client can't simply grab focus: hide and re-show, small flicker but reliable
+    if (QGuiApplication::platformName() == QStringLiteral("wayland"))
+        hide();
+
+    raise();
+    show();
+    activateWindow();
+}
+
+QTextPadWindow *QTextPadWindow::lastActiveWindow()
+{
+    auto allWindows = windows();
+    Q_ASSERT(!allWindows.empty());
+    std::partial_sort(allWindows.begin(), allWindows.begin() + 1, allWindows.end(),
+                      [](const QTextPadWindow *a, const QTextPadWindow *b) {
+                          return a->m_lastActiveTimeMs > b->m_lastActiveTimeMs;
+                      });
+    return allWindows.front();
 }
 
 void QTextPadWindow::setOpenFilename(DocumentTab *tab, const QString &filename)
@@ -1163,30 +1189,32 @@ void QTextPadWindow::detachTab(int index, QPoint at)
     win->updateDocumentsMenu();
 }
 
-bool QTextPadWindow::openDocument(const QString &filename, const QString &textEncoding)
+bool QTextPadWindow::openDocument(const QString &filename, int line, int column,
+        const QString &textEncoding, const QString &syntaxDef)
 {
     if (DocumentTab *existing = findTab(filename)) {
-        existing->activateWindow();
         auto window = qobject_cast<QTextPadWindow *>(existing->window());
         window->m_tabs->setCurrentWidget(existing);
+        window->bringToFront();
         return true;
     }
 
     // Reuse the current tab if it is just an empty, untouched "Untitled"
-    DocumentTab *previous = currentTab();
-    if (previous->filename.isEmpty() && !isDocumentModified()
+    auto window = lastActiveWindow();
+    DocumentTab *previous = window->currentTab();
+    if (previous->filename.isEmpty() && !window->isDocumentModified()
             && previous->editor()->document()->isEmpty()) {
-        return loadDocumentFrom(filename, textEncoding);
+        return window->loadDocumentFrom(filename, line, column, textEncoding, syntaxDef);
     }
 
-    DocumentTab *tab = addDocumentTab();
-    m_tabs->setCurrentWidget(tab);
-    if (loadDocumentFrom(filename, textEncoding))
+    DocumentTab *tab = window->addDocumentTab();
+    window->m_tabs->setCurrentWidget(tab);
+    if (window->loadDocumentFrom(filename, line, column, textEncoding, syntaxDef))
         return true;
 
     // Loading failed or was cancelled -- don't leave an empty tab behind
-    m_tabs->setCurrentWidget(previous);
-    m_tabs->removeTab(m_tabs->indexOf(tab));
+    window->m_tabs->setCurrentWidget(previous);
+    window->m_tabs->removeTab(window->m_tabs->indexOf(tab));
     tab->deleteLater();
     return false;
 }
@@ -1439,15 +1467,26 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
     return true;
 }
 
-bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &textEncoding)
+bool QTextPadWindow::loadDocumentFrom(const QString &filename, int line, int column,
+        const QString &textEncoding, const QString &syntaxDef)
 {
+    auto syntaxRepo = SyntaxTextEdit::syntaxRepo();
+    KSyntaxHighlighting::Definition definition;
+    if (!syntaxDef.isEmpty()) {
+        definition = syntaxRepo->definitionForName(syntaxDef);
+        if (!definition.isValid()) {
+            qDebug("%s", qPrintable(tr("Invalid syntax definition specified: '%1'")
+                            .arg(syntaxDef)));
+        }
+    }
+
     QFile file(filename);
     if (!file.exists()) {
         // Creating a new file
         resetEditor();
 
-        KSyntaxHighlighting::Definition definition =
-                SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
+        if (!definition.isValid())
+            definition = syntaxRepo->definitionForFileName(filename);
         if (definition.isValid())
             setSyntax(definition);
 
@@ -1507,8 +1546,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     textEdit->setPlainText(document);
     textEdit->document()->clearUndoRedoStacks();
 
-    KSyntaxHighlighting::Definition definition;
-    if (!fileModes.syntax.isEmpty())
+    if (!definition.isValid() && !fileModes.syntax.isEmpty())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForName(fileModes.syntax);
     if (!definition.isValid())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
@@ -1518,11 +1556,14 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     if (definition.isValid())
         setSyntax(definition);
 
-    if (fileModes.lineNum > 0)
+    if (line > 0)
+        gotoLine(line, column);
+    else if (fileModes.lineNum > 0)
         gotoLine(fileModes.lineNum);
 
     setOpenFilename(filename);
-    QTextPadSettings::setFileModes(filename, tab->textEncoding, definition.name(), fileModes.lineNum);
+    QTextPadSettings::setFileModes(filename, tab->textEncoding, definition.name(),
+                                   line > 0 ? line : fileModes.lineNum);
     QTextPadSettings().addRecentFile(filename);
     populateRecentFiles();
 
@@ -1747,7 +1788,7 @@ void QTextPadWindow::reloadDocumentEncoding(const QString &textEncoding)
     Q_ASSERT(documentExists());
 
     const QString oldEncoding = currentTab()->textEncoding;
-    if (!promptForDiscard() || !loadDocumentFrom(currentTab()->filename, textEncoding))
+    if (!promptForDiscard() || !loadDocumentFrom(currentTab()->filename, -1, -1, textEncoding))
         setEncoding(oldEncoding);
 }
 
@@ -2253,6 +2294,9 @@ bool QTextPadWindow::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
+        break;
+    case QEvent::WindowActivate:
+        m_lastActiveTimeMs = QDateTime::currentMSecsSinceEpoch();
         break;
     default:
         break;

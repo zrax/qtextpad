@@ -224,24 +224,23 @@ int main(int argc, char *argv[])
     }
 
     // NOTE: These currently affect all files specified on the command line when set.
-    QString textEncoding;
+    QString textEncoding, syntaxDef;
     if (parser.isSet(encodingOption))
         textEncoding = parser.value(encodingOption);
-    KSyntaxHighlighting::Definition syntaxDef;
-    if (parser.isSet(syntaxOption)) {
-        auto syntaxRepo = SyntaxTextEdit::syntaxRepo();
-        syntaxDef = syntaxRepo->definitionForName(parser.value(syntaxOption));
-        if (!syntaxDef.isValid()) {
-            qDebug("%s", qPrintable(
-                QCoreApplication::translate("main", "Invalid syntax definition specified: '%1'")
-                        .arg(parser.value(syntaxOption))));
-        }
-    }
+    if (parser.isSet(syntaxOption))
+        syntaxDef = parser.value(syntaxOption);
 
     QObject::connect(&app, &QTextpadSingleApp::messageReceived, [](const QJsonObject &msg) {
         const QString cmd = msg.value(QStringLiteral("cmd")).toString();
         if (cmd == QStringLiteral("new-window")) {
             (void) QTextPadWindow::createNewWindow();
+        } else if (cmd == QStringLiteral("open-file")) {
+            QString path = msg.value(QStringLiteral("path")).toString();
+            int line = msg.value(QStringLiteral("line")).toInt();
+            int column = msg.value(QStringLiteral("column")).toInt();
+            QString textEncoding = msg.value(QStringLiteral("textEncoding")).toString();
+            QString syntaxDef = msg.value(QStringLiteral("syntaxDef")).toString();
+            QTextPadWindow::openDocument(path, line, column, textEncoding, syntaxDef);
         } else {
             qDebug("IPC got unknown command: %s", qPrintable(cmd));
         }
@@ -259,14 +258,10 @@ int main(int argc, char *argv[])
     appIcon.addFile(QStringLiteral(":/icons/qtextpad-128.png"), QSize(128, 128));
     QApplication::setWindowIcon(appIcon);
 
-    auto win = QTextPadWindow::createNewWindow();
+    (void) QTextPadWindow::createNewWindow();
     for (const auto &startupFile : startupFiles) {
-        if (win->openDocument(startupFile.filename, textEncoding)) {
-            if (startupFile.line > 0)
-                win->gotoLine(startupFile.line, startupFile.column);
-            if (syntaxDef.isValid())
-                win->setSyntax(syntaxDef);
-        }
+        QTextPadWindow::openDocument(startupFile.filename, startupFile.line, startupFile.column,
+                                     textEncoding, syntaxDef);
     }
 
     return QApplication::exec();

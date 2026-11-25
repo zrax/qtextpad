@@ -51,6 +51,9 @@ public:
     ~QTextPadWindow() Q_DECL_OVERRIDE;
 
     static QTextPadWindow *createNewWindow(QPoint at = QPoint());
+    void bringToFront();
+
+    static QTextPadWindow *lastActiveWindow();
 
     // Editor of the currently active tab
     SyntaxTextEdit *editor() const;
@@ -67,10 +70,12 @@ public:
     void setLineEndingMode(FileTypeInfo::LineEndingType mode);
 
     bool saveDocumentTo(const QString &filename);
-    bool loadDocumentFrom(const QString &filename,
-                          const QString &textEncoding = QString());
-    bool openDocument(const QString &filename,
-                      const QString &textEncoding = QString());
+    bool loadDocumentFrom(const QString &filename, int line = -1, int column = -1,
+                          const QString &textEncoding = QString(),
+                          const QString &syntaxDef = QString());
+    static bool openDocument(const QString &filename, int line = -1, int column = -1,
+                             const QString &textEncoding = QString(),
+                             const QString &syntaxDef = QString());
     bool isDocumentModified() const;
     bool documentExists() const;
 
@@ -201,6 +206,8 @@ private:
     QToolButton *m_indentButton;
     QToolButton *m_encodingButton;
     QToolButton *m_syntaxButton;
+
+    qint64 m_lastActiveTimeMs;
 
     // Active tab helpers
     DocumentTab *currentTab() const;
