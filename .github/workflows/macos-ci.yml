@@ -17,9 +17,9 @@ jobs:
             qt_version: "5.15.2"
             kf_cmake_args: ""
           - runs_on: macos-26
-            kf_version: "6.30"
-            kf_fullver: "6.30.0"
-            qt_version: "6.12.0"
+            kf_version: "6.32"
+            kf_fullver: "6.32.0"
+            qt_version: "6.11.3"
             kf_cmake_args: "-DBUILD_WITH_QT6=ON"
 
     steps:
