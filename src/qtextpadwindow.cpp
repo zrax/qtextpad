@@ -277,10 +277,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_redoAction->setEnabled(false);
     m_deleteAction->setEnabled(false);
 
-    connect(QApplication::clipboard(), &QClipboard::dataChanged, this, [this, pasteAction] {
-        pasteAction->setEnabled(editor()->canPaste());
-    });
-
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
     m_themeMenu = viewMenu->addMenu(tr("&Theme"));
     populateThemeMenu();
@@ -667,8 +663,6 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     // Set up the editor and status for a clean, empty document
     newDocument();
-    pasteAction->setEnabled(editor()->canPaste());
-
     resize(settings.windowSize());
 
     // Only check for modifications when the application is focused.  This
