@@ -2314,7 +2314,7 @@ void QTextPadWindow::populateRecentFiles()
         QFileInfo info(recent);
         const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
         auto recentFileAction = m_recentFiles->addAction(label);
-        connect(recentFileAction, &QAction::triggered, this, [this, recent] {
+        connect(recentFileAction, &QAction::triggered, this, [recent] {
             openDocument(recent);
         });
     }
@@ -2377,7 +2377,7 @@ void QTextPadWindow::populateThemeMenu()
     m_defaultThemeAction = m_themeMenu->addAction(tr("Automatic"));
     m_defaultThemeAction->setCheckable(true);
     m_defaultThemeAction->setActionGroup(m_themeActions);
-    connect(m_defaultThemeAction, &QAction::triggered, this, [this] { setDefaultEditorTheme(); });
+    connect(m_defaultThemeAction, &QAction::triggered, this, [] { setDefaultEditorTheme(); });
     m_themeMenu->addSeparator();
 
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
@@ -2392,7 +2392,7 @@ void QTextPadWindow::populateThemeMenu()
         item->setCheckable(true);
         item->setActionGroup(m_themeActions);
         item->setData(QVariant::fromValue(theme));
-        connect(item, &QAction::triggered, this, [this, theme] { setEditorTheme(theme); });
+        connect(item, &QAction::triggered, this, [theme] { setEditorTheme(theme); });
     }
 }
 
@@ -2462,7 +2462,7 @@ void QTextPadWindow::populateIndentButtonMenu()
     for (auto action : m_tabWidthActions->actions()) {
         if (action == tabWidthOtherAction)
             continue;
-        connect(action, &QAction::triggered, this, [this, action] {
+        connect(action, &QAction::triggered, this, [action] {
             const int width = action->data().toInt();
             for (auto ed : editors())
                 ed->setTabWidth(width);
@@ -2502,7 +2502,7 @@ void QTextPadWindow::populateIndentButtonMenu()
     for (auto action : m_indentWidthActions->actions()) {
         if (action == indentWidthOtherAction)
             continue;
-        connect(action, &QAction::triggered, this, [this, action] {
+        connect(action, &QAction::triggered, this, [action] {
             const int width = action->data().toInt();
             for (auto ed : editors())
                 ed->setIndentWidth(width);
@@ -2537,7 +2537,7 @@ void QTextPadWindow::populateIndentButtonMenu()
     indentMixedAction->setData(static_cast<int>(SyntaxTextEdit::IndentMixed));
 
     for (auto action : m_indentModeActions->actions()) {
-        connect(action, &QAction::triggered, this, [this, action] {
+        connect(action, &QAction::triggered, this, [action] {
             const int mode = action->data().toInt();
             for (auto ed : editors())
                 ed->setIndentationMode(mode);
