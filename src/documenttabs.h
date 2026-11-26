@@ -44,6 +44,7 @@ public:
     QString textEncoding;
     FileTypeInfo::LineEndingType lineEndingMode = FileTypeInfo::LFOnly;
     bool utfBOM = false;
+    QList<QMetaObject::Connection> windowConnections;
 
 private:
     SyntaxTextEdit *m_editor;
@@ -60,10 +61,17 @@ public:
 
 Q_SIGNALS:
     void newTabRequested();
+    void tabDragRequested(int index, const QPixmap &tabPixmap);
 
 protected:
+    void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseDoubleClickEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+
+private:
+    int m_pressedTabIndex = -1;
+    QPixmap m_dragTabPixmap;
 };
 
 class DocumentTabWidget : public QTabWidget
@@ -75,6 +83,7 @@ public:
 
 Q_SIGNALS:
     void newTabRequested();
+    void tabDragRequested(int index, const QPixmap &tabPixmap);
 };
 
 #endif // QTEXTPAD_DOCUMENTTABS_H

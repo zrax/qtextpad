@@ -50,12 +50,17 @@ public:
     explicit QTextPadWindow(QWidget *parent = Q_NULLPTR);
     ~QTextPadWindow() Q_DECL_OVERRIDE;
 
+    static QTextPadWindow *createNewWindow(QPoint at = QPoint());
+    void bringToFront();
+
+    static QTextPadWindow *lastActiveWindow();
+
     // Editor of the currently active tab
     SyntaxTextEdit *editor() const;
 
     void setSyntax(const KSyntaxHighlighting::Definition &syntax);
-    void setEditorTheme(const KSyntaxHighlighting::Theme &theme);
-    void setDefaultEditorTheme();
+    static void setEditorTheme(const KSyntaxHighlighting::Theme &theme);
+    static void setDefaultEditorTheme();
     void setEncoding(const QString &codecName);
     void setUtfBOM(bool bom);
 
@@ -65,10 +70,12 @@ public:
     void setLineEndingMode(FileTypeInfo::LineEndingType mode);
 
     bool saveDocumentTo(const QString &filename);
-    bool loadDocumentFrom(const QString &filename,
-                          const QString &textEncoding = QString());
-    bool openDocument(const QString &filename,
-                      const QString &textEncoding = QString());
+    bool loadDocumentFrom(const QString &filename, int line = -1, int column = -1,
+                          const QString &textEncoding = QString(),
+                          const QString &syntaxDef = QString());
+    static bool openDocument(const QString &filename, int line = -1, int column = -1,
+                             const QString &textEncoding = QString(),
+                             const QString &syntaxDef = QString());
     bool isDocumentModified() const;
     bool documentExists() const;
 
@@ -83,6 +90,7 @@ public Q_SLOTS:
     void closeTab(int index);
     bool closeAllTabs();
     void closeOtherTabs();
+    void detachTab(int index, QPoint at = QPoint());
     void currentTabChanged(int index);
     void resetEditor();
     bool saveDocument();
@@ -163,8 +171,21 @@ private:
     QAction *m_redoAction;
     QAction *m_deleteAction;
     QAction *m_overwriteModeAction;
+    QAction *m_wordWrapAction;
+    QAction *m_longLineAction;
+    QAction *m_indentGuidesAction;
+    QAction *m_showLineNumbersAction;
+    QAction *m_showFoldingAction;
+    QAction *m_showWhitespaceAction;
+    QAction *m_scrollPastEndOfFileAction;
+    QAction *m_showCurrentLineAction;
+    QAction *m_showMatchingBraces;
     QAction *m_utfBOMAction;
     QAction *m_autoIndentAction;
+    QAction *m_showStatusBarAction;
+    QAction *m_showFilePathAction;
+    QAction *m_hideSingleTabAction;
+    QAction *m_closeWindowAction;
     QAction *m_fullScreenAction;
     QActionGroup *m_themeActions;
     QAction *m_defaultThemeAction;
@@ -174,6 +195,7 @@ private:
     QActionGroup *m_tabWidthActions;
     QActionGroup *m_indentWidthActions;
     QActionGroup *m_indentModeActions;
+    QAction *m_detachAction;
     QActionGroup *m_documentsGroup;
     QList<QAction *> m_editorContextActions;
     QList<QAction *> m_tabContextActions;
@@ -185,13 +207,20 @@ private:
     QToolButton *m_encodingButton;
     QToolButton *m_syntaxButton;
 
+    qint64 m_lastActiveTimeMs;
+
     // Active tab helpers
     DocumentTab *currentTab() const;
-    QList<SyntaxTextEdit *> editors() const;
-    DocumentTab *findTab(const QString &filename,
-                         const DocumentTab *exclude = Q_NULLPTR) const;
+    static QList<QTextPadWindow *> windows(QTextPadWindow *exclude = Q_NULLPTR);
+    static QList<SyntaxTextEdit *> editors();
+    static DocumentTab *findTab(const QString &filename,
+                                const DocumentTab *exclude = Q_NULLPTR);
     DocumentTab *addDocumentTab();
+    void reconnectTab(DocumentTab *tab, QTextPadWindow *previous = Q_NULLPTR);
     void updateTabText(DocumentTab *tab);
+    void startTabDrag(int index, const QPixmap &preview);
+    bool handleTabDrag(QDropEvent *event);
+
     void updateSyntaxStatus(const KSyntaxHighlighting::Definition &syntax);
     void syncIndentSettings();
 

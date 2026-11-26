@@ -39,9 +39,13 @@
 #include <QFileInfo>
 #include <QPrinter>
 #include <QDateTime>
-#include <QProcess>
 #include <QFileSystemWatcher>
 #include <QDesktopServices>
+#include <QDrag>
+#include <QMimeData>
+#include <QDataStream>
+#include <QDropEvent>
+#include <QScreen>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
@@ -74,6 +78,8 @@
 #else
 #define FILE_COMPARE_CS Qt::CaseSensitive
 #endif
+
+static const QString s_tabMime = QStringLiteral("application/x-qtextpad-tab");
 
 class EncodingPopupAction : public QWidgetAction
 {
@@ -129,6 +135,17 @@ protected:
     }
 };
 
+#define SYNC_EDITORS(expr) \
+    for (auto editor : editors()) { \
+        editor->expr; \
+    }
+
+#define SYNC_WINDOWS(action, expr) \
+    for (auto win : windows(this)) { \
+        QSignalBlocker blocker(win->action); \
+        win->action->expr; \
+    }
+
 QTextPadWindow::QTextPadWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -177,9 +194,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(newTabAction, &QAction::triggered, this, &QTextPadWindow::newDocument);
     connect(closeTabAction, &QAction::triggered, this,
             [this] { closeTab(m_tabs->currentIndex()); });
-    connect(newWindowAction, &QAction::triggered, [](bool) {
-        QProcess::startDetached(QCoreApplication::applicationFilePath(), QStringList());
-    });
+    connect(newWindowAction, &QAction::triggered, [](bool) { (void) createNewWindow(); });
     connect(openAction, &QAction::triggered, this, &QTextPadWindow::loadDocument);
     connect(m_reloadAction, &QAction::triggered, this, &QTextPadWindow::reloadDocument);
     connect(saveAction, &QAction::triggered, this, &QTextPadWindow::saveDocument);
@@ -270,34 +285,43 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_themeMenu = viewMenu->addMenu(tr("&Theme"));
     populateThemeMenu();
     (void) viewMenu->addSeparator();
-    auto wordWrapAction = viewMenu->addAction(tr("&Word Wrap"));
-    wordWrapAction->setShortcut(Qt::CTRL | Qt::ALT | Qt::Key_W);
-    wordWrapAction->setCheckable(true);
-    auto longLineAction = viewMenu->addAction(tr("Long Line &Margin"));
-    longLineAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_M);
-    longLineAction->setCheckable(true);
+    m_wordWrapAction = viewMenu->addAction(tr("&Word Wrap"));
+    m_wordWrapAction->setShortcut(Qt::CTRL | Qt::ALT | Qt::Key_W);
+    m_wordWrapAction->setCheckable(true);
+    m_wordWrapAction->setChecked(settings.wordWrap());
+    m_longLineAction = viewMenu->addAction(tr("Long Line &Margin"));
+    m_longLineAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_M);
+    m_longLineAction->setCheckable(true);
+    m_longLineAction->setChecked(settings.showLongLineMargin());
     auto longLineWidthAction = viewMenu->addAction(tr("Set Long Line Wi&dth..."));
-    auto indentGuidesAction = viewMenu->addAction(tr("Indentation &Guides"));
-    indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_T);
-    indentGuidesAction->setCheckable(true);
+    m_indentGuidesAction = viewMenu->addAction(tr("Indentation &Guides"));
+    m_indentGuidesAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_T);
+    m_indentGuidesAction->setCheckable(true);
+    m_indentGuidesAction->setChecked(settings.indentationGuides());
     (void) viewMenu->addSeparator();
-    auto showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
-    showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_L);
-    showLineNumbersAction->setCheckable(true);
-    auto showFoldingAction = viewMenu->addAction(tr("Show &Fold Margin"));
-    showFoldingAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_H);
-    showFoldingAction->setCheckable(true);
-    auto showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
-    showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
-    showWhitespaceAction->setCheckable(true);
+    m_showLineNumbersAction = viewMenu->addAction(tr("Line &Numbers"));
+    m_showLineNumbersAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_L);
+    m_showLineNumbersAction->setCheckable(true);
+    m_showLineNumbersAction->setChecked(settings.lineNumbers());
+    m_showFoldingAction = viewMenu->addAction(tr("Show &Fold Margin"));
+    m_showFoldingAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_H);
+    m_showFoldingAction->setCheckable(true);
+    m_showFoldingAction->setChecked(settings.showFolding());
+    m_showWhitespaceAction = viewMenu->addAction(tr("Show White&space"));
+    m_showWhitespaceAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_W);
+    m_showWhitespaceAction->setCheckable(true);
+    m_showWhitespaceAction->setChecked(settings.showWhitespace());
     (void) viewMenu->addSeparator();
-    auto scrollPastEndOfFileAction = viewMenu->addAction(tr("Scroll &Past End of File"));
-    scrollPastEndOfFileAction->setCheckable(true);
+    m_scrollPastEndOfFileAction = viewMenu->addAction(tr("Scroll &Past End of File"));
+    m_scrollPastEndOfFileAction->setCheckable(true);
+    m_scrollPastEndOfFileAction->setChecked(settings.scrollPastEndOfFile());
     (void) viewMenu->addSeparator();
-    auto showCurrentLineAction = viewMenu->addAction(tr("Highlight &Current Line"));
-    showCurrentLineAction->setCheckable(true);
-    auto showMatchingBraces = viewMenu->addAction(tr("Match &Braces"));
-    showMatchingBraces->setCheckable(true);
+    m_showCurrentLineAction = viewMenu->addAction(tr("Highlight &Current Line"));
+    m_showCurrentLineAction->setCheckable(true);
+    m_showCurrentLineAction->setChecked(settings.highlightCurLine());
+    m_showMatchingBraces = viewMenu->addAction(tr("Match &Braces"));
+    m_showMatchingBraces->setCheckable(true);
+    m_showMatchingBraces->setChecked(settings.matchBraces());
     (void) viewMenu->addSeparator();
     auto zoomInAction = viewMenu->addAction(ICON("zoom-in"), tr("Zoom &In"));
     zoomInAction->setShortcut(QKeySequence::ZoomIn);
@@ -310,60 +334,60 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_fullScreenAction->setShortcut(Qt::Key_F11);
     m_fullScreenAction->setCheckable(true);
 
-    connect(wordWrapAction, &QAction::toggled, this,
+    connect(m_wordWrapAction, &QAction::toggled, this,
             [this](bool wrap) {
-                for (auto ed : editors())
-                    ed->setWordWrap(wrap);
+                SYNC_EDITORS(setWordWrap(wrap))
+                SYNC_WINDOWS(m_wordWrapAction, setChecked(wrap))
                 QTextPadSettings().setWordWrap(wrap);
             });
-    connect(longLineAction, &QAction::toggled, this,
+    connect(m_longLineAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowLongLineEdge(show);
+                SYNC_EDITORS(setShowLongLineEdge(show))
+                SYNC_WINDOWS(m_longLineAction, setChecked(show))
                 QTextPadSettings().setShowLongLineMargin(show);
             });
     connect(longLineWidthAction, &QAction::triggered,
             this, &QTextPadWindow::promptLongLineWidth);
-    connect(indentGuidesAction, &QAction::toggled, this,
+    connect(m_indentGuidesAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowIndentGuides(show);
+                SYNC_EDITORS(setShowIndentGuides(show))
+                SYNC_WINDOWS(m_indentGuidesAction, setChecked(show))
                 QTextPadSettings().setIndentationGuides(show);
             });
-    connect(showLineNumbersAction, &QAction::toggled, this,
+    connect(m_showLineNumbersAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowLineNumbers(show);
+                SYNC_EDITORS(setShowLineNumbers(show))
+                SYNC_WINDOWS(m_showLineNumbersAction, setChecked(show))
                 QTextPadSettings().setLineNumbers(show);
             });
-    connect(showFoldingAction, &QAction::toggled, this,
+    connect(m_showFoldingAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowFolding(show);
+                SYNC_EDITORS(setShowFolding(show))
+                SYNC_WINDOWS(m_showFoldingAction, setChecked(show))
                 QTextPadSettings().setShowFolding(show);
             });
-    connect(showWhitespaceAction, &QAction::toggled, this,
+    connect(m_showWhitespaceAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setShowWhitespace(show);
+                SYNC_EDITORS(setShowWhitespace(show))
+                SYNC_WINDOWS(m_showWhitespaceAction, setChecked(show))
                 QTextPadSettings().setShowWhitespace(show);
             });
-    connect(scrollPastEndOfFileAction, &QAction::toggled, this,
+    connect(m_scrollPastEndOfFileAction, &QAction::toggled, this,
             [this](bool scroll) {
-                for (auto ed : editors())
-                    ed->setScrollPastEndOfFile(scroll);
+                SYNC_EDITORS(setScrollPastEndOfFile(scroll))
+                SYNC_WINDOWS(m_scrollPastEndOfFileAction, setChecked(scroll))
                 QTextPadSettings().setScrollPastEndOfFile(scroll);
             });
-    connect(showCurrentLineAction, &QAction::toggled, this,
+    connect(m_showCurrentLineAction, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setHighlightCurrentLine(show);
+                SYNC_EDITORS(setHighlightCurrentLine(show))
+                SYNC_WINDOWS(m_showCurrentLineAction, setChecked(show))
                 QTextPadSettings().setHighlightCurLine(show);
             });
-    connect(showMatchingBraces, &QAction::toggled, this,
+    connect(m_showMatchingBraces, &QAction::toggled, this,
             [this](bool show) {
-                for (auto ed : editors())
-                    ed->setMatchBraces(show);
+                SYNC_EDITORS(setMatchBraces(show))
+                SYNC_WINDOWS(m_showMatchingBraces, setChecked(show))
                 QTextPadSettings().setMatchBraces(show);
             });
     connect(zoomInAction, &QAction::triggered, this, [this] { editor()->zoomIn(); });
@@ -446,25 +470,26 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_autoIndentAction = settingsMenu->addAction(tr("&Auto Indent"));
     m_autoIndentAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_I);
     m_autoIndentAction->setCheckable(true);
+    m_autoIndentAction->setChecked(settings.autoIndent());
     (void) settingsMenu->addSeparator();
     auto showToolBarAction = settingsMenu->addAction(tr("Show Tool &Bar"));
     showToolBarAction->setCheckable(true);
     showToolBarAction->setChecked(settings.showToolBar());
-    auto showStatusBarAction = settingsMenu->addAction(tr("Show Stat&us Bar"));
-    showStatusBarAction->setCheckable(true);
-    showStatusBarAction->setChecked(settings.showStatusBar());
-    auto showFilePathAction = settingsMenu->addAction(tr("Show &Path in Title Bar"));
-    showFilePathAction->setCheckable(true);
+    m_showStatusBarAction = settingsMenu->addAction(tr("Show Stat&us Bar"));
+    m_showStatusBarAction->setCheckable(true);
+    m_showStatusBarAction->setChecked(settings.showStatusBar());
+    m_showFilePathAction = settingsMenu->addAction(tr("Show &Path in Title Bar"));
+    m_showFilePathAction->setCheckable(true);
     m_showFilePath = settings.showFilePath();
-    showFilePathAction->setChecked(m_showFilePath);
+    m_showFilePathAction->setChecked(m_showFilePath);
     (void) settingsMenu->addSeparator();
-    auto hideSingleTabAction = settingsMenu->addAction(tr("&Hide Tab Bar with a Single Tab"));
-    hideSingleTabAction->setCheckable(true);
-    hideSingleTabAction->setChecked(settings.hideSingleTab());
-    auto closeWindowAction = settingsMenu->addAction(tr("Close &Window with Last Tab"));
-    closeWindowAction->setCheckable(true);
+    m_hideSingleTabAction = settingsMenu->addAction(tr("&Hide Tab Bar with a Single Tab"));
+    m_hideSingleTabAction->setCheckable(true);
+    m_hideSingleTabAction->setChecked(settings.hideSingleTab());
+    m_closeWindowAction = settingsMenu->addAction(tr("Close &Window with Last Tab"));
+    m_closeWindowAction->setCheckable(true);
     m_closeWindowOnLastTab = settings.closeWindowOnLastTab();
-    closeWindowAction->setChecked(m_closeWindowOnLastTab);
+    m_closeWindowAction->setChecked(m_closeWindowOnLastTab);
 
     connect(fontAction, &QAction::triggered, this, &QTextPadWindow::chooseEditorFont);
     connect(crOnlyAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CROnly); });
@@ -472,13 +497,17 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(crlfAction, &QAction::triggered, this, [this] { changeLineEndingMode(FileTypeInfo::CRLF); });
     connect(indentSettingsAction, &QAction::triggered, this, &QTextPadWindow::promptIndentSettings);
     connect(m_autoIndentAction, &QAction::toggled, this, &QTextPadWindow::setAutoIndent);
-    connect(showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
-    connect(hideSingleTabAction, &QAction::toggled, this, [this](bool hide) {
-        m_tabs->setTabBarAutoHide(hide);
+    connect(m_showFilePathAction, &QAction::toggled, this, &QTextPadWindow::toggleFilePath);
+    connect(m_hideSingleTabAction, &QAction::toggled, this, [this](bool hide) {
+        for (auto win : windows())
+            win->m_tabs->setTabBarAutoHide(hide);
+        SYNC_WINDOWS(m_hideSingleTabAction, setChecked(hide))
         QTextPadSettings().setHideSingleTab(hide);
     });
-    connect(closeWindowAction, &QAction::toggled, this, [this](bool closeWindow) {
-        m_closeWindowOnLastTab = closeWindow;
+    connect(m_closeWindowAction, &QAction::toggled, this, [this](bool closeWindow) {
+        for (auto win : windows())
+            win->m_closeWindowOnLastTab = closeWindow;
+        SYNC_WINDOWS(m_closeWindowAction, setChecked(closeWindow))
         QTextPadSettings().setCloseWindowOnLastTab(closeWindow);
     });
 
@@ -493,6 +522,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     auto nextTabAction = m_documentsMenu->addAction(tr("Ne&xt Tab"));
     nextTabAction->setShortcut(Qt::CTRL | Qt::Key_PageDown);
     (void) m_documentsMenu->addSeparator();
+    m_detachAction = m_documentsMenu->addAction(ICON("tab-detach"), tr("Move to &New Window"));
+    (void) m_documentsMenu->addSeparator();
     m_documentsGroup = new QActionGroup(this);
 
     connect(saveAllAction, &QAction::triggered, this, &QTextPadWindow::promptSaveAll);
@@ -503,6 +534,9 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     });
     connect(nextTabAction, &QAction::triggered, this, [this] {
         m_tabs->setCurrentIndex((m_tabs->currentIndex() + 1) % m_tabs->count());
+    });
+    connect(m_detachAction, &QAction::triggered, this, [this] {
+        detachTab(m_tabs->currentIndex());
     });
 
     auto newSeparator = [this] {
@@ -519,6 +553,8 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     m_tabContextActions << saveCopyAction;
     m_tabContextActions << newSeparator();
     m_tabContextActions << printAction;
+    m_tabContextActions << newSeparator();
+    m_tabContextActions << m_detachAction;
     m_tabContextActions << newSeparator();
     m_tabContextActions << closeTabAction;
     m_tabContextActions << closeOtherAction;
@@ -549,7 +585,11 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     if (!settings.showToolBar())
         m_toolBar->setVisible(false);
-    connect(showToolBarAction, &QAction::toggled, m_toolBar, &QToolBar::setVisible);
+    connect(showToolBarAction, &QAction::toggled, [](bool visible) {
+        for (auto win : windows())
+            win->m_toolBar->setVisible(visible);
+        // The menu action is automatically updated by the below connection
+    });
     connect(m_toolBar->toggleViewAction(), &QAction::toggled,
             showToolBarAction, &QAction::setChecked);
 
@@ -577,7 +617,13 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     if (!settings.showStatusBar())
         statusBar()->setVisible(false);
-    connect(showStatusBarAction, &QAction::toggled, statusBar(), &QStatusBar::setVisible);
+    connect(m_showStatusBarAction, &QAction::toggled, [](bool visible) {
+        for (auto win : windows()) {
+            win->statusBar()->setVisible(visible);
+            QSignalBlocker blocker(win->m_showStatusBarAction);
+            win->m_showStatusBarAction->setChecked(visible);
+        }
+    });
 
     connect(m_positionLabel, &ActivationLabel::activated,
             this, &QTextPadWindow::navigateToLine);
@@ -601,6 +647,10 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     connect(m_tabs, &QTabWidget::currentChanged, this, &QTextPadWindow::currentTabChanged);
     connect(m_tabs, &QTabWidget::tabCloseRequested, this, &QTextPadWindow::closeTab);
     connect(m_tabs, &DocumentTabWidget::newTabRequested, this, &QTextPadWindow::newDocument);
+    connect(m_tabs, &DocumentTabWidget::tabDragRequested, this, &QTextPadWindow::startTabDrag);
+
+    // Accept tab drops over the tab bar
+    m_tabs->tabBar()->installEventFilter(this);
 
     m_tabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tabs->tabBar(), &QTabBar::customContextMenuRequested, this, &QTextPadWindow::tabContextMenu);
@@ -617,21 +667,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
 
     // Set up the editor and status for a clean, empty document
     newDocument();
-
-    // Populate the initial state of actions which need an editor to be present
-    // in order to work properly
-    auto initialEditor = editor();
-    pasteAction->setEnabled(initialEditor->canPaste());
-    wordWrapAction->setChecked(initialEditor->wordWrap());
-    longLineAction->setChecked(initialEditor->showLongLineEdge());
-    indentGuidesAction->setChecked(initialEditor->showIndentGuides());
-    showLineNumbersAction->setChecked(initialEditor->showLineNumbers());
-    showFoldingAction->setChecked(initialEditor->showFolding());
-    showWhitespaceAction->setChecked(initialEditor->showWhitespace());
-    scrollPastEndOfFileAction->setChecked(initialEditor->scrollPastEndOfFile());
-    showCurrentLineAction->setChecked(initialEditor->highlightCurrentLine());
-    showMatchingBraces->setChecked(initialEditor->matchBraces());
-    m_autoIndentAction->setChecked(initialEditor->autoIndent());
+    pasteAction->setEnabled(editor()->canPaste());
 
     resize(settings.windowSize());
 
@@ -657,6 +693,7 @@ QTextPadWindow::QTextPadWindow(QWidget *parent)
     });
 #endif
 
+    m_lastActiveTimeMs = QDateTime::currentMSecsSinceEpoch();
     installEventFilter(this);
 }
 
@@ -669,6 +706,41 @@ QTextPadWindow::~QTextPadWindow()
         tab->undoStack()->disconnect(this);
         tab->editor()->disconnect(this);
     }
+}
+
+QTextPadWindow *QTextPadWindow::createNewWindow(QPoint at)
+{
+    auto win = new QTextPadWindow();
+    win->setAttribute(Qt::WA_DeleteOnClose);
+    if (!at.isNull())
+        win->move(at);
+    win->show();
+    return win;
+}
+
+void QTextPadWindow::bringToFront()
+{
+    if (isMinimized())
+        setWindowState(windowState() & ~Qt::WindowMinimized);
+
+    // Wayland: client can't simply grab focus: hide and re-show, small flicker but reliable
+    if (QGuiApplication::platformName() == QStringLiteral("wayland"))
+        hide();
+
+    raise();
+    show();
+    activateWindow();
+}
+
+QTextPadWindow *QTextPadWindow::lastActiveWindow()
+{
+    auto allWindows = windows();
+    Q_ASSERT(!allWindows.empty());
+    std::partial_sort(allWindows.begin(), allWindows.begin() + 1, allWindows.end(),
+                      [](const QTextPadWindow *a, const QTextPadWindow *b) {
+                          return a->m_lastActiveTimeMs > b->m_lastActiveTimeMs;
+                      });
+    return allWindows.front();
 }
 
 void QTextPadWindow::setOpenFilename(DocumentTab *tab, const QString &filename)
@@ -705,11 +777,22 @@ SyntaxTextEdit *QTextPadWindow::editor() const
     return currentTab()->editor();
 }
 
-QList<SyntaxTextEdit *> QTextPadWindow::editors() const
+QList<QTextPadWindow *> QTextPadWindow::windows(QTextPadWindow *exclude)
+{
+    QList<QTextPadWindow *> result;
+    for (auto topLevel : qApp->topLevelWidgets()) {
+        if (auto window = qobject_cast<QTextPadWindow *>(topLevel); window && window != exclude)
+            result.append(window);
+    }
+    return result;
+}
+
+QList<SyntaxTextEdit *> QTextPadWindow::editors()
 {
     QList<SyntaxTextEdit *> result;
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        result.append(static_cast<DocumentTab *>(m_tabs->widget(i))->editor());
+    for (auto window : windows()) {
+        for (int i = 0; i < window->m_tabs->count(); ++i)
+            result.append(static_cast<DocumentTab *>(window->m_tabs->widget(i))->editor());
     }
     return result;
 }
@@ -723,18 +806,20 @@ static QString normalizedPath(const QString &path)
     return canon.isEmpty() ? fi.absoluteFilePath() : canon;
 }
 
-DocumentTab *QTextPadWindow::findTab(const QString &filename, const DocumentTab *exclude) const
+DocumentTab *QTextPadWindow::findTab(const QString &filename, const DocumentTab *exclude)
 {
     if (filename.isEmpty())
         return Q_NULLPTR;
 
     const QString normName = normalizedPath(filename);
-    for (int i = 0; i < m_tabs->count(); ++i) {
-        auto tab = static_cast<DocumentTab *>(m_tabs->widget(i));
-        if (tab == exclude || tab->filename.isEmpty())
-            continue;
-        if (normalizedPath(tab->filename).compare(normName, FILE_COMPARE_CS) == 0)
-            return tab;
+    for (auto window : windows()) {
+        for (int i = 0; i < window->m_tabs->count(); ++i) {
+            auto tab = static_cast<DocumentTab *>(window->m_tabs->widget(i));
+            if (tab == exclude || tab->filename.isEmpty())
+                continue;
+            if (normalizedPath(tab->filename).compare(normName, FILE_COMPARE_CS) == 0)
+                return tab;
+        }
     }
     return Q_NULLPTR;
 }
@@ -780,48 +865,67 @@ DocumentTab *QTextPadWindow::addDocumentTab()
     connect(textEdit, &SyntaxTextEdit::redoRequested, stack, &QUndoStack::redo);
 
     textEdit->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(textEdit, &QPlainTextEdit::customContextMenuRequested,
-            this, &QTextPadWindow::editorContextMenu);
 
-    // Window-level actions only follow the stack/editor of the active tab
-    connect(stack, &QUndoStack::canUndoChanged, this, [this, tab](bool enabled) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            m_undoAction->setEnabled(enabled);
-    });
-    connect(stack, &QUndoStack::canRedoChanged, this, [this, tab](bool enabled) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            m_redoAction->setEnabled(enabled);
-    });
-    connect(stack, &QUndoStack::cleanChanged, this, [this, tab](bool) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            updateTitle();
-        else
-            updateTabText(tab);
-    });
-    connect(textEdit, &QPlainTextEdit::copyAvailable, this, [this, tab](bool available) {
-        if (m_closing)
-            return;
-        if (tab == currentTab())
-            m_deleteAction->setEnabled(available);
-    });
-    connect(textEdit, &SyntaxTextEdit::cursorPositionChanged,
-            this, &QTextPadWindow::updateCursorPosition);
-    connect(textEdit, &SyntaxTextEdit::selectionChanged,
-            this, &QTextPadWindow::updateCursorPosition);
-    connect(textEdit, &SyntaxTextEdit::textChanged, this, [this] {
-        if (m_searchWidget && m_searchWidget->isVisible())
-            showSearchBar(false);
-    });
+    // Establish window-specific connections
+    reconnectTab(tab);
 
     int tabIndex = m_tabs->addTab(tab, tr("Untitled"));
     addDocumentsMenuItem(tabIndex);
+    m_detachAction->setEnabled(m_tabs->count() > 1);
     return tab;
+}
+
+void QTextPadWindow::reconnectTab(DocumentTab *tab, QTextPadWindow *previous)
+{
+    SyntaxTextEdit *textEdit = tab->editor();
+    QUndoStack *stack = tab->undoStack();
+
+    // Accept tab drops over the editor
+    if (previous)
+        textEdit->viewport()->removeEventFilter(previous);
+    textEdit->viewport()->installEventFilter(this);
+
+    // Window-level actions only follow the stack/editor of the active tab
+    for (auto conn : tab->windowConnections)
+        disconnect(conn);
+    tab->windowConnections.clear();
+
+    tab->windowConnections << connect(textEdit, &QPlainTextEdit::customContextMenuRequested,
+            this, &QTextPadWindow::editorContextMenu);
+
+    tab->windowConnections << connect(stack, &QUndoStack::canUndoChanged, this,
+            [this, tab](bool enabled) {
+                if (tab == currentTab())
+                    m_undoAction->setEnabled(enabled);
+            });
+    tab->windowConnections << connect(stack, &QUndoStack::canRedoChanged, this,
+            [this, tab](bool enabled) {
+                if (tab == currentTab())
+                    m_redoAction->setEnabled(enabled);
+            });
+    tab->windowConnections << connect(stack, &QUndoStack::cleanChanged, this,
+            [this, tab](bool) {
+                if (tab == currentTab())
+                    updateTitle();
+                else
+                    updateTabText(tab);
+            });
+    tab->windowConnections << connect(textEdit, &QPlainTextEdit::copyAvailable, this,
+            [this, tab](bool available) {
+                if (tab == currentTab())
+                    m_deleteAction->setEnabled(available);
+            });
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::cursorPositionChanged,
+            this, &QTextPadWindow::updateCursorPosition);
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::selectionChanged,
+            this, &QTextPadWindow::updateCursorPosition);
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::selectionChanged,
+            this, &QTextPadWindow::updateCursorPosition);
+    tab->windowConnections << connect(textEdit, &SyntaxTextEdit::textChanged, this,
+            [this] {
+                if (m_searchWidget->isVisible())
+                    showSearchBar(false);
+            });
 }
 
 void QTextPadWindow::updateTabText(DocumentTab *tab)
@@ -843,9 +947,109 @@ void QTextPadWindow::updateTabText(DocumentTab *tab)
         actions.at(index)->setText(name);
 }
 
+void QTextPadWindow::startTabDrag(int index, const QPixmap &preview)
+{
+    auto tab = static_cast<DocumentTab *>(m_tabs->widget(index));
+    if (!tab)
+        return;
+
+    QByteArray tabData;
+    {
+        QDataStream tabStream(&tabData, QIODevice::ReadWrite);
+        tabStream << QCoreApplication::applicationPid();
+        tabStream << reinterpret_cast<quintptr>(this);
+        tabStream << reinterpret_cast<quintptr>(tab);
+    }
+
+    auto mime = new QMimeData;
+    mime->setData(s_tabMime, tabData);
+
+    auto drag = new QDrag(this);
+    drag->setMimeData(mime);
+    drag->setPixmap(preview);
+    drag->setHotSpot(QPoint(preview.width() / 2, preview.height() / 2));
+
+    // Only a MoveAction means another window really took the document
+    if (drag->exec(Qt::MoveAction) == Qt::IgnoreAction && !drag->target()) {
+        // Check if we dropped the tab outside of the current window, and
+        // detach the tab if so.
+        const QPoint dropPosition = QCursor::pos();
+        const QRect frameRect = window()->frameGeometry();
+        if (!frameRect.contains(dropPosition)) {
+            const QRect tabRect = m_tabs->tabBar()->tabRect(0);
+            const QPoint tabPos = m_tabs->tabBar()->mapToGlobal(QPoint())
+                                    - frameRect.topLeft() + tabRect.center();
+            QPoint winPos = dropPosition - tabPos;
+
+            QScreen *targetScreen = QGuiApplication::screenAt(dropPosition);
+            if (targetScreen) {
+                const QRect screenRect = targetScreen->availableGeometry();
+                const QSize winSize = frameRect.size();
+
+                const int maxX = std::max(screenRect.left(), screenRect.right() - winSize.width() + 1);
+                const int maxY = std::max(screenRect.top(), screenRect.bottom() - winSize.height() + 1);
+                winPos.setX(std::clamp(winPos.x(), screenRect.left(), maxX));
+                winPos.setY(std::clamp(winPos.y(), screenRect.top(), maxY));
+            }
+
+            detachTab(index, winPos);
+        }
+    }
+}
+
+bool QTextPadWindow::handleTabDrag(QDropEvent *event)
+{
+    const QMimeData *mimeData = event->mimeData();
+    if (!mimeData->hasFormat(s_tabMime))
+        return false;
+
+    qint64 hostPid = 0;
+    QTextPadWindow *hostWindow = Q_NULLPTR;
+    DocumentTab *tab = Q_NULLPTR;
+    {
+        QDataStream tabStream(mimeData->data(s_tabMime));
+        tabStream >> hostPid;
+        tabStream >> reinterpret_cast<quintptr &>(hostWindow);
+        tabStream >> reinterpret_cast<quintptr &>(tab);
+    }
+
+    // We only support moving tabs within an application instance.
+    if (hostPid != QCoreApplication::applicationPid() || hostWindow == this) {
+        event->ignore();
+        return true;
+    }
+
+    if (event->type() == QEvent::Drop) {
+        const bool lastHostTab = hostWindow->m_tabs->count() == 1;
+        if (lastHostTab) {
+            // Ensure an empty tab is present in the host window, before
+            // removing the last tab.  This can probably be removed if
+            // QTextPadWindow is updated to gracefully handle the case of
+            // having zero editor tabs...
+            hostWindow->addDocumentTab();
+        }
+
+        // Move the tab to this window.  We don't need to explicitly remove the
+        // detached tab from the host window, since Qt will do that for us automatically.
+        m_tabs->addTab(tab, QString());
+        updateTabText(tab);
+        reconnectTab(tab, hostWindow);
+        m_tabs->setCurrentWidget(tab);
+
+        updateDocumentsMenu();
+        if (lastHostTab)
+            hostWindow->close();
+        else
+            hostWindow->updateDocumentsMenu();
+    }
+
+    event->acceptProposedAction();
+    return true;
+}
+
 void QTextPadWindow::currentTabChanged(int index)
 {
-    if (index < 0)
+    if (index < 0 || m_closing)
         return;
 
     DocumentTab *tab = currentTab();
@@ -875,7 +1079,6 @@ void QTextPadWindow::currentTabChanged(int index)
     updateSyntaxStatus(syntax);
 
     updateCursorPosition();
-    updateIndentStatus();
     updateTitle();
     textEdit->setFocus(Qt::OtherFocusReason);
 
@@ -883,7 +1086,7 @@ void QTextPadWindow::currentTabChanged(int index)
     if (index < tabActions.count())
         tabActions.at(index)->setChecked(true);
 
-    if (!m_closing && QApplication::applicationState() == Qt::ApplicationActive)
+    if (QApplication::applicationState() == Qt::ApplicationActive)
         checkForModifications();
 }
 
@@ -959,28 +1162,59 @@ void QTextPadWindow::closeOtherTabs()
         m_tabs->setCurrentIndex(0);
 }
 
-bool QTextPadWindow::openDocument(const QString &filename, const QString &textEncoding)
+void QTextPadWindow::detachTab(int index, QPoint at)
+{
+    Q_ASSERT(index >= 0 && index < m_tabs->count());
+    if (m_tabs->count() == 1)
+        return;
+
+    auto win = createNewWindow(at);
+    auto tab = static_cast<DocumentTab *>(m_tabs->widget(index));
+
+    // The new window has an empty document tab by default...  We need to remove
+    // that tab, but only after we attach the moved tab so the tab widget is
+    // never empty.  We don't need to explicitly remove the detached tab
+    // from the current window, since Qt will do that for us automatically.
+    auto stubTab = win->m_tabs->widget(0);
+    Q_ASSERT(stubTab);
+
+    win->m_tabs->addTab(tab, QString());
+    win->updateTabText(tab);
+    win->reconnectTab(tab, this);
+    win->m_tabs->setCurrentWidget(tab);
+    win->m_tabs->removeTab(win->m_tabs->indexOf(stubTab));
+    stubTab->deleteLater();
+
+    updateDocumentsMenu();
+    win->updateDocumentsMenu();
+}
+
+bool QTextPadWindow::openDocument(const QString &filename, int line, int column,
+        const QString &textEncoding, const QString &syntaxDef)
 {
     if (DocumentTab *existing = findTab(filename)) {
-        m_tabs->setCurrentWidget(existing);
+        auto window = qobject_cast<QTextPadWindow *>(existing->window());
+        window->m_tabs->setCurrentWidget(existing);
+        window->bringToFront();
         return true;
     }
 
     // Reuse the current tab if it is just an empty, untouched "Untitled"
-    DocumentTab *previous = currentTab();
-    if (previous->filename.isEmpty() && !isDocumentModified()
+    auto window = lastActiveWindow();
+    DocumentTab *previous = window->currentTab();
+    if (previous->filename.isEmpty() && !window->isDocumentModified()
             && previous->editor()->document()->isEmpty()) {
-        return loadDocumentFrom(filename, textEncoding);
+        return window->loadDocumentFrom(filename, line, column, textEncoding, syntaxDef);
     }
 
-    DocumentTab *tab = addDocumentTab();
-    m_tabs->setCurrentWidget(tab);
-    if (loadDocumentFrom(filename, textEncoding))
+    DocumentTab *tab = window->addDocumentTab();
+    window->m_tabs->setCurrentWidget(tab);
+    if (window->loadDocumentFrom(filename, line, column, textEncoding, syntaxDef))
         return true;
 
     // Loading failed or was cancelled -- don't leave an empty tab behind
-    m_tabs->setCurrentWidget(previous);
-    m_tabs->removeTab(m_tabs->indexOf(tab));
+    window->m_tabs->setCurrentWidget(previous);
+    window->m_tabs->removeTab(window->m_tabs->indexOf(tab));
     tab->deleteLater();
     return false;
 }
@@ -1062,14 +1296,16 @@ void QTextPadWindow::setEditorTheme(const KSyntaxHighlighting::Theme &theme)
         ed->setTheme(theme);
 
     // Update the menus when this is triggered via other callers
-    for (const auto &action : m_themeActions->actions()) {
-        if (!action->data().canConvert<KSyntaxHighlighting::Theme>())
-            continue;
+    for (auto win : windows()) {
+        for (const auto &action : win->m_themeActions->actions()) {
+            if (!action->data().canConvert<KSyntaxHighlighting::Theme>())
+                continue;
 
-        const auto actionTheme = action->data().value<KSyntaxHighlighting::Theme>();
-        if (actionTheme.filePath() == theme.filePath()) {
-            action->setChecked(true);
-            break;
+            const auto actionTheme = action->data().value<KSyntaxHighlighting::Theme>();
+            if (actionTheme.filePath() == theme.filePath()) {
+                action->setChecked(true);
+                break;
+            }
         }
     }
 
@@ -1078,10 +1314,10 @@ void QTextPadWindow::setEditorTheme(const KSyntaxHighlighting::Theme &theme)
 
 void QTextPadWindow::setDefaultEditorTheme()
 {
-    for (auto ed : editors()) {
+    for (auto ed : editors())
         ed->setDefaultTheme();
-    }
-    m_defaultThemeAction->setChecked(true);
+    for (auto win : windows())
+        win->m_defaultThemeAction->setChecked(true);
     QTextPadSettings().clearEditorTheme();
 }
 
@@ -1127,12 +1363,13 @@ void QTextPadWindow::setOverwriteMode(bool overwrite)
 
 void QTextPadWindow::setAutoIndent(bool ai)
 {
-    for (auto ed : editors()) {
-        ed->setAutoIndent(ai);
-    }
-    m_autoIndentAction->setChecked(ai);
+    for (auto editor : editors())
+        editor->setAutoIndent(ai);
     QTextPadSettings().setAutoIndent(ai);
-    updateIndentStatus();
+    for (auto win : windows()) {
+        win->m_autoIndentAction->setChecked(ai);
+        win->updateIndentStatus();
+    }
 }
 
 void QTextPadWindow::setLineEndingMode(FileTypeInfo::LineEndingType mode)
@@ -1230,15 +1467,26 @@ bool QTextPadWindow::saveDocumentTo(const QString &filename)
     return true;
 }
 
-bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &textEncoding)
+bool QTextPadWindow::loadDocumentFrom(const QString &filename, int line, int column,
+        const QString &textEncoding, const QString &syntaxDef)
 {
+    auto syntaxRepo = SyntaxTextEdit::syntaxRepo();
+    KSyntaxHighlighting::Definition definition;
+    if (!syntaxDef.isEmpty()) {
+        definition = syntaxRepo->definitionForName(syntaxDef);
+        if (!definition.isValid()) {
+            qDebug("%s", qPrintable(tr("Invalid syntax definition specified: '%1'")
+                            .arg(syntaxDef)));
+        }
+    }
+
     QFile file(filename);
     if (!file.exists()) {
         // Creating a new file
         resetEditor();
 
-        KSyntaxHighlighting::Definition definition =
-                SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
+        if (!definition.isValid())
+            definition = syntaxRepo->definitionForFileName(filename);
         if (definition.isValid())
             setSyntax(definition);
 
@@ -1298,8 +1546,7 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     textEdit->setPlainText(document);
     textEdit->document()->clearUndoRedoStacks();
 
-    KSyntaxHighlighting::Definition definition;
-    if (!fileModes.syntax.isEmpty())
+    if (!definition.isValid() && !fileModes.syntax.isEmpty())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForName(fileModes.syntax);
     if (!definition.isValid())
         definition = SyntaxTextEdit::syntaxRepo()->definitionForFileName(filename);
@@ -1309,11 +1556,14 @@ bool QTextPadWindow::loadDocumentFrom(const QString &filename, const QString &te
     if (definition.isValid())
         setSyntax(definition);
 
-    if (fileModes.lineNum > 0)
+    if (line > 0)
+        gotoLine(line, column);
+    else if (fileModes.lineNum > 0)
         gotoLine(fileModes.lineNum);
 
     setOpenFilename(filename);
-    QTextPadSettings::setFileModes(filename, tab->textEncoding, definition.name(), fileModes.lineNum);
+    QTextPadSettings::setFileModes(filename, tab->textEncoding, definition.name(),
+                                   line > 0 ? line : fileModes.lineNum);
     QTextPadSettings().addRecentFile(filename);
     populateRecentFiles();
 
@@ -1538,7 +1788,7 @@ void QTextPadWindow::reloadDocumentEncoding(const QString &textEncoding)
     Q_ASSERT(documentExists());
 
     const QString oldEncoding = currentTab()->textEncoding;
-    if (!promptForDiscard() || !loadDocumentFrom(currentTab()->filename, textEncoding))
+    if (!promptForDiscard() || !loadDocumentFrom(currentTab()->filename, -1, -1, textEncoding))
         setEncoding(oldEncoding);
 }
 
@@ -1672,10 +1922,10 @@ void QTextPadWindow::nextLineEndingMode()
 
 void QTextPadWindow::updateIndentStatus()
 {
-    SyntaxTextEdit *textEdit = editor();
-    const int tabWidth = textEdit->tabWidth();
-    const int indentWidth = textEdit->indentWidth();
-    const auto indentMode = textEdit->indentationMode();
+    QTextPadSettings settings;
+    const int tabWidth = settings.tabWidth();
+    const int indentWidth = settings.indentWidth();
+    const int indentMode = settings.indentMode();
 
     QString description;
     switch (indentMode) {
@@ -1804,7 +2054,8 @@ void QTextPadWindow::promptIndentSettings()
     if (dialog->exec() == QDialog::Accepted) {
         dialog->applySettings(editor());
         syncIndentSettings();
-        updateIndentStatus();
+        for (auto win : windows())
+            win->updateIndentStatus();
     }
 }
 
@@ -1850,9 +2101,13 @@ void QTextPadWindow::navigateToLine()
 
 void QTextPadWindow::toggleFilePath(bool show)
 {
-    m_showFilePath = show;
     QTextPadSettings().setShowFilePath(show);
-    updateTitle();
+    for (auto win : windows()) {
+        win->m_showFilePath = show;
+        QSignalBlocker blocker(win->m_showFilePathAction);
+        win->m_showFilePathAction->setChecked(show);
+        win->updateTitle();
+    }
 }
 
 void QTextPadWindow::insertDateTime(QLocale::FormatType type)
@@ -2020,13 +2275,33 @@ void QTextPadWindow::closeEvent(QCloseEvent *event)
 
 bool QTextPadWindow::eventFilter(QObject *obj, QEvent *event)
 {
-    if (m_searchWidget->isVisible() && event->type() == QEvent::KeyPress) {
-        auto keyEvent = static_cast<QKeyEvent*>(event);
-        if (keyEvent->key() == Qt::Key_Escape) {
-            showSearchBar(false);
-            return true;
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove:
+    case QEvent::Drop:
+        {
+            // QDragEnterEvent and QDragMoveEvent both inherit QDropEvent
+            auto dropEvent = static_cast<QDropEvent *>(event);
+            if (handleTabDrag(dropEvent))
+                return true;
         }
+        break;
+    case QEvent::KeyPress:
+        if (m_searchWidget->isVisible()) {
+            auto keyEvent = static_cast<QKeyEvent*>(event);
+            if (keyEvent->key() == Qt::Key_Escape) {
+                showSearchBar(false);
+                return true;
+            }
+        }
+        break;
+    case QEvent::WindowActivate:
+        m_lastActiveTimeMs = QDateTime::currentMSecsSinceEpoch();
+        break;
+    default:
+        break;
     }
+
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -2039,7 +2314,7 @@ void QTextPadWindow::populateRecentFiles()
         QFileInfo info(recent);
         const QString label = QStringLiteral("%1 [%2]").arg(info.fileName(), info.absolutePath());
         auto recentFileAction = m_recentFiles->addAction(label);
-        connect(recentFileAction, &QAction::triggered, this, [this, recent] {
+        connect(recentFileAction, &QAction::triggered, this, [recent] {
             openDocument(recent);
         });
     }
@@ -2102,7 +2377,7 @@ void QTextPadWindow::populateThemeMenu()
     m_defaultThemeAction = m_themeMenu->addAction(tr("Automatic"));
     m_defaultThemeAction->setCheckable(true);
     m_defaultThemeAction->setActionGroup(m_themeActions);
-    connect(m_defaultThemeAction, &QAction::triggered, this, [this] { setDefaultEditorTheme(); });
+    connect(m_defaultThemeAction, &QAction::triggered, this, [] { setDefaultEditorTheme(); });
     m_themeMenu->addSeparator();
 
     KSyntaxHighlighting::Repository *syntaxRepo = SyntaxTextEdit::syntaxRepo();
@@ -2117,7 +2392,7 @@ void QTextPadWindow::populateThemeMenu()
         item->setCheckable(true);
         item->setActionGroup(m_themeActions);
         item->setData(QVariant::fromValue(theme));
-        connect(item, &QAction::triggered, this, [this, theme] { setEditorTheme(theme); });
+        connect(item, &QAction::triggered, this, [theme] { setEditorTheme(theme); });
     }
 }
 
@@ -2187,13 +2462,13 @@ void QTextPadWindow::populateIndentButtonMenu()
     for (auto action : m_tabWidthActions->actions()) {
         if (action == tabWidthOtherAction)
             continue;
-        connect(action, &QAction::triggered, this, [this, action] {
+        connect(action, &QAction::triggered, this, [action] {
             const int width = action->data().toInt();
-            for (auto ed : editors()) {
+            for (auto ed : editors())
                 ed->setTabWidth(width);
-            }
             QTextPadSettings().setTabWidth(width);
-            updateIndentStatus();
+            for (auto win : windows())
+                win->updateIndentStatus();
         });
     }
     connect(tabWidthOtherAction, &QAction::triggered,
@@ -2227,13 +2502,13 @@ void QTextPadWindow::populateIndentButtonMenu()
     for (auto action : m_indentWidthActions->actions()) {
         if (action == indentWidthOtherAction)
             continue;
-        connect(action, &QAction::triggered, this, [this, action] {
+        connect(action, &QAction::triggered, this, [action] {
             const int width = action->data().toInt();
-            for (auto ed : editors()) {
+            for (auto ed : editors())
                 ed->setIndentWidth(width);
-            }
             QTextPadSettings().setIndentWidth(width);
-            updateIndentStatus();
+            for (auto win : windows())
+                win->updateIndentStatus();
         });
     }
     connect(indentWidthOtherAction, &QAction::triggered,
@@ -2262,13 +2537,13 @@ void QTextPadWindow::populateIndentButtonMenu()
     indentMixedAction->setData(static_cast<int>(SyntaxTextEdit::IndentMixed));
 
     for (auto action : m_indentModeActions->actions()) {
-        connect(action, &QAction::triggered, this, [this, action] {
+        connect(action, &QAction::triggered, this, [action] {
             const int mode = action->data().toInt();
-            for (auto ed : editors()) {
+            for (auto ed : editors())
                 ed->setIndentationMode(mode);
-            }
             QTextPadSettings().setIndentMode(mode);
-            updateIndentStatus();
+            for (auto win : windows())
+                win->updateIndentStatus();
         });
     }
 
@@ -2283,6 +2558,7 @@ void QTextPadWindow::populateIndentButtonMenu()
             m_autoIndentAction, &QAction::trigger);
 
     m_indentButton->setMenu(indentMenu);
+    updateIndentStatus();
 }
 
 void QTextPadWindow::addDocumentsMenuItem(int tabIndex)
@@ -2312,4 +2588,6 @@ void QTextPadWindow::updateDocumentsMenu()
 
     for (int i = 0; i < m_tabs->count(); ++i)
         addDocumentsMenuItem(i);
+
+    m_detachAction->setEnabled(m_tabs->count() > 1);
 }

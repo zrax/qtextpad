@@ -68,12 +68,13 @@ public:
 
     SIMPLE_SETTING(int, "Editor/TabWidth", tabWidth, setTabWidth, 4)
     SIMPLE_SETTING(int, "Editor/IndentWidth", indentWidth, setIndentWidth, 4)
-    // -1 or any other invalid value will trigger the setting of the default
-    SIMPLE_SETTING(int, "Editor/IndentMode", indentMode, setIndentMode, -1)
     SIMPLE_SETTING(bool, "Editor/AutoIndent", autoIndent, setAutoIndent, true)
 
     SIMPLE_SETTING(bool, "Editor/ScrollPastEndOfFile", scrollPastEndOfFile,
                    setScrollPastEndOfFile, false)
+
+    int indentMode() const;
+    void setIndentMode(int mode) { m_settings.setValue(QStringLiteral("Editor/IndentMode"), mode); }
 
     QFont editorFont() const;
     void setEditorFont(const QFont &font);
